@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>SMPC Party</title>
+<title>SMPC Insurer</title>
 <style>
   :root {
     --bg:#0b0f17; --panel:#141a24; --panel-2:#1b2230; --border:#283141;
@@ -80,7 +80,7 @@
   <div class="header">
     <div class="badge" id="badge">?</div>
     <div>
-      <h1>Party <span id="roleName" class="accent">?</span></h1>
+      <h1>Insurer <span id="roleName" class="accent">?</span></h1>
       <div class="sub">Your claim never leaves this browser. You only send a <em>masked share</em> to the coordinator.</div>
     </div>
   </div>
@@ -121,7 +121,7 @@
   document.body.classList.add('role-' + ROLE);
   document.getElementById('badge').textContent = ROLE;
   document.getElementById('roleName').textContent = ROLE;
-  document.title = `Party ${ROLE} — SMPC`;
+  document.title = `Insurer ${ROLE} — SMPC`;
 
   const OTHERS = PARTIES.filter(p => p !== ROLE);
   // For pair (i, j) with i < j: i generates r_ij (outgoing), j receives it (incoming).
@@ -179,7 +179,7 @@
       outgoingMasks[to] = mask;
       logLine('exchangeLog', `Generated r<sub>${ROLE}${to}</sub> = <span class="mono">${mask}</span>`);
       await apiPost('/api/mask', { from: ROLE, to: to, value: mask.toString() });
-      logLine('exchangeLog', `→ Sent r<sub>${ROLE}${to}</sub> to Party ${to}.`, 'ok');
+      logLine('exchangeLog', `→ Sent r<sub>${ROLE}${to}</sub> to Insurer ${to}.`, 'ok');
     }
 
     const incomingMasks = {};
@@ -231,7 +231,7 @@
     document.getElementById('submitBody').innerHTML = `
       <div class="log"><div class="line ok">→ Submitted s<sub>${ROLE}</sub> to the aggregator.</div></div>
       <div class="done-banner">
-        Done. You can close this tab. The aggregator can compute the average once all three parties have submitted.
+        Done. You can close this tab. The aggregator can compute the average once all three insurers have submitted.
       </div>
     `;
   }
