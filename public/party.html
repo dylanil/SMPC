@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>SMPC Party</title>
+<style>
+  :root {
+    --bg:#0b0f17; --panel:#141a24; --panel-2:#1b2230; --border:#283141;
+    --text:#e6edf3; --muted:#8a97a8;
+    --a:#6ea8ff; --b:#ffb26e; --c:#8af0a5;
+    --danger:#ff7a8a; --ok:#69d58a;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; padding:28px; font-family:'Segoe UI',-apple-system,sans-serif;
+         background:var(--bg); color:var(--text); line-height:1.5; }
+  .wrap { max-width:760px; margin:0 auto; }
+
+  .header { display:flex; align-items:center; gap:14px; margin-bottom:6px; }
+  .badge {
+    width:44px; height:44px; border-radius:10px; display:flex;
+    align-items:center; justify-content:center; font-size:22px; font-weight:700;
+    color:#0b0f17;
+  }
+  body.role-A .badge { background:var(--a); } body.role-A .accent { color:var(--a); }
+  body.role-B .badge { background:var(--b); } body.role-B .accent { color:var(--b); }
+  body.role-C .badge { background:var(--c); } body.role-C .accent { color:var(--c); }
+  body.role-A input:focus { border-color:var(--a); }
+  body.role-B input:focus { border-color:var(--b); }
+  body.role-C input:focus { border-color:var(--c); }
+  body.role-A .go { background:var(--a); } body.role-B .go { background:var(--b); } body.role-C .go { background:var(--c); }
+
+  h1 { margin:0; font-size:22px; }
+  .sub { color:var(--muted); font-size:13px; margin-bottom:22px; }
+
+  .card {
+    background:var(--panel); border:1px solid var(--border); border-radius:10px;
+    padding:18px 20px; margin-bottom:14px;
+  }
+  .card h3 { margin:0 0 10px; font-size:13px; color:var(--muted);
+             text-transform:uppercase; letter-spacing:.05em; font-weight:600; }
+  .card.muted { opacity:.45; }
+
+  label { font-size:12px; color:var(--muted); display:block; margin-bottom:6px; }
+  input[type=number] {
+    width:100%; padding:12px 14px; background:var(--panel-2);
+    border:1px solid var(--border); border-radius:6px; color:var(--text);
+    font-size:18px; font-family:inherit;
+  }
+
+  .go {
+    padding:12px 22px; color:#0b0f17; border:none; border-radius:6px;
+    font-weight:600; font-size:14px; cursor:pointer; font-family:inherit;
+    margin-top:14px;
+  }
+  .go:disabled { opacity:.4; cursor:not-allowed; }
+
+  .log { font-family:Consolas,monospace; font-size:12.5px; }
+  .log .line { padding:3px 0; }
+  .log .ok { color:var(--ok); }
+  .log .warn { color:var(--muted); }
+  .mono { font-family:Consolas,monospace; font-size:12.5px; word-break:break-all; }
+  .secret { color:var(--danger); }
+  .masked { color:var(--ok); }
+  .kv { display:grid; grid-template-columns:max-content 1fr; gap:8px 14px; font-size:13px; }
+  .kv .k { color:var(--muted); }
+  .pill {
+    display:inline-block; padding:2px 8px; border-radius:10px; font-size:11px;
+    background:var(--panel-2); color:var(--muted); margin-left:8px;
+  }
+  .done-banner {
+    margin-top:14px; padding:12px 14px; background:rgba(105,213,138,.08);
+    border:1px solid rgba(105,213,138,.35); border-radius:6px;
+    color:var(--ok); font-size:13px;
+  }
+  a { color:var(--muted); font-size:12px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="header">
+    <div class="badge" id="badge">?</div>
+    <div>
+      <h1>Party <span id="roleName" class="accent">?</span></h1>
+      <div class="sub">Your claim never leaves this browser. You only send a <em>masked share</em> to the coordinator.</div>
+    </div>
+  </div>
+
+  <div class="card" id="inputCard">
+    <h3>Step 1 — Enter your private claim</h3>
+    <label>Private claim <span class="pill">stays local</span></label>
+    <input type="number" id="numInput" step="any" placeholder="e.g. 42" autofocus>
+    <button class="go" id="startBtn">Start Protocol</button>
+  </div>
+
+  <div class="card muted" id="exchangeCard">
+    <h3>Step 2 — Pairwise Mask Exchange</h3>
+    <div id="exchangeLog" class="log"></div>
+  </div>
+
+  <div class="card muted" id="computeCard">
+    <h3>Step 3 — Compute Masked Share Locally</h3>
+    <div id="computeBody"></div>
+  </div>
+
+  <div class="card muted" id="submitCard">
+    <h3>Step 4 — Submit Masked Share</h3>
+    <div id="submitBody"></div>
+  </div>
+
+  <a href="/">← back to home</a>
+</div>
+
+<script>
+  const PARTIES = ['A', 'B', 'C'];
+  const SCALE = 1000000n;
+
+  // Determine role from URL path: /party/a -> A
+  const m = location.pathname.match(/\/party\/([abc])/i);
+  if (!m) { document.body.innerHTML = '<p style="color:#ff7a8a;padding:40px">Invalid party URL.</p>'; throw new Error('bad role'); }
+  const ROLE = m[1].toUpperCase();
+  document.body.classList.add('role-' + ROLE);
+  document.getElementById('badge').textContent = ROLE;
+  document.getElementById('roleName').textContent = ROLE;
+  document.title = `Party ${ROLE} — SMPC`;
+
+  const OTHERS = PARTIES.filter(p => p !== ROLE);
+  // For pair (i, j) with i < j: i generates r_ij (outgoing), j receives it (incoming).
+  const OUTGOING = OTHERS.filter(p => ROLE < p);
+  const INCOMING = OTHERS.filter(p => ROLE > p);
+
+  function randomMask() {
+    const buf = new Uint32Array(2);
+    crypto.getRandomValues(buf);
+    const u = (BigInt(buf[0]) << 32n) | BigInt(buf[1]);
+    return u >= (1n << 63n) ? u - (1n << 64n) : u;
+  }
+  const toFixed = x => BigInt(Math.round(x * Number(SCALE)));
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+  function logLine(containerId, html, cls='') {
+    const el = document.getElementById(containerId);
+    const div = document.createElement('div');
+    div.className = 'line ' + cls;
+    div.innerHTML = html;
+    el.appendChild(div);
+  }
+
+  async function apiPost(url, body) {
+    const r = await fetch(url, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(body),
+    });
+    if (!r.ok) throw new Error(await r.text());
+    return r.json();
+  }
+  async function apiGet(url) {
+    const r = await fetch(url);
+    if (!r.ok) throw new Error(await r.text());
+    return r.json();
+  }
+
+  async function start() {
+    const raw = document.getElementById('numInput').value;
+    if (raw === '' || Number.isNaN(parseFloat(raw))) {
+      alert('Please enter a claim.'); return;
+    }
+    const x = parseFloat(raw);
+    const xFixed = toFixed(x);
+    document.getElementById('startBtn').disabled = true;
+    document.getElementById('numInput').disabled = true;
+
+    // === Step 2: mask exchange ===
+    document.getElementById('exchangeCard').classList.remove('muted');
+    logLine('exchangeLog', `Role <b class="accent">${ROLE}</b>. Outgoing pairs: [${OUTGOING.map(p=>ROLE+p).join(', ')||'—'}]. Incoming pairs: [${INCOMING.map(p=>p+ROLE).join(', ')||'—'}].`, 'warn');
+
+    const outgoingMasks = {};
+    for (const to of OUTGOING) {
+      const mask = randomMask();
+      outgoingMasks[to] = mask;
+      logLine('exchangeLog', `Generated r<sub>${ROLE}${to}</sub> = <span class="mono">${mask}</span>`);
+      await apiPost('/api/mask', { from: ROLE, to: to, value: mask.toString() });
+      logLine('exchangeLog', `→ Sent r<sub>${ROLE}${to}</sub> to Party ${to}.`, 'ok');
+    }
+
+    const incomingMasks = {};
+    if (INCOMING.length > 0) {
+      logLine('exchangeLog', `Waiting for incoming masks from [${INCOMING.join(', ')}]…`, 'warn');
+      while (Object.keys(incomingMasks).length < INCOMING.length) {
+        const { masks } = await apiGet('/api/masks?for=' + ROLE);
+        for (const item of masks) {
+          if (!(item.from in incomingMasks) && INCOMING.includes(item.from)) {
+            incomingMasks[item.from] = BigInt(item.value);
+            logLine('exchangeLog', `← Received r<sub>${item.from}${ROLE}</sub> = <span class="mono">${item.value}</span>`, 'ok');
+          }
+        }
+        if (Object.keys(incomingMasks).length < INCOMING.length) await sleep(400);
+      }
+    }
+
+    // === Step 3: compute masked share ===
+    document.getElementById('computeCard').classList.remove('muted');
+    let share = xFixed;
+    const parts = [`<span class="secret">[hidden x<sub>${ROLE}</sub>]</span>`];
+    for (const [to, mask] of Object.entries(outgoingMasks)) {
+      share += mask;
+      parts.push(`+ r<sub>${ROLE}${to}</sub>`);
+    }
+    for (const [frm, mask] of Object.entries(incomingMasks)) {
+      share -= mask;
+      parts.push(`− r<sub>${frm}${ROLE}</sub>`);
+    }
+
+    document.getElementById('computeBody').innerHTML = `
+      <div class="kv">
+        <div class="k">Your claim x<sub>${ROLE}</sub>:</div>
+        <div class="mono secret">kept local — never transmitted</div>
+        <div class="k">Formula:</div>
+        <div class="mono">s<sub>${ROLE}</sub> = ${parts.join(' ')}</div>
+        <div class="k">Masked share s<sub>${ROLE}</sub>:</div>
+        <div class="mono masked">${share.toString()}</div>
+      </div>
+      <div style="margin-top:10px; font-size:12px; color:var(--muted); font-style:italic;">
+        This number is indistinguishable from random — it reveals nothing about x<sub>${ROLE}</sub> unless the masks are also known.
+      </div>
+    `;
+
+    // === Step 4: submit masked share ===
+    await sleep(250);
+    document.getElementById('submitCard').classList.remove('muted');
+    await apiPost('/api/share', { party: ROLE, share: share.toString() });
+    document.getElementById('submitBody').innerHTML = `
+      <div class="log"><div class="line ok">→ Submitted s<sub>${ROLE}</sub> to the aggregator.</div></div>
+      <div class="done-banner">
+        Done. You can close this tab. The aggregator can compute the average once all three parties have submitted.
+      </div>
+    `;
+  }
+
+  document.getElementById('startBtn').addEventListener('click', () => {
+    start().catch(err => {
+      alert('Error: ' + err.message);
+      document.getElementById('startBtn').disabled = false;
+      document.getElementById('numInput').disabled = false;
+    });
+  });
+</script>
+</body>
+</html>

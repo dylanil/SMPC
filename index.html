@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>SMPC Average — Pairwise OTP Masking</title>
+<style>
+  :root {
+    --bg: #0b0f17;
+    --panel: #141a24;
+    --panel-2: #1b2230;
+    --border: #283141;
+    --text: #e6edf3;
+    --muted: #8a97a8;
+    --accent-a: #6ea8ff;
+    --accent-b: #ffb26e;
+    --accent-c: #8af0a5;
+    --danger: #ff7a8a;
+    --ok: #69d58a;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    padding: 24px;
+    line-height: 1.5;
+  }
+  h1 {
+    margin: 0 0 4px;
+    font-size: 22px;
+    font-weight: 600;
+  }
+  .subtitle {
+    color: var(--muted);
+    font-size: 13px;
+    margin-bottom: 24px;
+  }
+  .container { max-width: 1200px; margin: 0 auto; }
+
+  .parties {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+  .party {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+  }
+  .party h2 {
+    margin: 0 0 12px;
+    font-size: 15px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    display: inline-block;
+  }
+  .party.a .dot { background: var(--accent-a); }
+  .party.b .dot { background: var(--accent-b); }
+  .party.c .dot { background: var(--accent-c); }
+
+  .party label { font-size: 12px; color: var(--muted); display:block; margin-bottom: 4px; }
+  .party input[type=number] {
+    width: 100%;
+    padding: 10px 12px;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-size: 16px;
+    font-family: inherit;
+  }
+  .party input[type=number]:focus {
+    outline: none;
+    border-color: var(--accent-a);
+  }
+
+  .actions {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  button {
+    padding: 10px 18px;
+    background: var(--accent-a);
+    color: #0b0f17;
+    border: none;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  button:hover { filter: brightness(1.1); }
+  button.ghost {
+    background: transparent;
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+  button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .step {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin-bottom: 12px;
+    opacity: 0.45;
+    transition: opacity 0.3s;
+  }
+  .step.active { opacity: 1; border-color: var(--accent-a); }
+  .step.done { opacity: 1; }
+  .step h3 {
+    margin: 0 0 10px;
+    font-size: 14px;
+    color: var(--muted);
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .step .body { font-size: 14px; }
+
+  .mask-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-top: 10px;
+  }
+  .mask-card {
+    background: var(--panel-2);
+    padding: 12px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+  }
+  .mask-card .pair {
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 4px;
+  }
+  .mask-card .value {
+    font-family: 'Consolas', monospace;
+    font-size: 13px;
+    word-break: break-all;
+  }
+
+  .share-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-top: 10px;
+  }
+  .share-card {
+    background: var(--panel-2);
+    padding: 12px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+  }
+  .share-card.a { border-left: 3px solid var(--accent-a); }
+  .share-card.b { border-left: 3px solid var(--accent-b); }
+  .share-card.c { border-left: 3px solid var(--accent-c); }
+  .share-card .label { font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+  .share-card .formula {
+    font-family: 'Consolas', monospace;
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+  .share-card .value {
+    font-family: 'Consolas', monospace;
+    font-size: 14px;
+    word-break: break-all;
+  }
+  .secret { color: var(--danger); }
+  .masked { color: var(--ok); }
+
+  .aggregate {
+    background: var(--panel-2);
+    padding: 14px;
+    border-radius: 6px;
+    font-family: 'Consolas', monospace;
+    font-size: 13px;
+    margin-top: 10px;
+    word-break: break-all;
+  }
+  .aggregate .line { margin: 4px 0; }
+  .aggregate .sum { color: var(--ok); font-weight: 600; }
+
+  .result {
+    background: linear-gradient(135deg, #1b2230 0%, #243144 100%);
+    border: 1px solid var(--accent-a);
+    border-radius: 10px;
+    padding: 20px;
+    margin-top: 12px;
+    text-align: center;
+  }
+  .result .avg-label {
+    font-size: 12px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .result .avg-value {
+    font-size: 36px;
+    font-weight: 700;
+    margin-top: 6px;
+    color: var(--accent-a);
+  }
+
+  .note {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 8px;
+    font-style: italic;
+  }
+  .hidden { display: none; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>Secure Multi-Party Average (3 Parties)</h1>
+  <div class="subtitle">Computes the average of three private numbers using pairwise one-time-pad masks. Raw inputs never leave their party — only masked shares are aggregated.</div>
+
+  <div class="parties">
+    <div class="party a">
+      <h2><span class="dot"></span>Party A</h2>
+      <label>Private number</label>
+      <input type="number" id="inA" step="any" value="42">
+    </div>
+    <div class="party b">
+      <h2><span class="dot"></span>Party B</h2>
+      <label>Private number</label>
+      <input type="number" id="inB" step="any" value="17">
+    </div>
+    <div class="party c">
+      <h2><span class="dot"></span>Party C</h2>
+      <label>Private number</label>
+      <input type="number" id="inC" step="any" value="91">
+    </div>
+  </div>
+
+  <div class="actions">
+    <button id="runBtn">Run SMPC Protocol</button>
+    <button id="resetBtn" class="ghost">Reset</button>
+  </div>
+
+  <div class="step" id="step1">
+    <h3>Step 1 — Pairwise Mask Exchange</h3>
+    <div class="body">
+      For every pair of parties, a random one-time-pad mask is jointly generated and exchanged over a secure channel. Each mask is known only to the two parties in that pair.
+      <div class="mask-grid" id="maskGrid"></div>
+      <div class="note">Masks are 64-bit random integers. They are the "pad" in one-time-pad.</div>
+    </div>
+  </div>
+
+  <div class="step" id="step2">
+    <h3>Step 2 — Local Masking (each party, in isolation)</h3>
+    <div class="body">
+      Each party computes a masked share by adding the masks from pairs where it is the lower-indexed party, and subtracting the masks from pairs where it is the higher-indexed party. The raw input <span class="secret">x</span> is never transmitted.
+      <div class="share-grid" id="shareGrid"></div>
+    </div>
+  </div>
+
+  <div class="step" id="step3">
+    <h3>Step 3 — Aggregation of Masked Shares</h3>
+    <div class="body">
+      The three masked shares are sent to an aggregator (or broadcast). Only these masked values are combined — the raw inputs are never seen. Because every mask appears once with a <code>+</code> and once with a <code>-</code>, all masks cancel in the sum.
+      <div class="aggregate" id="aggregate"></div>
+    </div>
+  </div>
+
+  <div class="step" id="step4">
+    <h3>Step 4 — Reveal Average</h3>
+    <div class="body">
+      <div class="result">
+        <div class="avg-label">Computed Average</div>
+        <div class="avg-value" id="avgValue">—</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // --- Crypto-grade random 64-bit integer mask (signed, represented as BigInt) ---
+  function randomMask() {
+    const buf = new Uint32Array(2);
+    crypto.getRandomValues(buf);
+    // Combine into a 64-bit BigInt, then shift into signed range
+    const unsigned = (BigInt(buf[0]) << 32n) | BigInt(buf[1]);
+    // Treat the high bit as sign to get a signed 64-bit value
+    return unsigned >= (1n << 63n) ? unsigned - (1n << 64n) : unsigned;
+  }
+
+  // We work in fixed-point: multiply floats by SCALE, do BigInt math, divide back.
+  const SCALE = 1_000_000n; // 6 decimal places
+
+  function toFixed(x) {
+    return BigInt(Math.round(x * Number(SCALE)));
+  }
+  function fromFixed(b) {
+    return Number(b) / Number(SCALE);
+  }
+
+  function fmtMask(b) {
+    return b.toString();
+  }
+
+  const runBtn = document.getElementById('runBtn');
+  const resetBtn = document.getElementById('resetBtn');
+
+  function setStepActive(ids) {
+    for (const id of ['step1', 'step2', 'step3', 'step4']) {
+      const el = document.getElementById(id);
+      el.classList.remove('active', 'done');
+      if (ids.includes(id)) el.classList.add('done');
+    }
+  }
+
+  async function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+  async function run() {
+    const xA = parseFloat(document.getElementById('inA').value);
+    const xB = parseFloat(document.getElementById('inB').value);
+    const xC = parseFloat(document.getElementById('inC').value);
+
+    if ([xA, xB, xC].some(v => Number.isNaN(v))) {
+      alert('Please enter a number for every party.');
+      return;
+    }
+
+    runBtn.disabled = true;
+
+    // === Step 1: Pairwise masks ===
+    const rAB = randomMask();
+    const rAC = randomMask();
+    const rBC = randomMask();
+
+    document.getElementById('maskGrid').innerHTML = `
+      <div class="mask-card">
+        <div class="pair">r<sub>AB</sub> — shared between A and B</div>
+        <div class="value">${fmtMask(rAB)}</div>
+      </div>
+      <div class="mask-card">
+        <div class="pair">r<sub>AC</sub> — shared between A and C</div>
+        <div class="value">${fmtMask(rAC)}</div>
+      </div>
+      <div class="mask-card">
+        <div class="pair">r<sub>BC</sub> — shared between B and C</div>
+        <div class="value">${fmtMask(rBC)}</div>
+      </div>
+    `;
+    document.getElementById('step1').classList.add('active');
+    await delay(400);
+    setStepActive(['step1']);
+
+    // === Step 2: Masked shares ===
+    // Convention: for pair (i, j) with i < j, party i adds r_ij, party j subtracts r_ij.
+    //   s_A = x_A + r_AB + r_AC
+    //   s_B = x_B - r_AB + r_BC
+    //   s_C = x_C - r_AC - r_BC
+    const xAf = toFixed(xA);
+    const xBf = toFixed(xB);
+    const xCf = toFixed(xC);
+
+    const sA = xAf + rAB + rAC;
+    const sB = xBf - rAB + rBC;
+    const sC = xCf - rAC - rBC;
+
+    document.getElementById('shareGrid').innerHTML = `
+      <div class="share-card a">
+        <div class="label">Party A's masked share</div>
+        <div class="formula">s<sub>A</sub> = x<sub>A</sub> + r<sub>AB</sub> + r<sub>AC</sub></div>
+        <div class="value">
+          <span class="secret">[hidden x<sub>A</sub>]</span> + r<sub>AB</sub> + r<sub>AC</sub><br>
+          = <span class="masked">${sA.toString()}</span>
+        </div>
+      </div>
+      <div class="share-card b">
+        <div class="label">Party B's masked share</div>
+        <div class="formula">s<sub>B</sub> = x<sub>B</sub> − r<sub>AB</sub> + r<sub>BC</sub></div>
+        <div class="value">
+          <span class="secret">[hidden x<sub>B</sub>]</span> − r<sub>AB</sub> + r<sub>BC</sub><br>
+          = <span class="masked">${sB.toString()}</span>
+        </div>
+      </div>
+      <div class="share-card c">
+        <div class="label">Party C's masked share</div>
+        <div class="formula">s<sub>C</sub> = x<sub>C</sub> − r<sub>AC</sub> − r<sub>BC</sub></div>
+        <div class="value">
+          <span class="secret">[hidden x<sub>C</sub>]</span> − r<sub>AC</sub> − r<sub>BC</sub><br>
+          = <span class="masked">${sC.toString()}</span>
+        </div>
+      </div>
+    `;
+    document.getElementById('step2').classList.add('active');
+    await delay(600);
+    setStepActive(['step1', 'step2']);
+
+    // === Step 3: Aggregate masked shares ===
+    const sum = sA + sB + sC; // All masks cancel mathematically
+
+    document.getElementById('aggregate').innerHTML = `
+      <div class="line">Aggregator receives only the masked shares:</div>
+      <div class="line">  s<sub>A</sub> = <span class="masked">${sA.toString()}</span></div>
+      <div class="line">  s<sub>B</sub> = <span class="masked">${sB.toString()}</span></div>
+      <div class="line">  s<sub>C</sub> = <span class="masked">${sC.toString()}</span></div>
+      <div class="line">&nbsp;</div>
+      <div class="line">Sum = s<sub>A</sub> + s<sub>B</sub> + s<sub>C</sub></div>
+      <div class="line">    = (x<sub>A</sub> + r<sub>AB</sub> + r<sub>AC</sub>) + (x<sub>B</sub> − r<sub>AB</sub> + r<sub>BC</sub>) + (x<sub>C</sub> − r<sub>AC</sub> − r<sub>BC</sub>)</div>
+      <div class="line">    = x<sub>A</sub> + x<sub>B</sub> + x<sub>C</sub>   <span style="color:var(--muted)">(all masks cancel)</span></div>
+      <div class="line sum">    = ${fromFixed(sum)}</div>
+    `;
+    document.getElementById('step3').classList.add('active');
+    await delay(700);
+    setStepActive(['step1', 'step2', 'step3']);
+
+    // === Step 4: Reveal average ===
+    const avg = fromFixed(sum) / 3;
+    document.getElementById('avgValue').textContent = avg.toFixed(6).replace(/\.?0+$/, '');
+    document.getElementById('step4').classList.add('active');
+
+    runBtn.disabled = false;
+  }
+
+  function reset() {
+    document.getElementById('maskGrid').innerHTML = '';
+    document.getElementById('shareGrid').innerHTML = '';
+    document.getElementById('aggregate').innerHTML = '';
+    document.getElementById('avgValue').textContent = '—';
+    for (const id of ['step1', 'step2', 'step3', 'step4']) {
+      document.getElementById(id).classList.remove('active', 'done');
+    }
+  }
+
+  runBtn.addEventListener('click', run);
+  resetBtn.addEventListener('click', reset);
+</script>
+</body>
+</html>
