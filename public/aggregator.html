@@ -70,6 +70,24 @@
   .note { font-size:12px; color:var(--muted); font-style:italic; margin-top:8px; }
   a { color:var(--muted); font-size:12px; }
   .hidden { display:none; }
+
+  label { font-size:12px; color:var(--muted); display:block; margin-bottom:6px; }
+  input[type=text].code {
+    width:160px; padding:12px 14px; background:var(--panel-2);
+    border:1px solid var(--border); border-radius:6px; color:var(--text);
+    font-size:18px; font-family:Consolas,monospace;
+    letter-spacing:.18em; text-transform:uppercase;
+  }
+  input[type=text].code:focus { border-color:var(--agg); outline:none; }
+  .verify-row { display:flex; align-items:flex-end; gap:12px; }
+  .verify {
+    padding:12px 22px; background:var(--agg); color:#0b0f17; border:none;
+    border-radius:6px; font-weight:600; font-size:14px; cursor:pointer;
+    font-family:inherit;
+  }
+  .verify:disabled { opacity:.4; cursor:not-allowed; }
+  .err { margin-top:10px; color:#ff7a8a; font-size:13px; display:none; }
+  .err.show { display:block; }
 </style>
 </head>
 <body>
@@ -82,7 +100,19 @@
     </div>
   </div>
 
-  <div class="card">
+  <div class="card" id="sessionCard">
+    <h3>Session code</h3>
+    <div class="verify-row">
+      <div>
+        <label>Enter the 4-character code shown on the home page</label>
+        <input type="text" class="code" id="sessionInput" maxlength="4" placeholder="XXXX" autocomplete="off" spellcheck="false" autofocus>
+      </div>
+      <button class="verify" id="verifyBtn">Verify</button>
+    </div>
+    <div class="err" id="sessionErr"></div>
+  </div>
+
+  <div class="card hidden" id="statusCard">
     <h3>Status</h3>
     <div class="status-row">
       <div class="chip a waiting" id="chipA"><span class="check">○</span>Insurer A</div>
@@ -164,12 +194,15 @@
     document.getElementById('statusNote').textContent = 'All three insurers submitted. Average computed from masked shares.';
   }
 
+  let SESSION = '';
+
   async function poll() {
     try {
-      const state = await fetch('/api/state').then(r => r.json());
-      for (const p of ['A','B','C']) setChip(p, state.shares_submitted.includes(p));
+      const qs = '?session=' + encodeURIComponent(SESSION);
+      const state = await fetch('/api/state' + qs).then(r => r.json());
+      for (const p of ['A','B','C']) setChip(p, (state.shares_submitted || []).includes(p));
 
-      const result = await fetch('/api/result').then(r => r.json());
+      const result = await fetch('/api/result' + qs).then(r => r.json());
       if (result.ready) {
         renderResult(result.shares, result.sum);
         return; // stop polling
@@ -177,7 +210,31 @@
     } catch (e) { /* server might be restarting; ignore */ }
     setTimeout(poll, 600);
   }
-  poll();
+
+  function showSessionErr(msg) {
+    const e = document.getElementById('sessionErr');
+    e.textContent = msg; e.classList.add('show');
+  }
+
+  document.getElementById('verifyBtn').addEventListener('click', async () => {
+    const code = document.getElementById('sessionInput').value.trim().toUpperCase();
+    if (code.length !== 4) {
+      showSessionErr('Enter the 4-character session code from the home page.');
+      return;
+    }
+    const r = await fetch('/api/verify', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ session: code }),
+    });
+    if (!r.ok) {
+      showSessionErr('Session code does not match. Check the home page.');
+      return;
+    }
+    SESSION = code;
+    document.getElementById('sessionCard').classList.add('hidden');
+    document.getElementById('statusCard').classList.remove('hidden');
+    poll();
+  });
 </script>
 </body>
 </html>

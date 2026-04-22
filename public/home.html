@@ -49,12 +49,35 @@
     font-family:inherit; font-size:13px; cursor:pointer;
   }
   .reset:hover { color:var(--text); }
+  .session {
+    display:flex; align-items:center; justify-content:space-between; gap:20px;
+    background:linear-gradient(135deg,#1b2230,#23203a);
+    border:1px solid var(--agg); border-radius:10px;
+    padding:16px 22px; margin-bottom:24px;
+  }
+  .session .label {
+    font-size:12px; text-transform:uppercase; letter-spacing:.08em;
+    color:var(--muted); font-weight:600;
+  }
+  .session .hint { font-size:12px; color:var(--muted); margin-top:4px; }
+  .session .code {
+    font-family:Consolas,monospace; font-size:34px; font-weight:700;
+    letter-spacing:.18em; color:var(--agg);
+  }
 </style>
 </head>
 <body>
 <div class="wrap">
   <h1>Secure Multi-Party Average</h1>
   <div class="sub">Three insurers each privately enter one claim on their own page. A separate aggregator computes the average from masked shares — raw claims are never transmitted.</div>
+
+  <div class="session">
+    <div>
+      <div class="label">Session code</div>
+      <div class="hint">Each participant enters this on their page before submitting.</div>
+    </div>
+    <div class="code" id="sessionCode">····</div>
+  </div>
 
   <div class="how">
     <h2>How it works</h2>
@@ -89,9 +112,24 @@
   <button class="reset" id="resetBtn">Reset session</button>
 </div>
 <script>
+  const codeEl = document.getElementById('sessionCode');
+
+  async function loadSessionCode() {
+    try {
+      const r = await fetch('/api/session');
+      const { code } = await r.json();
+      codeEl.textContent = code;
+    } catch (e) {
+      codeEl.textContent = '????';
+    }
+  }
+  loadSessionCode();
+
   document.getElementById('resetBtn').addEventListener('click', async () => {
-    await fetch('/api/reset', { method: 'POST' });
-    alert('Session cleared. You can start a new round.');
+    const r = await fetch('/api/reset', { method: 'POST' });
+    const { code } = await r.json();
+    if (code) codeEl.textContent = code;
+    alert('Session cleared. New session code: ' + code);
   });
 </script>
 </body>

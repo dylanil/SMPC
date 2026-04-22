@@ -43,9 +43,11 @@ Then open each page in a **separate** browser tab or window:
 | Insurer C   | <http://127.0.0.1:8765/party/c>       |
 | Aggregator  | <http://127.0.0.1:8765/aggregator>    |
 
+The home page shows a 4-character **session code**. Each insurer and the aggregator must enter this code on their own page before submitting data or computing the average — it gates every data-bearing endpoint and prevents two rounds from accidentally cross-talking.
+
 Each insurer enters their claim and clicks *Start Protocol*. Once all three have submitted, the aggregator page reveals the average.
 
-To start a fresh round, click **Reset session** on the home page.
+To start a fresh round, click **Reset session** on the home page (this also rotates the session code).
 
 ---
 
@@ -63,12 +65,16 @@ SMPC/
 
 ### Server endpoints
 
+All data endpoints require a `session` field (POST body) or `session=` query param matching the current session code; mismatches return `403`.
+
+- `GET  /api/session` — current session code (used by the home page to display it; unprotected)
+- `POST /api/verify` — verify a session code without side effects (`{session}` → `{ok}`)
 - `POST /api/mask` — an insurer relays a pairwise mask to its counterparty
 - `GET  /api/masks?for=X` — insurer `X` fetches incoming masks addressed to it
 - `POST /api/share` — an insurer submits its final masked share
 - `GET  /api/result` — aggregator retrieves masked shares and their sum (only once all three are submitted)
 - `GET  /api/state` — public status (which insurers have submitted so far)
-- `POST /api/reset` — clear all state for a new round
+- `POST /api/reset` — clear all state for a new round and rotate the session code (returns the new code)
 
 ---
 

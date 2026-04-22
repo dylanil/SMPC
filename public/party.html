@@ -41,11 +41,19 @@
   .card.muted { opacity:.45; }
 
   label { font-size:12px; color:var(--muted); display:block; margin-bottom:6px; }
-  input[type=number] {
+  input[type=number], input[type=text].code {
     width:100%; padding:12px 14px; background:var(--panel-2);
     border:1px solid var(--border); border-radius:6px; color:var(--text);
     font-size:18px; font-family:inherit;
   }
+  input.code {
+    font-family:Consolas,monospace; letter-spacing:.18em; text-transform:uppercase;
+  }
+  .field-row { margin-bottom:14px; }
+  .err {
+    margin-top:10px; color:var(--danger); font-size:13px; display:none;
+  }
+  .err.show { display:block; }
 
   .go {
     padding:12px 22px; color:#0b0f17; border:none; border-radius:6px;
@@ -86,10 +94,17 @@
   </div>
 
   <div class="card" id="inputCard">
-    <h3>Step 1 — Enter your private claim</h3>
-    <label>Private claim <span class="pill">stays local</span></label>
-    <input type="number" id="numInput" step="any" placeholder="e.g. 42" autofocus>
+    <h3>Step 1 — Enter session code &amp; private claim</h3>
+    <div class="field-row">
+      <label>Session code <span class="pill">from the home page</span></label>
+      <input type="text" class="code" id="sessionInput" maxlength="4" placeholder="XXXX" autocomplete="off" spellcheck="false" autofocus>
+    </div>
+    <div class="field-row">
+      <label>Private claim <span class="pill">stays local</span></label>
+      <input type="number" id="numInput" step="any" placeholder="e.g. 42">
+    </div>
     <button class="go" id="startBtn">Start Protocol</button>
+    <div class="err" id="inputErr"></div>
   </div>
 
   <div class="card muted" id="exchangeCard">
@@ -159,15 +174,44 @@
     return r.json();
   }
 
+  let SESSION = '';
+
+  function showInputErr(msg) {
+    const e = document.getElementById('inputErr');
+    e.textContent = msg;
+    e.classList.add('show');
+  }
+  function clearInputErr() {
+    document.getElementById('inputErr').classList.remove('show');
+  }
+
   async function start() {
+    clearInputErr();
+    const code = document.getElementById('sessionInput').value.trim().toUpperCase();
+    if (code.length !== 4) {
+      showInputErr('Enter the 4-character session code from the home page.'); return;
+    }
     const raw = document.getElementById('numInput').value;
     if (raw === '' || Number.isNaN(parseFloat(raw))) {
-      alert('Please enter a claim.'); return;
+      showInputErr('Please enter a claim.'); return;
     }
+
+    // Verify the session code before disabling inputs.
+    const verify = await fetch('/api/verify', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ session: code }),
+    });
+    if (!verify.ok) {
+      showInputErr('Session code does not match. Check the home page.');
+      return;
+    }
+    SESSION = code;
+
     const x = parseFloat(raw);
     const xFixed = toFixed(x);
     document.getElementById('startBtn').disabled = true;
     document.getElementById('numInput').disabled = true;
+    document.getElementById('sessionInput').disabled = true;
 
     // === Step 2: mask exchange ===
     document.getElementById('exchangeCard').classList.remove('muted');
@@ -178,7 +222,7 @@
       const mask = randomMask();
       outgoingMasks[to] = mask;
       logLine('exchangeLog', `Generated r<sub>${ROLE}${to}</sub> = <span class="mono">${mask}</span>`);
-      await apiPost('/api/mask', { from: ROLE, to: to, value: mask.toString() });
+      await apiPost('/api/mask', { session: SESSION, from: ROLE, to: to, value: mask.toString() });
       logLine('exchangeLog', `→ Sent r<sub>${ROLE}${to}</sub> to Insurer ${to}.`, 'ok');
     }
 
@@ -186,7 +230,7 @@
     if (INCOMING.length > 0) {
       logLine('exchangeLog', `Waiting for incoming masks from [${INCOMING.join(', ')}]…`, 'warn');
       while (Object.keys(incomingMasks).length < INCOMING.length) {
-        const { masks } = await apiGet('/api/masks?for=' + ROLE);
+        const { masks } = await apiGet('/api/masks?for=' + ROLE + '&session=' + encodeURIComponent(SESSION));
         for (const item of masks) {
           if (!(item.from in incomingMasks) && INCOMING.includes(item.from)) {
             incomingMasks[item.from] = BigInt(item.value);
@@ -227,7 +271,7 @@
     // === Step 4: submit masked share ===
     await sleep(250);
     document.getElementById('submitCard').classList.remove('muted');
-    await apiPost('/api/share', { party: ROLE, share: share.toString() });
+    await apiPost('/api/share', { session: SESSION, party: ROLE, share: share.toString() });
     document.getElementById('submitBody').innerHTML = `
       <div class="log"><div class="line ok">→ Submitted s<sub>${ROLE}</sub> to the aggregator.</div></div>
       <div class="done-banner">
@@ -241,6 +285,7 @@
       alert('Error: ' + err.message);
       document.getElementById('startBtn').disabled = false;
       document.getElementById('numInput').disabled = false;
+      document.getElementById('sessionInput').disabled = false;
     });
   });
 </script>
