@@ -1,0 +1,27 @@
+# Fly.io configuration. See https://fly.io/docs/reference/configuration/
+# Deploy with `fly deploy` from the repo root after `fly auth login`.
+
+app = "smpc-demo"          # CHANGE ME: must be globally unique across Fly
+primary_region = "iad"     # change to a region near you (e.g. lhr, syd, sjc, fra)
+
+[build]
+  # Dockerfile is at the repo root; no extra build args needed.
+
+[http_service]
+  internal_port = 8765
+  force_https = true
+  # Single-instance pin: protocol state lives in process memory, so
+  # scale-to-zero or multiple machines will break in-flight rounds.
+  auto_stop_machines = false
+  min_machines_running = 1
+
+  [[http_service.checks]]
+    grace_period = "5s"
+    interval = "30s"
+    method = "GET"
+    path = "/healthz"
+    timeout = "5s"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "256mb"
