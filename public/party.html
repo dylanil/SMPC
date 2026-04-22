@@ -89,7 +89,7 @@
     <div class="badge" id="badge">?</div>
     <div>
       <h1>Insurer <span id="roleName" class="accent">?</span></h1>
-      <div class="sub">Your claim never leaves this browser. You only send a <em>masked share</em> to the coordinator.</div>
+      <div class="sub">Your claim never leaves this browser. You publish a <em>public key</em> for the others to derive shared masks against, then send a <em>masked share</em> to the coordinator.</div>
     </div>
   </div>
 
@@ -108,7 +108,7 @@
   </div>
 
   <div class="card muted" id="exchangeCard">
-    <h3>Step 2 — Pairwise Mask Exchange</h3>
+    <h3>Step 2 — ECDH key exchange &amp; mask derivation</h3>
     <div id="exchangeLog" class="log"></div>
   </div>
 
@@ -139,18 +139,61 @@
   document.title = `Insurer ${ROLE} — SMPC`;
 
   const OTHERS = PARTIES.filter(p => p !== ROLE);
-  // For pair (i, j) with i < j: i generates r_ij (outgoing), j receives it (incoming).
-  const OUTGOING = OTHERS.filter(p => ROLE < p);
-  const INCOMING = OTHERS.filter(p => ROLE > p);
+  // Sign per pair (i, j) with i < j: lower-letter party adds r_ij, higher subtracts.
 
-  function randomMask() {
-    const buf = new Uint32Array(2);
-    crypto.getRandomValues(buf);
-    const u = (BigInt(buf[0]) << 32n) | BigInt(buf[1]);
-    return u >= (1n << 63n) ? u - (1n << 64n) : u;
-  }
   const toFixed = x => BigInt(Math.round(x * Number(SCALE)));
   const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+  // --- Base64 helpers (binary <-> ASCII) ---
+  function b64encode(buf) {
+    const bytes = new Uint8Array(buf);
+    let s = '';
+    for (let i = 0; i < bytes.length; i++) s += String.fromCharCode(bytes[i]);
+    return btoa(s);
+  }
+  function b64decode(s) {
+    const bin = atob(s);
+    const out = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+    return out;
+  }
+
+  // --- ECDH (P-256) + HKDF (SHA-256) via WebCrypto ---
+  async function generateECDHKeypair() {
+    return crypto.subtle.generateKey(
+      { name: "ECDH", namedCurve: "P-256" }, true, ["deriveBits"]
+    );
+  }
+  async function exportPublicKeyB64(kp) {
+    const raw = await crypto.subtle.exportKey("raw", kp.publicKey);
+    return b64encode(raw);
+  }
+  async function importPublicKey(b64) {
+    return crypto.subtle.importKey(
+      "raw", b64decode(b64),
+      { name: "ECDH", namedCurve: "P-256" }, false, []
+    );
+  }
+  // Both parties of a pair derive the *same* mask: same shared ECDH bits, same HKDF info.
+  async function derivePairwiseMask(myPriv, theirPubB64, loLetter, hiLetter) {
+    const theirPub = await importPublicKey(theirPubB64);
+    const sharedBits = await crypto.subtle.deriveBits(
+      { name: "ECDH", public: theirPub }, myPriv, 256
+    );
+    const hkdfKey = await crypto.subtle.importKey(
+      "raw", sharedBits, "HKDF", false, ["deriveBits"]
+    );
+    const info = new TextEncoder().encode("SMPC mask " + loLetter + hiLetter);
+    const maskBits = await crypto.subtle.deriveBits(
+      { name: "HKDF", hash: "SHA-256", salt: new Uint8Array(0), info },
+      hkdfKey, 64
+    );
+    // Big-endian 8 bytes -> signed 64-bit BigInt.
+    const bytes = new Uint8Array(maskBits);
+    let u = 0n;
+    for (const b of bytes) u = (u << 8n) | BigInt(b);
+    return u >= (1n << 63n) ? u - (1n << 64n) : u;
+  }
 
   function logLine(containerId, html, cls='') {
     const el = document.getElementById(containerId);
@@ -213,45 +256,51 @@
     document.getElementById('numInput').disabled = true;
     document.getElementById('sessionInput').disabled = true;
 
-    // === Step 2: mask exchange ===
+    // === Step 2: ECDH key exchange + local mask derivation ===
     document.getElementById('exchangeCard').classList.remove('muted');
-    logLine('exchangeLog', `Role <b class="accent">${ROLE}</b>. Outgoing pairs: [${OUTGOING.map(p=>ROLE+p).join(', ')||'—'}]. Incoming pairs: [${INCOMING.map(p=>p+ROLE).join(', ')||'—'}].`, 'warn');
+    logLine('exchangeLog', `Role <b class="accent">${ROLE}</b>. Generating ECDH P-256 keypair locally — private key never leaves this browser.`, 'warn');
 
-    const outgoingMasks = {};
-    for (const to of OUTGOING) {
-      const mask = randomMask();
-      outgoingMasks[to] = mask;
-      logLine('exchangeLog', `Generated r<sub>${ROLE}${to}</sub> = <span class="mono">${mask}</span>`);
-      await apiPost('/api/mask', { session: SESSION, from: ROLE, to: to, value: mask.toString() });
-      logLine('exchangeLog', `→ Sent r<sub>${ROLE}${to}</sub> to Insurer ${to}.`, 'ok');
+    const kp = await generateECDHKeypair();
+    const myPubB64 = await exportPublicKeyB64(kp);
+    await apiPost('/api/pubkey', { session: SESSION, party: ROLE, pubkey: myPubB64 });
+    logLine('exchangeLog', `→ Published pub<sub>${ROLE}</sub> to coordinator <span class="mono warn">(${myPubB64.slice(0, 24)}…)</span>.`, 'ok');
+
+    logLine('exchangeLog', `Waiting for public keys from [${OTHERS.join(', ')}]…`, 'warn');
+    const othersPub = {};
+    while (Object.keys(othersPub).length < OTHERS.length) {
+      const { pubkeys } = await apiGet('/api/pubkeys?for=' + ROLE + '&session=' + encodeURIComponent(SESSION));
+      for (const item of pubkeys) {
+        if (!(item.party in othersPub) && OTHERS.includes(item.party)) {
+          othersPub[item.party] = item.pubkey;
+          logLine('exchangeLog', `← Received pub<sub>${item.party}</sub> <span class="mono warn">(${item.pubkey.slice(0, 24)}…)</span>.`, 'ok');
+        }
+      }
+      if (Object.keys(othersPub).length < OTHERS.length) await sleep(400);
     }
 
-    const incomingMasks = {};
-    if (INCOMING.length > 0) {
-      logLine('exchangeLog', `Waiting for incoming masks from [${INCOMING.join(', ')}]…`, 'warn');
-      while (Object.keys(incomingMasks).length < INCOMING.length) {
-        const { masks } = await apiGet('/api/masks?for=' + ROLE + '&session=' + encodeURIComponent(SESSION));
-        for (const item of masks) {
-          if (!(item.from in incomingMasks) && INCOMING.includes(item.from)) {
-            incomingMasks[item.from] = BigInt(item.value);
-            logLine('exchangeLog', `← Received r<sub>${item.from}${ROLE}</sub> = <span class="mono">${item.value}</span>`, 'ok');
-          }
-        }
-        if (Object.keys(incomingMasks).length < INCOMING.length) await sleep(400);
-      }
+    const masks = {};  // other party letter -> derived BigInt mask
+    for (const other of OTHERS) {
+      const lo = ROLE < other ? ROLE : other;
+      const hi = ROLE < other ? other : ROLE;
+      masks[other] = await derivePairwiseMask(kp.privateKey, othersPub[other], lo, hi);
+      const op = ROLE < other ? 'add' : 'subtract';
+      logLine('exchangeLog', `Pair ${lo}${hi}: ECDH + HKDF → r<sub>${lo}${hi}</sub> = <span class="mono">${masks[other]}</span> &nbsp;<span class="warn">(I ${op} it; server cannot derive this)</span>`);
     }
 
     // === Step 3: compute masked share ===
     document.getElementById('computeCard').classList.remove('muted');
     let share = xFixed;
     const parts = [`<span class="secret">[hidden x<sub>${ROLE}</sub>]</span>`];
-    for (const [to, mask] of Object.entries(outgoingMasks)) {
-      share += mask;
-      parts.push(`+ r<sub>${ROLE}${to}</sub>`);
-    }
-    for (const [frm, mask] of Object.entries(incomingMasks)) {
-      share -= mask;
-      parts.push(`− r<sub>${frm}${ROLE}</sub>`);
+    for (const other of OTHERS) {
+      const lo = ROLE < other ? ROLE : other;
+      const hi = ROLE < other ? other : ROLE;
+      if (ROLE < other) {
+        share += masks[other];
+        parts.push(`+ r<sub>${lo}${hi}</sub>`);
+      } else {
+        share -= masks[other];
+        parts.push(`− r<sub>${lo}${hi}</sub>`);
+      }
     }
 
     document.getElementById('computeBody').innerHTML = `
@@ -264,7 +313,7 @@
         <div class="mono masked">${share.toString()}</div>
       </div>
       <div style="margin-top:10px; font-size:12px; color:var(--muted); font-style:italic;">
-        This number is indistinguishable from random — it reveals nothing about x<sub>${ROLE}</sub> unless the masks are also known.
+        This number is indistinguishable from random. The coordinator can't undo the masks because it never saw any private key — only public keys flowed through it.
       </div>
     `;
 
