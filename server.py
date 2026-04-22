@@ -22,7 +22,7 @@ Protocol (ECDH + HKDF mask derivation):
   Summing all three masked shares cancels every mask, yielding x_A + x_B + x_C.
 
 Wire-level state held by this server:
-  - session_code: the 4-char round identifier shown on the home page
+  - session_code: the 6-char round identifier shown on the home page
   - pubkeys:      one base64 P-256 public key per party
   - shares:       one masked-share decimal string per party
 The server cannot derive any pairwise mask — that requires at least one private
@@ -46,7 +46,7 @@ PORT = int(os.environ.get("PORT", "8765"))
 PUBLIC_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "public")
 PARTIES = ["A", "B", "C"]
 SESSION_ALPHABET = string.ascii_uppercase + string.digits
-SESSION_LEN = 4
+SESSION_LEN = 6
 # Raw uncompressed P-256 public key: 0x04 || X(32) || Y(32) = 65 bytes -> 88 b64 chars.
 PUBKEY_RAW_LEN = 65
 PUBKEY_B64_LEN = 88

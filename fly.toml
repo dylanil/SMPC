@@ -1,8 +1,8 @@
 # Fly.io configuration. See https://fly.io/docs/reference/configuration/
 # Deploy with `fly deploy` from the repo root after `fly auth login`.
 
-app = "smpc-demo"          # CHANGE ME: must be globally unique across Fly
-primary_region = "iad"     # change to a region near you (e.g. lhr, syd, sjc, fra)
+app = "fl-wg-smpc"
+primary_region = "lhr"
 
 [build]
   # Dockerfile is at the repo root; no extra build args needed.

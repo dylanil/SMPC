@@ -76,7 +76,7 @@
       <div class="label">Session code</div>
       <div class="hint">Each participant enters this on their page before submitting.</div>
     </div>
-    <div class="code" id="sessionCode">····</div>
+    <div class="code" id="sessionCode">······</div>
   </div>
 
   <div class="how">
@@ -120,7 +120,7 @@
       const { code } = await r.json();
       codeEl.textContent = code;
     } catch (e) {
-      codeEl.textContent = '????';
+      codeEl.textContent = '??????';
     }
   }
   loadSessionCode();

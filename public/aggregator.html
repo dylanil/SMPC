@@ -104,8 +104,8 @@
     <h3>Session code</h3>
     <div class="verify-row">
       <div>
-        <label>Enter the 4-character code shown on the home page</label>
-        <input type="text" class="code" id="sessionInput" maxlength="4" placeholder="XXXX" autocomplete="off" spellcheck="false" autofocus>
+        <label>Enter the 6-character code shown on the home page</label>
+        <input type="text" class="code" id="sessionInput" maxlength="6" placeholder="XXXXXX" autocomplete="off" spellcheck="false" autofocus>
       </div>
       <button class="verify" id="verifyBtn">Verify</button>
     </div>
@@ -218,8 +218,8 @@
 
   document.getElementById('verifyBtn').addEventListener('click', async () => {
     const code = document.getElementById('sessionInput').value.trim().toUpperCase();
-    if (code.length !== 4) {
-      showSessionErr('Enter the 4-character session code from the home page.');
+    if (code.length !== 6) {
+      showSessionErr('Enter the 6-character session code from the home page.');
       return;
     }
     const r = await fetch('/api/verify', {

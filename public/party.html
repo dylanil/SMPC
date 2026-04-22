@@ -97,7 +97,7 @@
     <h3>Step 1 — Enter session code &amp; private claim</h3>
     <div class="field-row">
       <label>Session code <span class="pill">from the home page</span></label>
-      <input type="text" class="code" id="sessionInput" maxlength="4" placeholder="XXXX" autocomplete="off" spellcheck="false" autofocus>
+      <input type="text" class="code" id="sessionInput" maxlength="6" placeholder="XXXXXX" autocomplete="off" spellcheck="false" autofocus>
     </div>
     <div class="field-row">
       <label>Private claim <span class="pill">stays local</span></label>
@@ -231,8 +231,8 @@
   async function start() {
     clearInputErr();
     const code = document.getElementById('sessionInput').value.trim().toUpperCase();
-    if (code.length !== 4) {
-      showInputErr('Enter the 4-character session code from the home page.'); return;
+    if (code.length !== 6) {
+      showInputErr('Enter the 6-character session code from the home page.'); return;
     }
     const raw = document.getElementById('numInput').value;
     if (raw === '' || Number.isNaN(parseFloat(raw))) {

@@ -49,7 +49,7 @@ Then open each page in a **separate** browser tab or window:
 | Insurer C   | <http://127.0.0.1:8765/party/c>       |
 | Aggregator  | <http://127.0.0.1:8765/aggregator>    |
 
-The home page shows a 4-character **session code**. Each insurer and the aggregator must enter this code on their own page before submitting data or computing the average — it gates every data-bearing endpoint and prevents two rounds from accidentally cross-talking.
+The home page shows a 6-character **session code**. Each insurer and the aggregator must enter this code on their own page before submitting data or computing the average — it gates every data-bearing endpoint and prevents two rounds from accidentally cross-talking.
 
 Each insurer enters their claim and clicks *Start Protocol*. Once all three have submitted, the aggregator page reveals the average.
 
@@ -94,6 +94,6 @@ All data endpoints require a `session` field (POST body) or `session=` query par
 This is an educational demo, not production-grade:
 
 - **Mask derivation is end-to-end.** Each pair derives its mask via ECDH P-256 + HKDF-SHA256 in the browser; private keys never leave the browser, masks are never transmitted, and the coordinator only sees public keys and masked shares. A coordinator colluding with one insurer can no longer recover another insurer's input.
-- **No authentication.** Anyone who can reach the server can claim to be any insurer (the 4-char session code is a low bar — fine for a demo over a private link, not for the open internet).
+- **No authentication.** Anyone who can reach the server can claim to be any insurer (the 6-char session code is a low bar — fine for a demo over a private link, not for the open internet).
 - **Fixed-point arithmetic** (×10⁶) is used so decimals work with BigInt on the client. Pick a scale that fits your expected range.
 - **Collusion.** As with any pairwise-masking scheme, two colluding insurers (or an insurer colluding with the aggregator) can reconstruct the third insurer's input — this is inherent to 3-party additive secret sharing.
