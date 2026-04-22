@@ -41,7 +41,8 @@ import string
 import threading
 from urllib.parse import urlparse, parse_qs
 
-PORT = 8765
+HOST = os.environ.get("HOST", "0.0.0.0")
+PORT = int(os.environ.get("PORT", "8765"))
 PUBLIC_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "public")
 PARTIES = ["A", "B", "C"]
 SESSION_ALPHABET = string.ascii_uppercase + string.digits
@@ -159,6 +160,10 @@ class Handler(http.server.BaseHTTPRequestHandler):
         if len(parts) == 2 and parts[0] == "party" and parts[1].upper() in PARTIES:
             return self._send_file(os.path.join(PUBLIC_DIR, "party.html"))
 
+        # Unprotected health check for platform liveness probes.
+        if path == "/healthz":
+            return self._send_json(200, {"ok": True})
+
         # Unprotected API: the home page reads the current session code to display it.
         if path == "/api/session":
             return self._send_json(200, {"code": current_session_code()})
@@ -252,13 +257,14 @@ class Handler(http.server.BaseHTTPRequestHandler):
 def main():
     if not os.path.isdir(PUBLIC_DIR):
         raise SystemExit(f"Missing public dir: {PUBLIC_DIR}")
-    httpd = http.server.ThreadingHTTPServer(("127.0.0.1", PORT), Handler)
-    print(f"SMPC server running on http://127.0.0.1:{PORT}")
-    print(f"  Home:       http://127.0.0.1:{PORT}/")
-    print(f"  Insurer A:  http://127.0.0.1:{PORT}/party/a")
-    print(f"  Insurer B:  http://127.0.0.1:{PORT}/party/b")
-    print(f"  Insurer C:  http://127.0.0.1:{PORT}/party/c")
-    print(f"  Aggregator: http://127.0.0.1:{PORT}/aggregator")
+    httpd = http.server.ThreadingHTTPServer((HOST, PORT), Handler)
+    display_host = "127.0.0.1" if HOST in ("0.0.0.0", "::") else HOST
+    print(f"SMPC server listening on {HOST}:{PORT}")
+    print(f"  Home:       http://{display_host}:{PORT}/")
+    print(f"  Insurer A:  http://{display_host}:{PORT}/party/a")
+    print(f"  Insurer B:  http://{display_host}:{PORT}/party/b")
+    print(f"  Insurer C:  http://{display_host}:{PORT}/party/c")
+    print(f"  Aggregator: http://{display_host}:{PORT}/aggregator")
     print(f"  Session code: {current_session_code()}")
     try:
         httpd.serve_forever()

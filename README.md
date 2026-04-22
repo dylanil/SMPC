@@ -55,6 +55,10 @@ Each insurer enters their claim and clicks *Start Protocol*. Once all three have
 
 To start a fresh round, click **Reset session** on the home page (this also rotates the session code).
 
+### Deploying
+
+The repo includes a `Dockerfile` and respects `HOST` / `PORT` env vars (defaulting to `0.0.0.0:8765`), so any container PaaS that injects `PORT` (Fly.io, Render, Cloud Run, Railway) will work out of the box. **Pin to exactly one always-on instance** — protocol state is in process memory, so autoscaling or scale-to-zero will break rounds in flight. Health-check path is `/healthz`.
+
 ---
 
 ## Project layout
@@ -81,6 +85,7 @@ All data endpoints require a `session` field (POST body) or `session=` query par
 - `GET  /api/result` — aggregator retrieves masked shares and their sum (only once all three are submitted)
 - `GET  /api/state` — public status (which insurers have submitted so far)
 - `POST /api/reset` — clear all state for a new round and rotate the session code (returns the new code)
+- `GET  /healthz` — unprotected liveness probe for platform health checks
 
 ---
 
