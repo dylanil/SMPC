@@ -72,20 +72,28 @@
   .hidden { display:none; }
 
   label { font-size:12px; color:var(--muted); display:block; margin-bottom:6px; }
-  input[type=text].code {
-    width:160px; padding:12px 14px; background:var(--panel-2);
-    border:1px solid var(--border); border-radius:6px; color:var(--text);
-    font-size:18px; font-family:Consolas,monospace;
-    letter-spacing:.18em; text-transform:uppercase;
-  }
-  input[type=text].code:focus { border-color:var(--agg); outline:none; }
-  .verify-row { display:flex; align-items:flex-end; gap:12px; }
-  .verify {
+  .create {
     padding:12px 22px; background:var(--agg); color:#0b0f17; border:none;
     border-radius:6px; font-weight:600; font-size:14px; cursor:pointer;
     font-family:inherit;
   }
-  .verify:disabled { opacity:.4; cursor:not-allowed; }
+  .create:disabled { opacity:.4; cursor:not-allowed; }
+  .code-display {
+    display:flex; align-items:center; gap:14px; margin-top:10px;
+    background:linear-gradient(135deg,#1b2230,#23203a);
+    border:1px solid var(--agg); border-radius:8px; padding:14px 18px;
+  }
+  .code-display .code {
+    font-family:Consolas,monospace; font-size:32px; font-weight:700;
+    letter-spacing:.2em; color:var(--agg);
+  }
+  .code-display .copy {
+    padding:8px 14px; background:transparent; color:var(--muted);
+    border:1px solid var(--border); border-radius:6px; cursor:pointer;
+    font-family:inherit; font-size:12px;
+  }
+  .code-display .copy:hover { color:var(--text); border-color:var(--agg); }
+  .share-hint { font-size:13px; color:var(--muted); margin-top:10px; }
   .err { margin-top:10px; color:#ff7a8a; font-size:13px; display:none; }
   .err.show { display:block; }
 </style>
@@ -101,13 +109,18 @@
   </div>
 
   <div class="card" id="sessionCard">
-    <h3>Session code</h3>
-    <div class="verify-row">
-      <div>
-        <label>Enter the 6-character code shown on the home page</label>
-        <input type="text" class="code" id="sessionInput" maxlength="6" placeholder="XXXXXX" autocomplete="off" spellcheck="false" autofocus>
+    <h3>Session</h3>
+    <div id="createRow">
+      <label>Start a new round by minting a unique session code.</label>
+      <button class="create" id="createBtn">Create session</button>
+    </div>
+    <div id="codeRow" class="hidden">
+      <label>Share this code with the three insurers out-of-band. They enter it on their own page.</label>
+      <div class="code-display">
+        <div class="code" id="sessionCode">——————</div>
+        <button class="copy" id="copyBtn">Copy</button>
       </div>
-      <button class="verify" id="verifyBtn">Verify</button>
+      <div class="share-hint">The code lives in this tab only. If you close or reload this page the session is abandoned.</div>
     </div>
     <div class="err" id="sessionErr"></div>
   </div>
@@ -216,24 +229,30 @@
     e.textContent = msg; e.classList.add('show');
   }
 
-  document.getElementById('verifyBtn').addEventListener('click', async () => {
-    const code = document.getElementById('sessionInput').value.trim().toUpperCase();
-    if (code.length !== 6) {
-      showSessionErr('Enter the 6-character session code from the home page.');
-      return;
+  document.getElementById('createBtn').addEventListener('click', async () => {
+    try {
+      const r = await fetch('/api/session/new', { method:'POST' });
+      if (!r.ok) throw new Error(await r.text());
+      const { code } = await r.json();
+      SESSION = code;
+      document.getElementById('sessionCode').textContent = code;
+      document.getElementById('createRow').classList.add('hidden');
+      document.getElementById('codeRow').classList.remove('hidden');
+      document.getElementById('statusCard').classList.remove('hidden');
+      poll();
+    } catch (e) {
+      showSessionErr('Could not create a session: ' + e.message);
     }
-    const r = await fetch('/api/verify', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ session: code }),
-    });
-    if (!r.ok) {
-      showSessionErr('Session code does not match. Check the home page.');
-      return;
-    }
-    SESSION = code;
-    document.getElementById('sessionCard').classList.add('hidden');
-    document.getElementById('statusCard').classList.remove('hidden');
-    poll();
+  });
+
+  document.getElementById('copyBtn').addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(SESSION);
+      const btn = document.getElementById('copyBtn');
+      const prev = btn.textContent;
+      btn.textContent = 'Copied';
+      setTimeout(() => { btn.textContent = prev; }, 1200);
+    } catch (_) { /* clipboard may be blocked; user can select manually */ }
   });
 </script>
 </body>

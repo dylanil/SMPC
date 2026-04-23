@@ -96,7 +96,7 @@
   <div class="card" id="inputCard">
     <h3>Step 1 — Enter session code &amp; private claim</h3>
     <div class="field-row">
-      <label>Session code <span class="pill">from the home page</span></label>
+      <label>Session code <span class="pill">from the aggregator</span></label>
       <input type="text" class="code" id="sessionInput" maxlength="6" placeholder="XXXXXX" autocomplete="off" spellcheck="false" autofocus>
     </div>
     <div class="field-row">
@@ -232,7 +232,7 @@
     clearInputErr();
     const code = document.getElementById('sessionInput').value.trim().toUpperCase();
     if (code.length !== 6) {
-      showInputErr('Enter the 6-character session code from the home page.'); return;
+      showInputErr('Enter the 6-character session code the aggregator gave you.'); return;
     }
     const raw = document.getElementById('numInput').value;
     if (raw === '' || Number.isNaN(parseFloat(raw))) {
@@ -245,7 +245,7 @@
       body: JSON.stringify({ session: code }),
     });
     if (!verify.ok) {
-      showInputErr('Session code does not match. Check the home page.');
+      showInputErr('Session code does not match any active session. Ask the aggregator.');
       return;
     }
     SESSION = code;

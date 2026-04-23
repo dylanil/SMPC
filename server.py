@@ -8,8 +8,10 @@ Roles:
     an ECDH P-256 keypair locally, publishes the public key, fetches the others'
     public keys, derives pairwise masks via ECDH + HKDF, and submits its
     masked share. Private keys never leave the browser.
-  - Aggregator: a separate page that fetches the masked shares and computes the
-    average. The aggregator never sees raw inputs, private keys, or pairwise masks.
+  - Aggregator: a separate page that creates a session (minting a unique code),
+    shares that code out-of-band with the three insurers, and then fetches the
+    masked shares and computes the average. The aggregator never sees raw
+    inputs, private keys, or pairwise masks.
 
 Protocol (ECDH + HKDF mask derivation):
   Each pair (i, j) with i < j independently derives the same pairwise mask r_ij:
@@ -22,9 +24,9 @@ Protocol (ECDH + HKDF mask derivation):
   Summing all three masked shares cancels every mask, yielding x_A + x_B + x_C.
 
 Wire-level state held by this server:
-  - session_code: the 6-char round identifier shown on the home page
-  - pubkeys:      one base64 P-256 public key per party
-  - shares:       one masked-share decimal string per party
+  - sessions: dict keyed by 6-char session code. Each session holds pubkeys and
+    shares for one round. The aggregator creates a session via POST
+    /api/session/new; multiple independent sessions can coexist.
 The server cannot derive any pairwise mask — that requires at least one private
 key, which never leaves the originating browser.
 
@@ -57,32 +59,23 @@ def generate_session_code():
 
 
 state_lock = threading.Lock()
-state = {
-    "session_code": generate_session_code(),
-    "pubkeys": {},   # "A"|"B"|"C" -> base64 string of raw P-256 public key
-    "shares": {},    # "A"|"B"|"C" -> decimal string
-}
+# code -> {"pubkeys": {...}, "shares": {...}}
+sessions = {}
 
 
-def reset_state():
+def new_session():
     with state_lock:
-        state["session_code"] = generate_session_code()
-        state["pubkeys"].clear()
-        state["shares"].clear()
-        return state["session_code"]
+        # 36^6 is vast but still retry on the astronomically unlikely collision.
+        while True:
+            code = generate_session_code()
+            if code not in sessions:
+                sessions[code] = {"pubkeys": {}, "shares": {}}
+                return code
 
 
-def current_session_code():
+def delete_session(code):
     with state_lock:
-        return state["session_code"]
-
-
-def public_state():
-    with state_lock:
-        return {
-            "pubkeys_published": sorted(state["pubkeys"].keys()),
-            "shares_submitted": sorted(state["shares"].keys()),
-        }
+        return sessions.pop(code, None) is not None
 
 
 def is_decimal_string(s):
@@ -139,9 +132,6 @@ class Handler(http.server.BaseHTTPRequestHandler):
         raw = self.rfile.read(length)
         return json.loads(raw.decode("utf-8"))
 
-    def _check_session(self, supplied):
-        return isinstance(supplied, str) and supplied.upper() == current_session_code()
-
     def _reject_session(self):
         return self._send_json(403, {"error": "invalid session code"})
 
@@ -164,45 +154,48 @@ class Handler(http.server.BaseHTTPRequestHandler):
         if path == "/healthz":
             return self._send_json(200, {"ok": True})
 
-        # Unprotected API: the home page reads the current session code to display it.
-        if path == "/api/session":
-            return self._send_json(200, {"code": current_session_code()})
-
-        # Session-gated APIs
-        supplied = (qs.get("session", [""])[0] or "")
-        if not self._check_session(supplied):
-            return self._reject_session()
+        # Session-gated APIs: every read scoped to the supplied session code.
+        supplied = (qs.get("session", [""])[0] or "").upper()
 
         if path == "/api/state":
-            return self._send_json(200, public_state())
+            with state_lock:
+                sess = sessions.get(supplied)
+                data = None if sess is None else {
+                    "pubkeys_published": sorted(sess["pubkeys"].keys()),
+                    "shares_submitted": sorted(sess["shares"].keys()),
+                }
+            if data is None:
+                return self._reject_session()
+            return self._send_json(200, data)
 
         if path == "/api/pubkeys":
             requester = (qs.get("for", [""])[0] or "").upper()
             if requester not in PARTIES:
                 return self._send_json(400, {"error": "invalid requester"})
             with state_lock:
+                sess = sessions.get(supplied)
+                if sess is None:
+                    return self._reject_session()
                 others = [
                     {"party": p, "pubkey": v}
-                    for p, v in state["pubkeys"].items()
+                    for p, v in sess["pubkeys"].items()
                     if p != requester
                 ]
             return self._send_json(200, {"pubkeys": others})
 
         if path == "/api/result":
             with state_lock:
-                submitted = sorted(state["shares"].keys())
+                sess = sessions.get(supplied)
+                if sess is None:
+                    return self._reject_session()
+                submitted = sorted(sess["shares"].keys())
                 if len(submitted) < 3:
-                    return self._send_json(200, {
-                        "ready": False,
-                        "shares_submitted": submitted,
-                    })
-                shares = {p: state["shares"][p] for p in PARTIES}
-                total = sum(int(v) for v in shares.values())
-            return self._send_json(200, {
-                "ready": True,
-                "shares": shares,
-                "sum": str(total),
-            })
+                    payload = {"ready": False, "shares_submitted": submitted}
+                else:
+                    shares = {p: sess["shares"][p] for p in PARTIES}
+                    total = sum(int(v) for v in shares.values())
+                    payload = {"ready": True, "shares": shares, "sum": str(total)}
+            return self._send_json(200, payload)
 
         self.send_error(404)
 
@@ -211,23 +204,28 @@ class Handler(http.server.BaseHTTPRequestHandler):
         parsed = urlparse(self.path)
         path = parsed.path
 
-        if path == "/api/reset":
-            new_code = reset_state()
-            return self._send_json(200, {"ok": True, "code": new_code})
+        # Create a new session. No auth — this IS the creation step.
+        if path == "/api/session/new":
+            code = new_session()
+            return self._send_json(200, {"code": code})
 
-        # Every other POST requires a session code in the JSON body.
         try:
             body = self._read_json()
         except Exception:
             return self._send_json(400, {"error": "bad json"})
 
-        if path == "/api/verify":
-            if not self._check_session(body.get("session", "")):
-                return self._reject_session()
-            return self._send_json(200, {"ok": True})
+        supplied = str(body.get("session", "")).upper()
 
-        if not self._check_session(body.get("session", "")):
-            return self._reject_session()
+        # Verify a code corresponds to an existing session (insurers call this
+        # after the aggregator shares the code with them, before submitting).
+        if path == "/api/verify":
+            with state_lock:
+                exists = supplied in sessions
+            return self._send_json(200, {"ok": True}) if exists else self._reject_session()
+
+        # Delete a session. Useful for the aggregator abandoning a round.
+        if path == "/api/reset":
+            return self._send_json(200, {"ok": True}) if delete_session(supplied) else self._reject_session()
 
         if path == "/api/pubkey":
             party = str(body.get("party", "")).upper()
@@ -237,7 +235,10 @@ class Handler(http.server.BaseHTTPRequestHandler):
             if not is_pubkey_b64(pubkey):
                 return self._send_json(400, {"error": "pubkey must be base64-encoded uncompressed P-256 (65 bytes)"})
             with state_lock:
-                state["pubkeys"][party] = pubkey
+                sess = sessions.get(supplied)
+                if sess is None:
+                    return self._reject_session()
+                sess["pubkeys"][party] = pubkey
             return self._send_json(200, {"ok": True})
 
         if path == "/api/share":
@@ -248,7 +249,10 @@ class Handler(http.server.BaseHTTPRequestHandler):
             if not is_decimal_string(share):
                 return self._send_json(400, {"error": "share must be a decimal string"})
             with state_lock:
-                state["shares"][party] = share
+                sess = sessions.get(supplied)
+                if sess is None:
+                    return self._reject_session()
+                sess["shares"][party] = share
             return self._send_json(200, {"ok": True})
 
         self.send_error(404)
@@ -265,7 +269,6 @@ def main():
     print(f"  Insurer B:  http://{display_host}:{PORT}/party/b")
     print(f"  Insurer C:  http://{display_host}:{PORT}/party/c")
     print(f"  Aggregator: http://{display_host}:{PORT}/aggregator")
-    print(f"  Session code: {current_session_code()}")
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:

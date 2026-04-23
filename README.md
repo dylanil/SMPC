@@ -49,11 +49,11 @@ Then open each page in a **separate** browser tab or window:
 | Insurer C   | <http://127.0.0.1:8765/party/c>       |
 | Aggregator  | <http://127.0.0.1:8765/aggregator>    |
 
-The home page shows a 6-character **session code**. Each insurer and the aggregator must enter this code on their own page before submitting data or computing the average — it gates every data-bearing endpoint and prevents two rounds from accidentally cross-talking.
+The aggregator opens their page and clicks **Create session** — the server mints a unique 6-character code. The aggregator shares that code with the three insurers out-of-band (Slack, email, etc.), and each insurer enters it on their own page before submitting a claim. The code gates every data-bearing endpoint and scopes state per-round, so multiple independent rounds can run in parallel without interference.
 
 Each insurer enters their claim and clicks *Start Protocol*. Once all three have submitted, the aggregator page reveals the average.
 
-To start a fresh round, click **Reset session** on the home page (this also rotates the session code).
+To abandon an in-flight round, reload the aggregator page and create a new one; old sessions live in memory until the server restarts.
 
 ### Deploying
 
@@ -75,16 +75,16 @@ SMPC/
 
 ### Server endpoints
 
-All data endpoints require a `session` field (POST body) or `session=` query param matching the current session code; mismatches return `403`.
+All data endpoints require a `session` field (POST body) or `session=` query param matching an existing session code; mismatches return `403`.
 
-- `GET  /api/session` — current session code (used by the home page to display it; unprotected)
-- `POST /api/verify` — verify a session code without side effects (`{session}` → `{ok}`)
+- `POST /api/session/new` — mint a new session and return its 6-char code (called by the aggregator; unprotected, no body)
+- `POST /api/verify` — check that a code corresponds to an active session (`{session}` → `{ok}`)
 - `POST /api/pubkey` — an insurer publishes its ECDH public key (base64 P-256, 88 chars)
-- `GET  /api/pubkeys?for=X` — insurer `X` fetches the other two insurers' public keys
+- `GET  /api/pubkeys?for=X&session=...` — insurer `X` fetches the other two insurers' public keys
 - `POST /api/share` — an insurer submits its final masked share
-- `GET  /api/result` — aggregator retrieves masked shares and their sum (only once all three are submitted)
-- `GET  /api/state` — public status (which insurers have submitted so far)
-- `POST /api/reset` — clear all state for a new round and rotate the session code (returns the new code)
+- `GET  /api/result?session=...` — aggregator retrieves masked shares and their sum (only once all three are submitted)
+- `GET  /api/state?session=...` — which insurers have submitted so far in this session
+- `POST /api/reset` — delete the given session (`{session}`); useful for abandoning a round
 - `GET  /healthz` — unprotected liveness probe for platform health checks
 
 ---
