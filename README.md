@@ -49,9 +49,9 @@ Then open each page in a **separate** browser tab or window:
 | Insurer C   | <http://127.0.0.1:8765/party/c>       |
 | Aggregator  | <http://127.0.0.1:8765/aggregator>    |
 
-The aggregator opens their page and clicks **Create session** — the server mints a unique 6-character code. The aggregator shares that code with the three insurers out-of-band (Slack, email, etc.), and each insurer enters it on their own page before submitting a claim. The code gates every data-bearing endpoint and scopes state per-round, so multiple independent rounds can run in parallel without interference.
+The aggregator opens their page and clicks **Create session** — the server mints a unique 6-character session code plus three per-party invite tokens and returns one combined invite per insurer in the form `SESSION-TOKEN`. The aggregator shares each invite with its matching insurer out-of-band (Slack, email, etc.) — each code is bound to a specific role, so an insurer holding A's invite cannot claim slot B. Each insurer enters their invite on their own page before submitting a claim.
 
-Each insurer enters their claim and clicks *Start Protocol*. Once all three have submitted, the aggregator page reveals the average.
+Each insurer enters their claim and clicks *Start Protocol*. Once all three shares have been submitted, each insurer's page independently recomputes the sum from the three public masked shares (a quick cross-check against the aggregator), and the aggregator page reveals the average.
 
 To abandon an in-flight round, reload the aggregator page and create a new one; old sessions live in memory until the server restarts.
 
@@ -75,14 +75,14 @@ SMPC/
 
 ### Server endpoints
 
-All data endpoints require a `session` field (POST body) or `session=` query param matching an existing session code; mismatches return `403`.
+Party-scoped endpoints require the `(session, party, token)` triple in the POST body; read-only observation endpoints require only a `session=` query param. Mismatches return `403`. POSTs with `Content-Length > 16 KB` return `413`.
 
-- `POST /api/session/new` — mint a new session and return its 6-char code (called by the aggregator; unprotected, no body)
-- `POST /api/verify` — check that a code corresponds to an active session (`{session}` → `{ok}`)
-- `POST /api/pubkey` — an insurer publishes its ECDH public key (base64 P-256, 88 chars)
+- `POST /api/session/new` — mint a new session and return `{code, tokens: {A, B, C}}` (called by the aggregator; unprotected, no body)
+- `POST /api/verify` — check that `(session, party, token)` names a real insurer slot (`{session, party, token}` → `{ok}`)
+- `POST /api/pubkey` — an insurer publishes its ECDH public key (`{session, party, token, pubkey}`; pubkey is base64 P-256, 88 chars)
+- `POST /api/share` — an insurer submits its final masked share (`{session, party, token, share}`)
 - `GET  /api/pubkeys?for=X&session=...` — insurer `X` fetches the other two insurers' public keys
-- `POST /api/share` — an insurer submits its final masked share
-- `GET  /api/result?session=...` — aggregator retrieves masked shares and their sum (only once all three are submitted)
+- `GET  /api/result?session=...` — masked shares plus their sum once all three are submitted; the aggregator and the insurers both use this to derive the average
 - `GET  /api/state?session=...` — which insurers have submitted so far in this session
 - `POST /api/reset` — delete the given session (`{session}`); useful for abandoning a round
 - `GET  /healthz` — unprotected liveness probe for platform health checks
@@ -94,6 +94,9 @@ All data endpoints require a `session` field (POST body) or `session=` query par
 This is an educational demo, not production-grade:
 
 - **Mask derivation is end-to-end.** Each pair derives its mask via ECDH P-256 + HKDF-SHA256 in the browser; private keys never leave the browser, masks are never transmitted, and the coordinator only sees public keys and masked shares. A coordinator colluding with one insurer can no longer recover another insurer's input.
-- **No authentication.** Anyone who can reach the server can claim to be any insurer (the 6-char session code is a low bar — fine for a demo over a private link, not for the open internet).
+- **Per-party invite tokens.** Each party slot (A, B, C) is bound to a token minted at session creation; party-scoped endpoints verify the `(session, party, token)` triple, so an attacker with just the session code cannot claim an insurer slot.
+- **Insurer-side verification.** After submitting, each insurer independently fetches the three masked shares and recomputes the sum, so a dishonest aggregator reporting a fabricated average is detectable by any insurer.
+- **Unbounded share magnitude.** `/api/share` accepts any decimal string — nothing caps the number. A malicious or buggy insurer can drag the average by submitting a huge value. Bounds-check at the application level before trusting the result.
+- **No party-identity authentication beyond the token.** A legitimate holder of an invite token is still trusted to honestly submit *their own* claim — the protocol doesn't prevent an insurer from entering whatever number they like as `x_i`.
 - **Fixed-point arithmetic** (×10⁶) is used so decimals work with BigInt on the client. Pick a scale that fits your expected range.
 - **Collusion.** As with any pairwise-masking scheme, two colluding insurers (or an insurer colluding with the aggregator) can reconstruct the third insurer's input — this is inherent to 3-party additive secret sharing.

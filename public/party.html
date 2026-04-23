@@ -94,10 +94,10 @@
   </div>
 
   <div class="card" id="inputCard">
-    <h3>Step 1 — Enter session code &amp; private claim</h3>
+    <h3>Step 1 — Enter invite code &amp; private claim</h3>
     <div class="field-row">
-      <label>Session code <span class="pill">from the aggregator</span></label>
-      <input type="text" class="code" id="sessionInput" maxlength="6" placeholder="XXXXXX" autocomplete="off" spellcheck="false" autofocus>
+      <label>Invite code <span class="pill">from the aggregator</span></label>
+      <input type="text" class="code" id="inviteInput" maxlength="13" placeholder="XXXXXX-YYYYYY" autocomplete="off" spellcheck="false" autofocus>
     </div>
     <div class="field-row">
       <label>Private claim <span class="pill">stays local</span></label>
@@ -120,6 +120,11 @@
   <div class="card muted" id="submitCard">
     <h3>Step 4 — Submit Masked Share</h3>
     <div id="submitBody"></div>
+  </div>
+
+  <div class="card muted" id="verifyCard">
+    <h3>Step 5 — Independently Verify the Aggregator</h3>
+    <div id="verifyBody"></div>
   </div>
 
   <a href="/">← back to home</a>
@@ -218,6 +223,15 @@
   }
 
   let SESSION = '';
+  let TOKEN = '';
+  const INVITE_RE = /^([A-Z0-9]{6})-([A-Z0-9]{6})$/;
+
+  // Prefill from URL hash so the aggregator can share a clickable link,
+  // e.g. /party/a#ABC123-DEF456 — the token stays out of server access logs.
+  if (location.hash) {
+    const h = location.hash.slice(1).toUpperCase();
+    if (INVITE_RE.test(h)) document.getElementById('inviteInput').value = h;
+  }
 
   function showInputErr(msg) {
     const e = document.getElementById('inputErr');
@@ -230,31 +244,35 @@
 
   async function start() {
     clearInputErr();
-    const code = document.getElementById('sessionInput').value.trim().toUpperCase();
-    if (code.length !== 6) {
-      showInputErr('Enter the 6-character session code the aggregator gave you.'); return;
+    const invite = document.getElementById('inviteInput').value.trim().toUpperCase();
+    const m = invite.match(INVITE_RE);
+    if (!m) {
+      showInputErr('Enter the invite code the aggregator gave you (format XXXXXX-YYYYYY).'); return;
     }
+    const code = m[1];
+    const token = m[2];
     const raw = document.getElementById('numInput').value;
     if (raw === '' || Number.isNaN(parseFloat(raw))) {
       showInputErr('Please enter a claim.'); return;
     }
 
-    // Verify the session code before disabling inputs.
+    // Verify (session, party, token) before disabling inputs.
     const verify = await fetch('/api/verify', {
       method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ session: code }),
+      body: JSON.stringify({ session: code, party: ROLE, token }),
     });
     if (!verify.ok) {
-      showInputErr('Session code does not match any active session. Ask the aggregator.');
+      showInputErr('Invite code is not valid for Insurer ' + ROLE + '. Ask the aggregator to resend yours.');
       return;
     }
     SESSION = code;
+    TOKEN = token;
 
     const x = parseFloat(raw);
     const xFixed = toFixed(x);
     document.getElementById('startBtn').disabled = true;
     document.getElementById('numInput').disabled = true;
-    document.getElementById('sessionInput').disabled = true;
+    document.getElementById('inviteInput').disabled = true;
 
     // === Step 2: ECDH key exchange + local mask derivation ===
     document.getElementById('exchangeCard').classList.remove('muted');
@@ -262,7 +280,7 @@
 
     const kp = await generateECDHKeypair();
     const myPubB64 = await exportPublicKeyB64(kp);
-    await apiPost('/api/pubkey', { session: SESSION, party: ROLE, pubkey: myPubB64 });
+    await apiPost('/api/pubkey', { session: SESSION, party: ROLE, token: TOKEN, pubkey: myPubB64 });
     logLine('exchangeLog', `→ Published pub<sub>${ROLE}</sub> to coordinator <span class="mono warn">(${myPubB64.slice(0, 24)}…)</span>.`, 'ok');
 
     logLine('exchangeLog', `Waiting for public keys from [${OTHERS.join(', ')}]…`, 'warn');
@@ -320,13 +338,48 @@
     // === Step 4: submit masked share ===
     await sleep(250);
     document.getElementById('submitCard').classList.remove('muted');
-    await apiPost('/api/share', { session: SESSION, party: ROLE, share: share.toString() });
+    await apiPost('/api/share', { session: SESSION, party: ROLE, token: TOKEN, share: share.toString() });
     document.getElementById('submitBody').innerHTML = `
       <div class="log"><div class="line ok">→ Submitted s<sub>${ROLE}</sub> to the aggregator.</div></div>
       <div class="done-banner">
-        Done. You can close this tab. The aggregator can compute the average once all three insurers have submitted.
+        Submitted. Step 5 below recomputes the sum locally from all three masked shares once they are in, so you can check the aggregator's claim independently.
       </div>
     `;
+
+    // === Step 5: independently verify the aggregator's result ===
+    document.getElementById('verifyCard').classList.remove('muted');
+    const verifyBody = document.getElementById('verifyBody');
+    verifyBody.innerHTML = `<div class="log"><div class="line warn">Waiting for all three shares to land, then recomputing the sum locally…</div></div>`;
+    while (true) {
+      try {
+        const r = await fetch('/api/result?session=' + encodeURIComponent(SESSION));
+        if (r.ok) {
+          const data = await r.json();
+          if (data.ready) {
+            const localSum = BigInt(data.shares.A) + BigInt(data.shares.B) + BigInt(data.shares.C);
+            const serverSum = BigInt(data.sum);
+            const match = localSum === serverSum;
+            const avgNum = Number(localSum) / Number(SCALE) / 3;
+            const avgStr = avgNum.toFixed(6).replace(/\.?0+$/, '');
+            verifyBody.innerHTML = `
+              <div class="kv">
+                <div class="k">s<sub>A</sub>:</div><div class="mono">${data.shares.A}</div>
+                <div class="k">s<sub>B</sub>:</div><div class="mono">${data.shares.B}</div>
+                <div class="k">s<sub>C</sub>:</div><div class="mono">${data.shares.C}</div>
+                <div class="k">Sum (you):</div><div class="mono masked">${localSum.toString()}</div>
+                <div class="k">Sum (server):</div><div class="mono ${match ? 'masked' : 'secret'}">${serverSum.toString()} ${match ? '✓ match' : '✗ MISMATCH'}</div>
+                <div class="k">Average:</div><div class="mono masked">${avgStr}</div>
+              </div>
+              <div style="margin-top:10px; font-size:12px; color:var(--muted); font-style:italic;">
+                The masks cancel by construction when all three shares are added — so anyone with the three numbers can verify the sum. A dishonest aggregator reporting a different average would disagree with this value.
+              </div>
+            `;
+            break;
+          }
+        }
+      } catch (_) { /* server might be restarting */ }
+      await sleep(700);
+    }
   }
 
   document.getElementById('startBtn').addEventListener('click', () => {
@@ -334,7 +387,7 @@
       alert('Error: ' + err.message);
       document.getElementById('startBtn').disabled = false;
       document.getElementById('numInput').disabled = false;
-      document.getElementById('sessionInput').disabled = false;
+      document.getElementById('inviteInput').disabled = false;
     });
   });
 </script>

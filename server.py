@@ -8,10 +8,11 @@ Roles:
     an ECDH P-256 keypair locally, publishes the public key, fetches the others'
     public keys, derives pairwise masks via ECDH + HKDF, and submits its
     masked share. Private keys never leave the browser.
-  - Aggregator: a separate page that creates a session (minting a unique code),
-    shares that code out-of-band with the three insurers, and then fetches the
-    masked shares and computes the average. The aggregator never sees raw
-    inputs, private keys, or pairwise masks.
+  - Aggregator: a separate page that creates a session (minting a unique code
+    plus one per-party invite token), shares each invite out-of-band with the
+    matching insurer, and then fetches the masked shares and computes the
+    average. The aggregator never sees raw inputs, private keys, or pairwise
+    masks.
 
 Protocol (ECDH + HKDF mask derivation):
   Each pair (i, j) with i < j independently derives the same pairwise mask r_ij:
@@ -24,11 +25,12 @@ Protocol (ECDH + HKDF mask derivation):
   Summing all three masked shares cancels every mask, yielding x_A + x_B + x_C.
 
 Wire-level state held by this server:
-  - sessions: dict keyed by 6-char session code. Each session holds pubkeys and
-    shares for one round. The aggregator creates a session via POST
-    /api/session/new; multiple independent sessions can coexist.
-The server cannot derive any pairwise mask — that requires at least one private
-key, which never leaves the originating browser.
+  - sessions: dict keyed by 6-char session code. Each session holds pubkeys,
+    shares, and a per-party token map {A|B|C -> 6-char token}. Claiming a party
+    slot requires knowing that party's token, which binds the party label to
+    the aggregator's out-of-band invite. Multiple independent sessions can
+    coexist. The server cannot derive any pairwise mask — that requires at
+    least one private key, which never leaves the originating browser.
 
 All claim arithmetic is in fixed-point (x * 1_000_000) so decimals work with
 BigInt on the client.
@@ -49,17 +51,20 @@ PUBLIC_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "public")
 PARTIES = ["A", "B", "C"]
 SESSION_ALPHABET = string.ascii_uppercase + string.digits
 SESSION_LEN = 6
+# Generous ceiling for any legitimate POST (a pubkey body is ~150 bytes). Blocks
+# memory-exhaustion DoS from clients declaring a huge Content-Length.
+MAX_BODY_BYTES = 16 * 1024
 # Raw uncompressed P-256 public key: 0x04 || X(32) || Y(32) = 65 bytes -> 88 b64 chars.
 PUBKEY_RAW_LEN = 65
 PUBKEY_B64_LEN = 88
 
 
-def generate_session_code():
+def generate_code():
     return "".join(secrets.choice(SESSION_ALPHABET) for _ in range(SESSION_LEN))
 
 
 state_lock = threading.Lock()
-# code -> {"pubkeys": {...}, "shares": {...}}
+# code -> {"pubkeys": {...}, "shares": {...}, "tokens": {A: ..., B: ..., C: ...}}
 sessions = {}
 
 
@@ -67,10 +72,11 @@ def new_session():
     with state_lock:
         # 36^6 is vast but still retry on the astronomically unlikely collision.
         while True:
-            code = generate_session_code()
+            code = generate_code()
             if code not in sessions:
-                sessions[code] = {"pubkeys": {}, "shares": {}}
-                return code
+                tokens = {p: generate_code() for p in PARTIES}
+                sessions[code] = {"pubkeys": {}, "shares": {}, "tokens": tokens}
+                return code, tokens
 
 
 def delete_session(code):
@@ -132,8 +138,23 @@ class Handler(http.server.BaseHTTPRequestHandler):
         raw = self.rfile.read(length)
         return json.loads(raw.decode("utf-8"))
 
-    def _reject_session(self):
-        return self._send_json(403, {"error": "invalid session code"})
+    def _reject(self):
+        return self._send_json(403, {"error": "invalid session or token"})
+
+    def _authorize_party(self, body):
+        """Validate that (session, party, token) in `body` names a real session
+        and matches the minted token for that party. Returns the session dict
+        and party letter on success, else (None, None)."""
+        code = str(body.get("session", "")).upper()
+        party = str(body.get("party", "")).upper()
+        token = str(body.get("token", "")).upper()
+        if party not in PARTIES:
+            return None, None
+        with state_lock:
+            sess = sessions.get(code)
+            if sess is None or sess["tokens"].get(party) != token:
+                return None, None
+            return sess, party
 
     # --- GET --------------------------------------------------------------
     def do_GET(self):
@@ -154,7 +175,9 @@ class Handler(http.server.BaseHTTPRequestHandler):
         if path == "/healthz":
             return self._send_json(200, {"ok": True})
 
-        # Session-gated APIs: every read scoped to the supplied session code.
+        # Read-only session-scoped APIs (any session-code holder can observe).
+        # Party identity isn't needed here: the aggregator polls these, and
+        # insurers use them to independently verify the aggregator's result.
         supplied = (qs.get("session", [""])[0] or "").upper()
 
         if path == "/api/state":
@@ -165,7 +188,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
                     "shares_submitted": sorted(sess["shares"].keys()),
                 }
             if data is None:
-                return self._reject_session()
+                return self._reject()
             return self._send_json(200, data)
 
         if path == "/api/pubkeys":
@@ -175,7 +198,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
             with state_lock:
                 sess = sessions.get(supplied)
                 if sess is None:
-                    return self._reject_session()
+                    return self._reject()
                 others = [
                     {"party": p, "pubkey": v}
                     for p, v in sess["pubkeys"].items()
@@ -187,7 +210,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
             with state_lock:
                 sess = sessions.get(supplied)
                 if sess is None:
-                    return self._reject_session()
+                    return self._reject()
                 submitted = sorted(sess["shares"].keys())
                 if len(submitted) < 3:
                     payload = {"ready": False, "shares_submitted": submitted}
@@ -206,52 +229,50 @@ class Handler(http.server.BaseHTTPRequestHandler):
 
         # Create a new session. No auth — this IS the creation step.
         if path == "/api/session/new":
-            code = new_session()
-            return self._send_json(200, {"code": code})
+            code, tokens = new_session()
+            return self._send_json(200, {"code": code, "tokens": tokens})
+
+        # Reject oversized bodies before we allocate memory for them.
+        length = int(self.headers.get("Content-Length", "0") or "0")
+        if length > MAX_BODY_BYTES:
+            return self._send_json(413, {"error": "body too large"})
 
         try:
             body = self._read_json()
         except Exception:
             return self._send_json(400, {"error": "bad json"})
 
-        supplied = str(body.get("session", "")).upper()
-
-        # Verify a code corresponds to an existing session (insurers call this
-        # after the aggregator shares the code with them, before submitting).
+        # Verify an invite code: (session, party, token) triple. Used by the
+        # party page before it disables inputs.
         if path == "/api/verify":
-            with state_lock:
-                exists = supplied in sessions
-            return self._send_json(200, {"ok": True}) if exists else self._reject_session()
+            sess, _party = self._authorize_party(body)
+            return self._send_json(200, {"ok": True}) if sess is not None else self._reject()
 
-        # Delete a session. Useful for the aggregator abandoning a round.
+        # Delete a session (aggregator abandoning a round). Session code alone
+        # suffices — anyone in the round can end it.
         if path == "/api/reset":
-            return self._send_json(200, {"ok": True}) if delete_session(supplied) else self._reject_session()
+            supplied = str(body.get("session", "")).upper()
+            return self._send_json(200, {"ok": True}) if delete_session(supplied) else self._reject()
 
         if path == "/api/pubkey":
-            party = str(body.get("party", "")).upper()
             pubkey = body.get("pubkey", "")
-            if party not in PARTIES:
-                return self._send_json(400, {"error": "invalid party"})
             if not is_pubkey_b64(pubkey):
                 return self._send_json(400, {"error": "pubkey must be base64-encoded uncompressed P-256 (65 bytes)"})
+            sess, party = self._authorize_party(body)
+            if sess is None:
+                return self._reject()
             with state_lock:
-                sess = sessions.get(supplied)
-                if sess is None:
-                    return self._reject_session()
                 sess["pubkeys"][party] = pubkey
             return self._send_json(200, {"ok": True})
 
         if path == "/api/share":
-            party = str(body.get("party", "")).upper()
             share = body.get("share", "")
-            if party not in PARTIES:
-                return self._send_json(400, {"error": "invalid party"})
             if not is_decimal_string(share):
                 return self._send_json(400, {"error": "share must be a decimal string"})
+            sess, party = self._authorize_party(body)
+            if sess is None:
+                return self._reject()
             with state_lock:
-                sess = sessions.get(supplied)
-                if sess is None:
-                    return self._reject_session()
                 sess["shares"][party] = share
             return self._send_json(200, {"ok": True})
 

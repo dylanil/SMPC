@@ -78,21 +78,32 @@
     font-family:inherit;
   }
   .create:disabled { opacity:.4; cursor:not-allowed; }
-  .code-display {
-    display:flex; align-items:center; gap:14px; margin-top:10px;
+  .invites { display:flex; flex-direction:column; gap:8px; margin-top:10px; }
+  .invite-row {
+    display:flex; align-items:center; gap:12px;
     background:linear-gradient(135deg,#1b2230,#23203a);
-    border:1px solid var(--agg); border-radius:8px; padding:14px 18px;
+    border:1px solid var(--border); border-radius:8px; padding:10px 14px;
   }
-  .code-display .code {
-    font-family:Consolas,monospace; font-size:32px; font-weight:700;
-    letter-spacing:.2em; color:var(--agg);
+  .invite-row.a { border-color:var(--a); }
+  .invite-row.b { border-color:var(--b); }
+  .invite-row.c { border-color:var(--c); }
+  .invite-label {
+    flex:0 0 96px; font-size:12px; text-transform:uppercase;
+    letter-spacing:.08em; color:var(--muted); font-weight:600;
   }
-  .code-display .copy {
+  .invite-row.a .invite-label { color:var(--a); }
+  .invite-row.b .invite-label { color:var(--b); }
+  .invite-row.c .invite-label { color:var(--c); }
+  .invite-code {
+    flex:1; font-family:Consolas,monospace; font-size:18px; font-weight:700;
+    letter-spacing:.12em; color:var(--text); word-break:break-all;
+  }
+  .copy {
     padding:8px 14px; background:transparent; color:var(--muted);
     border:1px solid var(--border); border-radius:6px; cursor:pointer;
     font-family:inherit; font-size:12px;
   }
-  .code-display .copy:hover { color:var(--text); border-color:var(--agg); }
+  .copy:hover { color:var(--text); border-color:var(--agg); }
   .share-hint { font-size:13px; color:var(--muted); margin-top:10px; }
   .err { margin-top:10px; color:#ff7a8a; font-size:13px; display:none; }
   .err.show { display:block; }
@@ -115,12 +126,25 @@
       <button class="create" id="createBtn">Create session</button>
     </div>
     <div id="codeRow" class="hidden">
-      <label>Share this code with the three insurers out-of-band. They enter it on their own page.</label>
-      <div class="code-display">
-        <div class="code" id="sessionCode">——————</div>
-        <button class="copy" id="copyBtn">Copy</button>
+      <label>Each invite is bound to a specific role. Send insurer A's code to A, B's to B, C's to C — an insurer who tries to use another's code will be rejected by the server.</label>
+      <div class="invites">
+        <div class="invite-row a">
+          <div class="invite-label">Insurer A</div>
+          <div class="invite-code" id="inviteA">——</div>
+          <button class="copy" data-party="A">Copy</button>
+        </div>
+        <div class="invite-row b">
+          <div class="invite-label">Insurer B</div>
+          <div class="invite-code" id="inviteB">——</div>
+          <button class="copy" data-party="B">Copy</button>
+        </div>
+        <div class="invite-row c">
+          <div class="invite-label">Insurer C</div>
+          <div class="invite-code" id="inviteC">——</div>
+          <button class="copy" data-party="C">Copy</button>
+        </div>
       </div>
-      <div class="share-hint">The code lives in this tab only. If you close or reload this page the session is abandoned.</div>
+      <div class="share-hint">Codes live in this tab only. If you close or reload this page the session is abandoned.</div>
     </div>
     <div class="err" id="sessionErr"></div>
   </div>
@@ -233,9 +257,11 @@
     try {
       const r = await fetch('/api/session/new', { method:'POST' });
       if (!r.ok) throw new Error(await r.text());
-      const { code } = await r.json();
+      const { code, tokens } = await r.json();
       SESSION = code;
-      document.getElementById('sessionCode').textContent = code;
+      for (const p of ['A','B','C']) {
+        document.getElementById('invite' + p).textContent = code + '-' + tokens[p];
+      }
       document.getElementById('createRow').classList.add('hidden');
       document.getElementById('codeRow').classList.remove('hidden');
       document.getElementById('statusCard').classList.remove('hidden');
@@ -245,14 +271,17 @@
     }
   });
 
-  document.getElementById('copyBtn').addEventListener('click', async () => {
-    try {
-      await navigator.clipboard.writeText(SESSION);
-      const btn = document.getElementById('copyBtn');
-      const prev = btn.textContent;
-      btn.textContent = 'Copied';
-      setTimeout(() => { btn.textContent = prev; }, 1200);
-    } catch (_) { /* clipboard may be blocked; user can select manually */ }
+  document.querySelectorAll('.copy').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const p = btn.dataset.party;
+      const text = document.getElementById('invite' + p).textContent;
+      try {
+        await navigator.clipboard.writeText(text);
+        const prev = btn.textContent;
+        btn.textContent = 'Copied';
+        setTimeout(() => { btn.textContent = prev; }, 1200);
+      } catch (_) { /* clipboard may be blocked; user can select manually */ }
+    });
   });
 </script>
 </body>
