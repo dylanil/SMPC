@@ -115,7 +115,7 @@
     <div class="badge">Σ</div>
     <div>
       <h1><span class="accent">Aggregator</span></h1>
-      <div class="sub">This page only sees masked shares. It never sees any insurer's raw claim or any pairwise mask.</div>
+      <div class="sub">This page only sees masked shares. It never sees any participant's raw figure or any pairwise mask.</div>
     </div>
   </div>
 
@@ -126,20 +126,20 @@
       <button class="create" id="createBtn">Create session</button>
     </div>
     <div id="codeRow" class="hidden">
-      <label>Each invite is bound to a specific role. Send insurer A's code to A, B's to B, C's to C — an insurer who tries to use another's code will be rejected by the server.</label>
+      <label>Each invite is bound to a specific role. Send participant A's code to A, B's to B, C's to C — a participant who tries to use another's code will be rejected by the server.</label>
       <div class="invites">
         <div class="invite-row a">
-          <div class="invite-label">Insurer A</div>
+          <div class="invite-label">Participant A</div>
           <div class="invite-code" id="inviteA">——</div>
           <button class="copy" data-party="A">Copy</button>
         </div>
         <div class="invite-row b">
-          <div class="invite-label">Insurer B</div>
+          <div class="invite-label">Participant B</div>
           <div class="invite-code" id="inviteB">——</div>
           <button class="copy" data-party="B">Copy</button>
         </div>
         <div class="invite-row c">
-          <div class="invite-label">Insurer C</div>
+          <div class="invite-label">Participant C</div>
           <div class="invite-code" id="inviteC">——</div>
           <button class="copy" data-party="C">Copy</button>
         </div>
@@ -152,17 +152,17 @@
   <div class="card hidden" id="statusCard">
     <h3>Status</h3>
     <div class="status-row">
-      <div class="chip a waiting" id="chipA"><span class="check">○</span>Insurer A</div>
-      <div class="chip b waiting" id="chipB"><span class="check">○</span>Insurer B</div>
-      <div class="chip c waiting" id="chipC"><span class="check">○</span>Insurer C</div>
+      <div class="chip a waiting" id="chipA"><span class="check">○</span>Participant A</div>
+      <div class="chip b waiting" id="chipB"><span class="check">○</span>Participant B</div>
+      <div class="chip c waiting" id="chipC"><span class="check">○</span>Participant C</div>
     </div>
-    <div class="note" id="statusNote">Waiting for all three insurers to submit their masked shares…</div>
+    <div class="note" id="statusNote">Waiting for all three participants to submit their masked shares…</div>
   </div>
 
   <div class="card hidden" id="sharesCard">
     <h3>Masked Shares Received</h3>
     <div class="share-grid" id="shareGrid"></div>
-    <div class="note">Each share looks like a random integer to the aggregator. None of them individually reveals the underlying claim.</div>
+    <div class="note">Each share looks like a random integer to the aggregator. None of them individually reveals the underlying figure.</div>
   </div>
 
   <div class="card hidden" id="computeCard">
@@ -173,10 +173,10 @@
   <div class="card hidden" id="resultCard">
     <h3>Result</h3>
     <div class="result">
-      <div class="label">Average of the three private claims</div>
+      <div class="label">Average of the three private figures</div>
       <div class="value" id="avgValue">—</div>
     </div>
-    <div class="note">The aggregator derived only the sum (and therefore the average). Individual claims x<sub>A</sub>, x<sub>B</sub>, x<sub>C</sub> remain unknown.</div>
+    <div class="note">The aggregator derived only the sum (and therefore the average). Individual figures x<sub>A</sub>, x<sub>B</sub>, x<sub>C</sub> remain unknown.</div>
   </div>
 
   <a href="/">← back to home</a>
@@ -228,7 +228,7 @@
     document.getElementById('resultCard').classList.remove('hidden');
     const pretty = avg.toFixed(6).replace(/\.?0+$/, '');
     document.getElementById('avgValue').textContent = pretty;
-    document.getElementById('statusNote').textContent = 'All three insurers submitted. Average computed from masked shares.';
+    document.getElementById('statusNote').textContent = 'All three participants submitted. Average computed from masked shares.';
   }
 
   let SESSION = '';

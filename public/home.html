@@ -60,36 +60,36 @@
 <body>
 <div class="wrap">
   <h1>Secure Multi-Party Average</h1>
-  <div class="sub">Three insurers each privately enter one claim on their own page. A separate aggregator computes the average from masked shares — raw claims are never transmitted.</div>
+  <div class="sub">Three participants each privately enter one figure on their own page. A separate aggregator computes the average from masked shares — raw figures are never transmitted.</div>
 
   <div class="flow">
     <div class="label">How to start a round</div>
     <p>1. The aggregator opens their page and clicks <b>Create session</b> — the server mints a unique 6-character code.</p>
-    <p>2. The aggregator shares that code with the three insurers out-of-band (Slack, email, a phone call).</p>
-    <p>3. Each insurer opens their page, enters the code, and submits their claim. The aggregator sees the average once all three are in.</p>
+    <p>2. The aggregator shares that code with the three participants out-of-band (Slack, email, a phone call).</p>
+    <p>3. Each participant opens their page, enters the code, and submits their figure. The aggregator sees the average once all three are in.</p>
   </div>
 
   <div class="how">
     <h2>How it works</h2>
-    <p>1. Each pair of insurers exchanges a random one-time-pad mask. For pair <code>(i, j)</code> with <code>i &lt; j</code>, insurer <code>i</code> adds the mask, insurer <code>j</code> subtracts it.</p>
-    <p>2. Each insurer submits only <code>s_i = x_i ± masks</code> — a single number indistinguishable from uniform random.</p>
+    <p>1. Each pair of participants exchanges a random one-time-pad mask. For pair <code>(i, j)</code> with <code>i &lt; j</code>, participant <code>i</code> adds the mask, participant <code>j</code> subtracts it.</p>
+    <p>2. Each participant submits only <code>s_i = x_i ± masks</code> — a single number indistinguishable from uniform random.</p>
     <p>3. The aggregator sums the three masked shares. Because every mask appears once with <code>+</code> and once with <code>−</code>, the masks cancel and the sum reveals <code>x_A + x_B + x_C</code>, from which the average follows.</p>
   </div>
 
   <div class="grid">
     <a class="card a" href="/party/a" target="_blank">
       <div class="role">Participant</div>
-      <div class="name"><span class="dot"></span>Insurer A</div>
+      <div class="name"><span class="dot"></span>Participant A</div>
       <div class="desc">Open in a new tab or browser window.</div>
     </a>
     <a class="card b" href="/party/b" target="_blank">
       <div class="role">Participant</div>
-      <div class="name"><span class="dot"></span>Insurer B</div>
+      <div class="name"><span class="dot"></span>Participant B</div>
       <div class="desc">Open in a new tab or browser window.</div>
     </a>
     <a class="card c" href="/party/c" target="_blank">
       <div class="role">Participant</div>
-      <div class="name"><span class="dot"></span>Insurer C</div>
+      <div class="name"><span class="dot"></span>Participant C</div>
       <div class="desc">Open in a new tab or browser window.</div>
     </a>
     <a class="card agg" href="/aggregator" target="_blank">

@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>SMPC Insurer</title>
+<title>SMPC Participant</title>
 <style>
   :root {
     --bg:#0b0f17; --panel:#141a24; --panel-2:#1b2230; --border:#283141;
@@ -89,19 +89,19 @@
   <div class="header">
     <div class="badge" id="badge">?</div>
     <div>
-      <h1>Insurer <span id="roleName" class="accent">?</span></h1>
-      <div class="sub">Your claim never leaves this browser. Two keypairs are generated locally: one for ECDH mask derivation, one for ECDSA signing of every submission. Private halves stay in this tab.</div>
+      <h1>Participant <span id="roleName" class="accent">?</span></h1>
+      <div class="sub">Your figure never leaves this browser. Two keypairs are generated locally: one for ECDH mask derivation, one for ECDSA signing of every submission. Private halves stay in this tab.</div>
     </div>
   </div>
 
   <div class="card" id="inputCard">
-    <h3>Step 1 — Enter invite code &amp; private claim</h3>
+    <h3>Step 1 — Enter invite code &amp; private figure</h3>
     <div class="field-row">
       <label>Invite code <span class="pill">from the aggregator</span></label>
       <input type="text" class="code" id="inviteInput" maxlength="13" placeholder="XXXXXX-YYYYYY" autocomplete="off" spellcheck="false" autofocus>
     </div>
     <div class="field-row">
-      <label>Private claim <span class="pill">stays local</span></label>
+      <label>Private figure <span class="pill">stays local</span></label>
       <input type="number" id="numInput" step="any" placeholder="e.g. 42">
     </div>
     <button class="go" id="startBtn">Start Protocol</button>
@@ -147,7 +147,7 @@
   document.body.classList.add('role-' + ROLE);
   document.getElementById('badge').textContent = ROLE;
   document.getElementById('roleName').textContent = ROLE;
-  document.title = `Insurer ${ROLE} — SMPC`;
+  document.title = `Participant ${ROLE} — SMPC`;
 
   const OTHERS = PARTIES.filter(p => p !== ROLE);
   // Sign per pair (i, j) with i < j: lower-letter party adds r_ij, higher subtracts.
@@ -292,7 +292,7 @@
     const inviteToken = m[2];
     const raw = document.getElementById('numInput').value;
     if (raw === '' || Number.isNaN(parseFloat(raw))) {
-      showInputErr('Please enter a claim.'); return;
+      showInputErr('Please enter a figure.'); return;
     }
 
     // === Step 2: generate signing key and join ===
@@ -308,7 +308,7 @@
         session: code, party: ROLE, token: inviteToken, vk: myVkB64,
       });
     } catch (err) {
-      showInputErr('Invite is not valid for Insurer ' + ROLE + '. Ask the aggregator to resend.');
+      showInputErr('Invite is not valid for Participant ' + ROLE + '. Ask the aggregator to resend.');
       return;
     }
     SESSION = code;
@@ -374,7 +374,7 @@
 
     document.getElementById('computeBody').innerHTML = `
       <div class="kv">
-        <div class="k">Your claim x<sub>${ROLE}</sub>:</div>
+        <div class="k">Your figure x<sub>${ROLE}</sub>:</div>
         <div class="mono secret">kept local — never transmitted</div>
         <div class="k">Formula:</div>
         <div class="mono">s<sub>${ROLE}</sub> = ${parts.join(' ')}</div>

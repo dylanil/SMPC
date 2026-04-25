@@ -4,13 +4,13 @@ SMPC coordination server for a 3-party pairwise-mask average,
 using ECDH-derived masks so the server never sees any mask value.
 
 Roles:
-  - Insurer A, Insurer B, Insurer C: each runs in their own browser, generates
+  - Participant A, Participant B, Participant C: each runs in their own browser, generates
     an ECDH P-256 keypair locally for mask derivation AND a separate ECDSA
     P-256 signing keypair for share authentication. Public halves of both go
     to the server; private halves never leave the browser.
   - Aggregator: a separate page that creates a session (minting a unique code
     plus one per-party invite token), shares each invite out-of-band with the
-    matching insurer, and then fetches the masked shares and computes the
+    matching participant, and then fetches the masked shares and computes the
     average. The aggregator never sees raw inputs, private keys, or pairwise
     masks.
 
@@ -28,19 +28,19 @@ Identity / integrity layers (atop the existing pairwise-mask protocol):
      this token in place of the raw invite. The server doesn't store the
      token; verification is stateless via HMAC.
 
-  3. Signed shares (ECDSA P-256 over SHA-256). The insurer signs each
+  3. Signed shares (ECDSA P-256 over SHA-256). The participant signs each
      submission's canonical payload with their browser-local sk; the server
      verifies the signature against the vk it extracted from the bearer
      token. /api/result returns the signatures and vks so the aggregator and
-     other insurers can independently re-verify and compute the average from
+     other participants can independently re-verify and compute the average from
      untampered shares.
 
   IMPORTANT: this layer stack does NOT solve session-time impersonation when
   vks are session-ephemeral. The attacker who intercepts an invite can race
-  the legitimate insurer to /api/join, publish their own vk, and from then
+  the legitimate participant to /api/join, publish their own vk, and from then
   on every signed POST they make verifies cleanly. Closing that gap requires
-  a long-term per-insurer key registry (or equivalent trust anchor) that
-  binds the vk to the insurer *before* the session begins. We have not built
+  a long-term per-participant key registry (or equivalent trust anchor) that
+  binds the vk to the participant *before* the session begins. We have not built
   that. The current code is a faithful demonstration of the cryptographic
   plumbing — the upstream identity-binding step is intentionally out of scope.
 
@@ -54,7 +54,7 @@ Wire-level state held by this server:
   Plus the per-process HMAC secret for bearer tokens. None of this survives a
   restart.
 
-All claim arithmetic is in fixed-point (x * 1_000_000) so decimals work with
+All figure arithmetic is in fixed-point (x * 1_000_000) so decimals work with
 BigInt on the client.
 """
 
@@ -290,7 +290,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
             return self._send_json(200, {"ok": True})
 
         # Read-only session-scoped APIs (any session-code holder can observe).
-        # Insurers use these to independently verify the aggregator's result;
+        # Participants use these to independently verify the aggregator's result;
         # the aggregator polls them to render its own UI.
         supplied = (qs.get("session", [""])[0] or "").upper()
 
@@ -440,9 +440,9 @@ def main():
     display_host = "127.0.0.1" if HOST in ("0.0.0.0", "::") else HOST
     print(f"SMPC server listening on {HOST}:{PORT}")
     print(f"  Home:       http://{display_host}:{PORT}/")
-    print(f"  Insurer A:  http://{display_host}:{PORT}/party/a")
-    print(f"  Insurer B:  http://{display_host}:{PORT}/party/b")
-    print(f"  Insurer C:  http://{display_host}:{PORT}/party/c")
+    print(f"  Participant A:  http://{display_host}:{PORT}/party/a")
+    print(f"  Participant B:  http://{display_host}:{PORT}/party/b")
+    print(f"  Participant C:  http://{display_host}:{PORT}/party/c")
     print(f"  Aggregator: http://{display_host}:{PORT}/aggregator")
     try:
         httpd.serve_forever()
