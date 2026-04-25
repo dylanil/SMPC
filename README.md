@@ -33,9 +33,10 @@ Mask derivation uses **ECDH P-256 + HKDF-SHA256** in the browser:
 
 ## Running it
 
-Requires Python 3.7+ (uses only the stdlib).
+Requires Python 3.7+ and `cryptography` for ECDSA P-256 signature verification.
 
 ```bash
+pip install -r requirements.txt
 python server.py
 ```
 
@@ -75,14 +76,14 @@ SMPC/
 
 ### Server endpoints
 
-Party-scoped endpoints require the `(session, party, token)` triple in the POST body; read-only observation endpoints require only a `session=` query param. Mismatches return `403`. POSTs with `Content-Length > 16 KB` return `413`.
+An insurer's first POST is `/api/join` with `(session, party, token, vk)` — they redeem their invite token and register their ECDSA verifying key. The server returns a server-signed bearer token (HMAC-SHA256 over `{session, party, vk, exp}`). All subsequent party-scoped POSTs carry that bearer token plus an ECDSA signature over a canonical `<action>|<session>|<party>|<content>` message; the server verifies its own HMAC, extracts the registered vk, and verifies the share/pubkey signature against it. Read-only observation endpoints require only a `session=` query param. POSTs with `Content-Length > 16 KB` return `413`.
 
-- `POST /api/session/new` — mint a new session and return `{code, tokens: {A, B, C}}` (called by the aggregator; unprotected, no body)
-- `POST /api/verify` — check that `(session, party, token)` names a real insurer slot (`{session, party, token}` → `{ok}`)
-- `POST /api/pubkey` — an insurer publishes its ECDH public key (`{session, party, token, pubkey}`; pubkey is base64 P-256, 88 chars)
-- `POST /api/share` — an insurer submits its final masked share (`{session, party, token, share}`)
-- `GET  /api/pubkeys?for=X&session=...` — insurer `X` fetches the other two insurers' public keys
-- `GET  /api/result?session=...` — masked shares plus their sum once all three are submitted; the aggregator and the insurers both use this to derive the average
+- `POST /api/session/new` — mint a new session and return `{code, tokens: {A, B, C}}` (aggregator; unprotected, no body)
+- `POST /api/join` — redeem an invite, register a signing vk, receive a bearer token (`{session, party, token, vk}` → `{server_token}`)
+- `POST /api/pubkey` — publish an ECDH public key, signed (`{server_token, pubkey, sig}`)
+- `POST /api/share` — submit a final masked share, signed (`{server_token, share, sig}`)
+- `GET  /api/pubkeys?for=X&session=...` — insurer `X` fetches the other two insurers' ECDH pubkeys
+- `GET  /api/result?session=...` — masked shares + their signatures + the registered vks + the sum, once all three are in. The aggregator and the insurers both use this to recompute the sum AND independently verify each share's signature
 - `GET  /api/state?session=...` — which insurers have submitted so far in this session
 - `POST /api/reset` — delete the given session (`{session}`); useful for abandoning a round
 - `GET  /healthz` — unprotected liveness probe for platform health checks
@@ -94,9 +95,11 @@ Party-scoped endpoints require the `(session, party, token)` triple in the POST 
 This is an educational demo, not production-grade:
 
 - **Mask derivation is end-to-end.** Each pair derives its mask via ECDH P-256 + HKDF-SHA256 in the browser; private keys never leave the browser, masks are never transmitted, and the coordinator only sees public keys and masked shares. A coordinator colluding with one insurer can no longer recover another insurer's input.
-- **Per-party invite tokens.** Each party slot (A, B, C) is bound to a token minted at session creation; party-scoped endpoints verify the `(session, party, token)` triple, so an attacker with just the session code cannot claim an insurer slot.
-- **Insurer-side verification.** After submitting, each insurer independently fetches the three masked shares and recomputes the sum, so a dishonest aggregator reporting a fabricated average is detectable by any insurer.
-- **Unbounded share magnitude.** `/api/share` accepts any decimal string — nothing caps the number. A malicious or buggy insurer can drag the average by submitting a huge value. Bounds-check at the application level before trusting the result.
+- **Per-party invite tokens** redeemed at `/api/join` gate which party slot a request can claim.
+- **Server-signed bearer tokens** (HMAC-SHA256) committing to `(session, party, vk)` replace the raw invite for subsequent POSTs. Tamper-proof and stateless: the server re-verifies its own HMAC instead of remembering tokens.
+- **ECDSA P-256 signed shares.** Every `/api/pubkey` and `/api/share` POST carries a signature over `"<action>|<session>|<party>|<content>"`. The server verifies it against the vk registered at `/api/join`. `/api/result` returns each share's signature and vk so the aggregator and other insurers can independently re-verify and recompute the sum — a dishonest aggregator can be caught.
+- **Honest limitation: signed shares do NOT close the impersonation race.** vks are generated per-session in the browser. An attacker who intercepts an invite and races the legitimate insurer to `/api/join` registers their own vk; subsequent signatures verify cleanly. Closing this gap requires a long-term per-insurer key registry (or two-channel delivery, or federated identity) that binds vk to insurer identity *before* the session begins. Not implemented here.
+- **Unbounded share magnitude.** `/api/share` accepts any decimal string — nothing caps the number. A malicious or buggy insurer can drag the average by submitting a huge value. Signatures don't help: they only prove who submitted, not what was reasonable.
 - **No party-identity authentication beyond the token.** A legitimate holder of an invite token is still trusted to honestly submit *their own* claim — the protocol doesn't prevent an insurer from entering whatever number they like as `x_i`.
 - **Fixed-point arithmetic** (×10⁶) is used so decimals work with BigInt on the client. Pick a scale that fits your expected range.
 - **Collusion.** As with any pairwise-masking scheme, two colluding insurers (or an insurer colluding with the aggregator) can reconstruct the third insurer's input — this is inherent to 3-party additive secret sharing.

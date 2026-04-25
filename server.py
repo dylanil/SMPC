@@ -5,45 +5,75 @@ using ECDH-derived masks so the server never sees any mask value.
 
 Roles:
   - Insurer A, Insurer B, Insurer C: each runs in their own browser, generates
-    an ECDH P-256 keypair locally, publishes the public key, fetches the others'
-    public keys, derives pairwise masks via ECDH + HKDF, and submits its
-    masked share. Private keys never leave the browser.
+    an ECDH P-256 keypair locally for mask derivation AND a separate ECDSA
+    P-256 signing keypair for share authentication. Public halves of both go
+    to the server; private halves never leave the browser.
   - Aggregator: a separate page that creates a session (minting a unique code
     plus one per-party invite token), shares each invite out-of-band with the
     matching insurer, and then fetches the masked shares and computes the
     average. The aggregator never sees raw inputs, private keys, or pairwise
     masks.
 
-Protocol (ECDH + HKDF mask derivation):
-  Each pair (i, j) with i < j independently derives the same pairwise mask r_ij:
-      shared = ECDH(priv_i, pub_j) = ECDH(priv_j, pub_i)
-      r_ij   = HKDF(shared, info="SMPC mask " + i + j)[0:8]   # 64-bit signed BigInt
-  Each party then computes:
-      s_A = x_A + r_AB + r_AC
-      s_B = x_B - r_AB + r_BC
-      s_C = x_C - r_AC - r_BC
-  Summing all three masked shares cancels every mask, yielding x_A + x_B + x_C.
+Identity / integrity layers (atop the existing pairwise-mask protocol):
+
+  1. Per-party invite tokens (capability layer). The aggregator's session
+     creation mints a 6-char `tokens[X]` for each party X. POSTing /api/join
+     with the right (session, party, token) is what binds party X's signing
+     verifying key (vk) to slot X for this session. Knowledge of the token is
+     the gate for being recognised as X.
+
+  2. Server-signed bearer tokens (HMAC-SHA256 over a per-process secret).
+     /api/join returns a tamper-proof token containing {session, party, vk,
+     exp}. All subsequent party-scoped POSTs (/api/pubkey, /api/share) carry
+     this token in place of the raw invite. The server doesn't store the
+     token; verification is stateless via HMAC.
+
+  3. Signed shares (ECDSA P-256 over SHA-256). The insurer signs each
+     submission's canonical payload with their browser-local sk; the server
+     verifies the signature against the vk it extracted from the bearer
+     token. /api/result returns the signatures and vks so the aggregator and
+     other insurers can independently re-verify and compute the average from
+     untampered shares.
+
+  IMPORTANT: this layer stack does NOT solve session-time impersonation when
+  vks are session-ephemeral. The attacker who intercepts an invite can race
+  the legitimate insurer to /api/join, publish their own vk, and from then
+  on every signed POST they make verifies cleanly. Closing that gap requires
+  a long-term per-insurer key registry (or equivalent trust anchor) that
+  binds the vk to the insurer *before* the session begins. We have not built
+  that. The current code is a faithful demonstration of the cryptographic
+  plumbing — the upstream identity-binding step is intentionally out of scope.
 
 Wire-level state held by this server:
-  - sessions: dict keyed by 6-char session code. Each session holds pubkeys,
-    shares, and a per-party token map {A|B|C -> 6-char token}. Claiming a party
-    slot requires knowing that party's token, which binds the party label to
-    the aggregator's out-of-band invite. Multiple independent sessions can
-    coexist. The server cannot derive any pairwise mask — that requires at
-    least one private key, which never leaves the originating browser.
+  - sessions: dict keyed by 6-char session code. Each session holds:
+      pubkeys     : {A|B|C -> base64 ECDH pubkey}
+      shares      : {A|B|C -> decimal-string masked share}
+      share_sigs  : {A|B|C -> base64 ECDSA signature over canonical share msg}
+      vks         : {A|B|C -> base64 ECDSA verifying key, captured at /api/join}
+      tokens      : {A|B|C -> 6-char invite token}
+  Plus the per-process HMAC secret for bearer tokens. None of this survives a
+  restart.
 
 All claim arithmetic is in fixed-point (x * 1_000_000) so decimals work with
 BigInt on the client.
 """
 
 import base64
+import hashlib
+import hmac
 import http.server
 import json
 import os
 import secrets
 import string
 import threading
+import time
 from urllib.parse import urlparse, parse_qs
+
+from cryptography.exceptions import InvalidSignature
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.asymmetric import ec
+from cryptography.hazmat.primitives.asymmetric.utils import encode_dss_signature
 
 HOST = os.environ.get("HOST", "0.0.0.0")
 PORT = int(os.environ.get("PORT", "8765"))
@@ -51,12 +81,18 @@ PUBLIC_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "public")
 PARTIES = ["A", "B", "C"]
 SESSION_ALPHABET = string.ascii_uppercase + string.digits
 SESSION_LEN = 6
-# Generous ceiling for any legitimate POST (a pubkey body is ~150 bytes). Blocks
-# memory-exhaustion DoS from clients declaring a huge Content-Length.
+# Generous ceiling for any legitimate POST. Pubkey + sig + token ~ 500 bytes.
 MAX_BODY_BYTES = 16 * 1024
 # Raw uncompressed P-256 public key: 0x04 || X(32) || Y(32) = 65 bytes -> 88 b64 chars.
 PUBKEY_RAW_LEN = 65
 PUBKEY_B64_LEN = 88
+# Bearer-token TTL. Generous because rounds can take minutes if humans are slow.
+SERVER_TOKEN_TTL_SECS = 30 * 60
+
+# Per-process HMAC secret for server-signed bearer tokens. Regenerated on
+# every restart, which invalidates any in-flight tokens — fine because the
+# in-memory session state also doesn't survive restart.
+SERVER_HMAC_KEY = secrets.token_bytes(32)
 
 
 def generate_code():
@@ -64,7 +100,7 @@ def generate_code():
 
 
 state_lock = threading.Lock()
-# code -> {"pubkeys": {...}, "shares": {...}, "tokens": {A: ..., B: ..., C: ...}}
+# code -> {pubkeys, shares, share_sigs, vks, tokens}
 sessions = {}
 
 
@@ -75,7 +111,13 @@ def new_session():
             code = generate_code()
             if code not in sessions:
                 tokens = {p: generate_code() for p in PARTIES}
-                sessions[code] = {"pubkeys": {}, "shares": {}, "tokens": tokens}
+                sessions[code] = {
+                    "pubkeys": {},
+                    "shares": {},
+                    "share_sigs": {},
+                    "vks": {},
+                    "tokens": tokens,
+                }
                 return code, tokens
 
 
@@ -102,6 +144,93 @@ def is_pubkey_b64(s):
         return False
     return len(raw) == PUBKEY_RAW_LEN and raw[0] == 0x04
 
+
+# --- Server-signed bearer tokens (HMAC-SHA256) -----------------------------
+
+def _b64url_encode(data: bytes) -> str:
+    return base64.urlsafe_b64encode(data).rstrip(b"=").decode("ascii")
+
+
+def _b64url_decode(s: str) -> bytes:
+    pad = "=" * (-len(s) % 4)
+    return base64.urlsafe_b64decode(s + pad)
+
+
+def mint_bearer_token(session_code, party, vk_b64, ttl=SERVER_TOKEN_TTL_SECS):
+    """Mint an HMAC-signed token committing to (session, party, vk) for ttl
+    seconds. Stateless — the server does not need to remember it."""
+    payload = {
+        "session": session_code,
+        "party": party,
+        "vk": vk_b64,
+        "exp": int(time.time()) + ttl,
+    }
+    raw = json.dumps(payload, separators=(",", ":"), sort_keys=True).encode("utf-8")
+    sig = hmac.new(SERVER_HMAC_KEY, raw, hashlib.sha256).digest()
+    return _b64url_encode(raw) + "." + _b64url_encode(sig)
+
+
+def verify_bearer_token(token):
+    """Return the payload dict if the token's HMAC checks out and it hasn't
+    expired, else None. Constant-time signature compare."""
+    if not isinstance(token, str) or "." not in token:
+        return None
+    try:
+        raw_b64, sig_b64 = token.split(".", 1)
+        raw = _b64url_decode(raw_b64)
+        sig = _b64url_decode(sig_b64)
+    except Exception:
+        return None
+    expected = hmac.new(SERVER_HMAC_KEY, raw, hashlib.sha256).digest()
+    if not hmac.compare_digest(sig, expected):
+        return None
+    try:
+        payload = json.loads(raw.decode("utf-8"))
+    except Exception:
+        return None
+    if int(time.time()) > int(payload.get("exp", 0)):
+        return None
+    if payload.get("party") not in PARTIES:
+        return None
+    return payload
+
+
+# --- ECDSA P-256 signature verification ------------------------------------
+
+def verify_share_signature(vk_b64, sig_b64, msg_bytes):
+    """Verify an ECDSA P-256 / SHA-256 signature produced by WebCrypto.
+
+    WebCrypto returns ECDSA sigs as raw r||s (64 bytes); the `cryptography`
+    library expects DER-encoded ASN.1, so we convert."""
+    try:
+        vk_raw = base64.b64decode(vk_b64, validate=True)
+        sig_raw = base64.b64decode(sig_b64, validate=True)
+    except Exception:
+        return False
+    if len(vk_raw) != PUBKEY_RAW_LEN or vk_raw[0] != 0x04:
+        return False
+    if len(sig_raw) != 64:
+        return False
+    try:
+        public_key = ec.EllipticCurvePublicKey.from_encoded_point(
+            ec.SECP256R1(), vk_raw
+        )
+        r = int.from_bytes(sig_raw[:32], "big")
+        s = int.from_bytes(sig_raw[32:], "big")
+        sig_der = encode_dss_signature(r, s)
+        public_key.verify(sig_der, msg_bytes, ec.ECDSA(hashes.SHA256()))
+        return True
+    except (InvalidSignature, ValueError):
+        return False
+
+
+def canonical_message(action, session_code, party, content):
+    """Bytes both sides must agree on for a signed POST. Includes the action
+    so a pubkey signature can't be replayed as a share signature."""
+    return f"{action}|{session_code}|{party}|{content}".encode("utf-8")
+
+
+# --- HTTP handler ----------------------------------------------------------
 
 class Handler(http.server.BaseHTTPRequestHandler):
     def log_message(self, fmt, *args):
@@ -139,22 +268,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
         return json.loads(raw.decode("utf-8"))
 
     def _reject(self):
-        return self._send_json(403, {"error": "invalid session or token"})
-
-    def _authorize_party(self, body):
-        """Validate that (session, party, token) in `body` names a real session
-        and matches the minted token for that party. Returns the session dict
-        and party letter on success, else (None, None)."""
-        code = str(body.get("session", "")).upper()
-        party = str(body.get("party", "")).upper()
-        token = str(body.get("token", "")).upper()
-        if party not in PARTIES:
-            return None, None
-        with state_lock:
-            sess = sessions.get(code)
-            if sess is None or sess["tokens"].get(party) != token:
-                return None, None
-            return sess, party
+        return self._send_json(403, {"error": "invalid session, token, or signature"})
 
     # --- GET --------------------------------------------------------------
     def do_GET(self):
@@ -176,8 +290,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
             return self._send_json(200, {"ok": True})
 
         # Read-only session-scoped APIs (any session-code holder can observe).
-        # Party identity isn't needed here: the aggregator polls these, and
-        # insurers use them to independently verify the aggregator's result.
+        # Insurers use these to independently verify the aggregator's result;
+        # the aggregator polls them to render its own UI.
         supplied = (qs.get("session", [""])[0] or "").upper()
 
         if path == "/api/state":
@@ -216,8 +330,16 @@ class Handler(http.server.BaseHTTPRequestHandler):
                     payload = {"ready": False, "shares_submitted": submitted}
                 else:
                     shares = {p: sess["shares"][p] for p in PARTIES}
+                    sigs = {p: sess["share_sigs"][p] for p in PARTIES}
+                    vks = {p: sess["vks"][p] for p in PARTIES}
                     total = sum(int(v) for v in shares.values())
-                    payload = {"ready": True, "shares": shares, "sum": str(total)}
+                    payload = {
+                        "ready": True,
+                        "shares": shares,
+                        "share_sigs": sigs,
+                        "vks": vks,
+                        "sum": str(total),
+                    }
             return self._send_json(200, payload)
 
         self.send_error(404)
@@ -232,7 +354,6 @@ class Handler(http.server.BaseHTTPRequestHandler):
             code, tokens = new_session()
             return self._send_json(200, {"code": code, "tokens": tokens})
 
-        # Reject oversized bodies before we allocate memory for them.
         length = int(self.headers.get("Content-Length", "0") or "0")
         if length > MAX_BODY_BYTES:
             return self._send_json(413, {"error": "body too large"})
@@ -242,11 +363,25 @@ class Handler(http.server.BaseHTTPRequestHandler):
         except Exception:
             return self._send_json(400, {"error": "bad json"})
 
-        # Verify an invite code: (session, party, token) triple. Used by the
-        # party page before it disables inputs.
-        if path == "/api/verify":
-            sess, _party = self._authorize_party(body)
-            return self._send_json(200, {"ok": True}) if sess is not None else self._reject()
+        # /api/join: party redeems an invite token and registers their signing
+        # vk. Returns a server-signed bearer token bound to (session, party,
+        # vk) — the bearer token replaces the invite for all subsequent POSTs.
+        if path == "/api/join":
+            session_code = str(body.get("session", "")).upper()
+            party = str(body.get("party", "")).upper()
+            invite_token = str(body.get("token", "")).upper()
+            vk = body.get("vk", "")
+            if party not in PARTIES:
+                return self._reject()
+            if not is_pubkey_b64(vk):
+                return self._send_json(400, {"error": "vk must be base64-encoded uncompressed P-256 (65 bytes)"})
+            with state_lock:
+                sess = sessions.get(session_code)
+                if sess is None or sess["tokens"].get(party) != invite_token:
+                    return self._reject()
+                sess["vks"][party] = vk
+            bearer = mint_bearer_token(session_code, party, vk)
+            return self._send_json(200, {"server_token": bearer})
 
         # Delete a session (aggregator abandoning a round). Session code alone
         # suffices — anyone in the round can end it.
@@ -254,26 +389,45 @@ class Handler(http.server.BaseHTTPRequestHandler):
             supplied = str(body.get("session", "")).upper()
             return self._send_json(200, {"ok": True}) if delete_session(supplied) else self._reject()
 
+        # Everything below requires a server-signed bearer token + a signature
+        # over the canonical message. No raw invite tokens after /api/join.
+        bearer = body.get("server_token", "")
+        payload = verify_bearer_token(bearer)
+        if payload is None:
+            return self._reject()
+        session_code = payload["session"]
+        party = payload["party"]
+        vk = payload["vk"]
+
         if path == "/api/pubkey":
             pubkey = body.get("pubkey", "")
+            sig = body.get("sig", "")
             if not is_pubkey_b64(pubkey):
                 return self._send_json(400, {"error": "pubkey must be base64-encoded uncompressed P-256 (65 bytes)"})
-            sess, party = self._authorize_party(body)
-            if sess is None:
+            msg = canonical_message("pubkey", session_code, party, pubkey)
+            if not verify_share_signature(vk, sig, msg):
                 return self._reject()
             with state_lock:
+                sess = sessions.get(session_code)
+                if sess is None or sess["vks"].get(party) != vk:
+                    return self._reject()
                 sess["pubkeys"][party] = pubkey
             return self._send_json(200, {"ok": True})
 
         if path == "/api/share":
             share = body.get("share", "")
+            sig = body.get("sig", "")
             if not is_decimal_string(share):
                 return self._send_json(400, {"error": "share must be a decimal string"})
-            sess, party = self._authorize_party(body)
-            if sess is None:
+            msg = canonical_message("share", session_code, party, share)
+            if not verify_share_signature(vk, sig, msg):
                 return self._reject()
             with state_lock:
+                sess = sessions.get(session_code)
+                if sess is None or sess["vks"].get(party) != vk:
+                    return self._reject()
                 sess["shares"][party] = share
+                sess["share_sigs"][party] = sig
             return self._send_json(200, {"ok": True})
 
         self.send_error(404)
