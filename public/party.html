@@ -7,7 +7,8 @@
   :root {
     --bg:#0b0f17; --panel:#141a24; --panel-2:#1b2230; --border:#283141;
     --text:#e6edf3; --muted:#8a97a8;
-    --a:#6ea8ff; --b:#ffb26e; --c:#8af0a5;
+    --a:#6ea8ff; --b:#ffb26e; --c:#8af0a5; --d:#ff7eb6; --e:#ffec71;
+    --f:#b88fff; --g:#6ee7e0; --h:#ff9d6c; --i:#c8ff6e; --j:#ffa3a3;
     --danger:#ff7a8a; --ok:#69d58a;
   }
   * { box-sizing:border-box; }
@@ -19,15 +20,11 @@
   .badge {
     width:44px; height:44px; border-radius:10px; display:flex;
     align-items:center; justify-content:center; font-size:22px; font-weight:700;
-    color:#0b0f17;
+    color:#0b0f17; background:var(--role-color, var(--muted));
   }
-  body.role-A .badge { background:var(--a); } body.role-A .accent { color:var(--a); }
-  body.role-B .badge { background:var(--b); } body.role-B .accent { color:var(--b); }
-  body.role-C .badge { background:var(--c); } body.role-C .accent { color:var(--c); }
-  body.role-A input:focus { border-color:var(--a); }
-  body.role-B input:focus { border-color:var(--b); }
-  body.role-C input:focus { border-color:var(--c); }
-  body.role-A .go { background:var(--a); } body.role-B .go { background:var(--b); } body.role-C .go { background:var(--c); }
+  .accent { color:var(--role-color, var(--text)); }
+  input:focus { border-color:var(--role-color, var(--border)); }
+  .go { background:var(--role-color, var(--muted)); }
 
   h1 { margin:0; font-size:22px; }
   .sub { color:var(--muted); font-size:13px; margin-bottom:22px; }
@@ -137,20 +134,23 @@
 </div>
 
 <script>
-  const PARTIES = ['A', 'B', 'C'];
   const SCALE = 1000000n;
+  const MAX_PARTIES = 'ABCDEFGHIJ'.split('');
 
-  // Determine role from URL path: /party/a -> A
-  const m = location.pathname.match(/\/party\/([abc])/i);
-  if (!m) { document.body.innerHTML = '<p style="color:#ff7a8a;padding:40px">Invalid party URL.</p>'; throw new Error('bad role'); }
+  // Determine role from URL path: /party/a -> A, /party/g -> G, etc.
+  const m = location.pathname.match(/\/party\/([a-j])/i);
+  if (!m) { document.body.innerHTML = '<p style="color:#ff7a8a;padding:40px">Invalid participant URL.</p>'; throw new Error('bad role'); }
   const ROLE = m[1].toUpperCase();
-  document.body.classList.add('role-' + ROLE);
+  // Set the role-color CSS variable so the badge / accent pick the right hue.
+  document.body.style.setProperty('--role-color', `var(--${ROLE.toLowerCase()})`);
   document.getElementById('badge').textContent = ROLE;
   document.getElementById('roleName').textContent = ROLE;
   document.title = `Participant ${ROLE} — SMPC`;
 
-  const OTHERS = PARTIES.filter(p => p !== ROLE);
-  // Sign per pair (i, j) with i < j: lower-letter party adds r_ij, higher subtracts.
+  // PARTIES is filled in after /api/join — we don't know the session size up
+  // front from the URL alone.
+  let PARTIES = [];
+  let OTHERS = [];
 
   const toFixed = x => BigInt(Math.round(x * Number(SCALE)));
   const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -206,9 +206,6 @@
 
   // --- ECDSA (P-256, SHA-256) for share signatures ---
   async function generateSigningKeypair() {
-    // Note: WebCrypto bins keys to a usage at generation time. This pair
-    // can ONLY sign/verify; it's a separate object from the ECDH pair above
-    // even though both live on P-256.
     return crypto.subtle.generateKey(
       { name: "ECDSA", namedCurve: "P-256" }, true, ["sign", "verify"]
     );
@@ -313,7 +310,13 @@
     }
     SESSION = code;
     SERVER_TOKEN = joinResp.server_token;
-    logLine('joinLog', `← Received server-signed bearer token (HMAC over {session, party, vk, exp}). Used in place of the raw invite from now on.`, 'ok');
+    PARTIES = joinResp.parties;
+    OTHERS = PARTIES.filter(p => p !== ROLE);
+    if (!PARTIES.includes(ROLE)) {
+      showInputErr(`This session is for participants ${PARTIES.join(', ')} — not ${ROLE}. Open the right /party/<letter> URL.`);
+      return;
+    }
+    logLine('joinLog', `← Received server-signed bearer token. Session has ${PARTIES.length} participants: ${PARTIES.join(', ')}.`, 'ok');
 
     const x = parseFloat(raw);
     const xFixed = toFixed(x);
@@ -401,14 +404,14 @@
         <div class="line ok">→ Submitted {server_token, share, sig} to the aggregator.</div>
       </div>
       <div class="done-banner">
-        Submitted. Step 6 below recomputes the sum locally — and verifies every share's signature against the registered vk for that party — once all three are in.
+        Submitted. Step 6 below recomputes the sum locally — and verifies every share's signature against the registered vk for that party — once all ${PARTIES.length} are in.
       </div>
     `;
 
     // === Step 6: independently verify every signature + the sum ===
     document.getElementById('verifyCard').classList.remove('muted');
     const verifyBody = document.getElementById('verifyBody');
-    verifyBody.innerHTML = `<div class="log"><div class="line warn">Waiting for all three shares to land, then verifying signatures locally…</div></div>`;
+    verifyBody.innerHTML = `<div class="log"><div class="line warn">Waiting for all ${PARTIES.length} shares to land, then verifying signatures locally…</div></div>`;
     while (true) {
       try {
         const r = await fetch('/api/result?session=' + encodeURIComponent(SESSION));
@@ -426,27 +429,27 @@
               }
             }
             const allSigsOk = PARTIES.every(p => sigChecks[p]);
-            const localSum = BigInt(data.shares.A) + BigInt(data.shares.B) + BigInt(data.shares.C);
+            const localSum = PARTIES.map(p => BigInt(data.shares[p])).reduce((a, b) => a + b, 0n);
             const serverSum = BigInt(data.sum);
             const sumOk = localSum === serverSum;
-            const avgNum = Number(localSum) / Number(SCALE) / 3;
+            const avgNum = Number(localSum) / Number(SCALE) / PARTIES.length;
             const avgStr = avgNum.toFixed(6).replace(/\.?0+$/, '');
 
-            const sigRow = (p) => `
+            const sigRows = PARTIES.map(p => `
               <div class="k">sig<sub>${p}</sub> verifies under vk<sub>${p}</sub>:</div>
-              <div class="mono ${sigChecks[p] ? 'masked' : 'secret'}">${sigChecks[p] ? '✓ valid' : '✗ INVALID'}</div>`;
+              <div class="mono ${sigChecks[p] ? 'masked' : 'secret'}">${sigChecks[p] ? '✓ valid' : '✗ INVALID'}</div>`).join('');
 
             verifyBody.innerHTML = `
               <div class="kv">
-                ${sigRow('A')}${sigRow('B')}${sigRow('C')}
-                <div class="k">All three signatures:</div>
-                <div class="mono ${allSigsOk ? 'masked' : 'secret'}">${allSigsOk ? '✓ everyone signed what the server claims they signed' : '✗ at least one share was tampered with'}</div>
+                ${sigRows}
+                <div class="k">All ${PARTIES.length} signatures:</div>
+                <div class="mono ${allSigsOk ? 'masked' : 'secret'}">${allSigsOk ? '✓ everyone signed what the server says they signed' : '✗ at least one share was tampered with'}</div>
                 <div class="k">Sum (local):</div><div class="mono masked">${localSum.toString()}</div>
                 <div class="k">Sum (server):</div><div class="mono ${sumOk ? 'masked' : 'secret'}">${serverSum.toString()} ${sumOk ? '✓ match' : '✗ MISMATCH'}</div>
                 <div class="k">Average:</div><div class="mono ${allSigsOk && sumOk ? 'masked' : 'secret'}">${avgStr}</div>
               </div>
               <div style="margin-top:10px; font-size:12px; color:var(--muted); font-style:italic;">
-                Each share is signed by its party's sk; the server stores both the sig and the vk that arrived at /api/join. ECDSA verification here uses the vk the server returned — so a tampered share, or a vk substitution, would surface as ✗ INVALID. Without all three sigs valid, you should not trust the average.
+                Each share is signed by its party's sk; the server stores both the sig and the vk that arrived at /api/join. ECDSA verification here uses the vk the server returned — so a tampered share, or a vk substitution, would surface as ✗ INVALID. Without all ${PARTIES.length} sigs valid, you should not trust the average.
               </div>
             `;
             break;

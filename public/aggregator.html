@@ -7,7 +7,8 @@
   :root {
     --bg:#0b0f17; --panel:#141a24; --panel-2:#1b2230; --border:#283141;
     --text:#e6edf3; --muted:#8a97a8;
-    --a:#6ea8ff; --b:#ffb26e; --c:#8af0a5;
+    --a:#6ea8ff; --b:#ffb26e; --c:#8af0a5; --d:#ff7eb6; --e:#ffec71;
+    --f:#b88fff; --g:#6ee7e0; --h:#ff9d6c; --i:#c8ff6e; --j:#ffa3a3;
     --agg:#c79bff; --ok:#69d58a;
   }
   * { box-sizing:border-box; }
@@ -32,24 +33,25 @@
   .card h3 { margin:0 0 10px; font-size:13px; color:var(--muted);
              text-transform:uppercase; letter-spacing:.05em; font-weight:600; }
 
-  .status-row { display:flex; gap:10px; margin-top:8px; }
+  .status-row { display:flex; gap:8px; margin-top:8px; flex-wrap:wrap; }
   .chip {
-    flex:1; padding:10px 12px; border-radius:6px; background:var(--panel-2);
+    flex:1 1 120px; min-width:120px;
+    padding:10px 12px; border-radius:6px; background:var(--panel-2);
     border:1px solid var(--border); font-size:13px; text-align:center;
   }
   .chip.waiting { color:var(--muted); }
-  .chip.ready { border-color:var(--ok); color:var(--ok); }
-  .chip.a.ready { border-color:var(--a); color:var(--a); }
-  .chip.b.ready { border-color:var(--b); color:var(--b); }
-  .chip.c.ready { border-color:var(--c); color:var(--c); }
+  .chip.ready { border-color:var(--role-color, var(--ok)); color:var(--role-color, var(--ok)); }
   .chip .check { margin-right:4px; }
 
   .mono { font-family:Consolas,monospace; font-size:13px; word-break:break-all; }
-  .share-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:10px; }
-  .share-card { background:var(--panel-2); padding:12px; border-radius:6px; border:1px solid var(--border); }
-  .share-card.a { border-left:3px solid var(--a); }
-  .share-card.b { border-left:3px solid var(--b); }
-  .share-card.c { border-left:3px solid var(--c); }
+  .share-grid {
+    display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));
+    gap:10px; margin-top:10px;
+  }
+  .share-card {
+    background:var(--panel-2); padding:12px; border-radius:6px;
+    border:1px solid var(--border); border-left:3px solid var(--role-color, var(--border));
+  }
   .share-card .label { font-size:12px; color:var(--muted); margin-bottom:4px; }
 
   .compute {
@@ -72,6 +74,14 @@
   .hidden { display:none; }
 
   label { font-size:12px; color:var(--muted); display:block; margin-bottom:6px; }
+  .n-row { display:flex; align-items:flex-end; gap:14px; flex-wrap:wrap; }
+  .n-row > div { flex:0 0 auto; }
+  input[type=number].n {
+    width:80px; padding:10px 12px; background:var(--panel-2);
+    border:1px solid var(--border); border-radius:6px; color:var(--text);
+    font-size:18px; font-family:Consolas,monospace; text-align:center;
+  }
+  input[type=number].n:focus { border-color:var(--agg); outline:none; }
   .create {
     padding:12px 22px; background:var(--agg); color:#0b0f17; border:none;
     border-radius:6px; font-weight:600; font-size:14px; cursor:pointer;
@@ -82,18 +92,13 @@
   .invite-row {
     display:flex; align-items:center; gap:12px;
     background:linear-gradient(135deg,#1b2230,#23203a);
-    border:1px solid var(--border); border-radius:8px; padding:10px 14px;
+    border:1px solid var(--role-color, var(--border));
+    border-radius:8px; padding:10px 14px;
   }
-  .invite-row.a { border-color:var(--a); }
-  .invite-row.b { border-color:var(--b); }
-  .invite-row.c { border-color:var(--c); }
   .invite-label {
-    flex:0 0 96px; font-size:12px; text-transform:uppercase;
-    letter-spacing:.08em; color:var(--muted); font-weight:600;
+    flex:0 0 110px; font-size:12px; text-transform:uppercase;
+    letter-spacing:.08em; color:var(--role-color, var(--muted)); font-weight:600;
   }
-  .invite-row.a .invite-label { color:var(--a); }
-  .invite-row.b .invite-label { color:var(--b); }
-  .invite-row.c .invite-label { color:var(--c); }
   .invite-code {
     flex:1; font-family:Consolas,monospace; font-size:18px; font-weight:700;
     letter-spacing:.12em; color:var(--text); word-break:break-all;
@@ -122,28 +127,17 @@
   <div class="card" id="sessionCard">
     <h3>Session</h3>
     <div id="createRow">
-      <label>Start a new round by minting a unique session code.</label>
-      <button class="create" id="createBtn">Create session</button>
+      <label>How many participants will join this round?</label>
+      <div class="n-row">
+        <div>
+          <input type="number" class="n" id="nInput" min="2" max="10" value="3">
+        </div>
+        <button class="create" id="createBtn">Create session</button>
+      </div>
     </div>
     <div id="codeRow" class="hidden">
-      <label>Each invite is bound to a specific role. Send participant A's code to A, B's to B, C's to C — a participant who tries to use another's code will be rejected by the server.</label>
-      <div class="invites">
-        <div class="invite-row a">
-          <div class="invite-label">Participant A</div>
-          <div class="invite-code" id="inviteA">——</div>
-          <button class="copy" data-party="A">Copy</button>
-        </div>
-        <div class="invite-row b">
-          <div class="invite-label">Participant B</div>
-          <div class="invite-code" id="inviteB">——</div>
-          <button class="copy" data-party="B">Copy</button>
-        </div>
-        <div class="invite-row c">
-          <div class="invite-label">Participant C</div>
-          <div class="invite-code" id="inviteC">——</div>
-          <button class="copy" data-party="C">Copy</button>
-        </div>
-      </div>
+      <label>Each invite is bound to a specific role. Send each participant their own code — anyone trying to use another's code will be rejected by the server.</label>
+      <div class="invites" id="invites"></div>
       <div class="share-hint">Codes live in this tab only. If you close or reload this page the session is abandoned.</div>
     </div>
     <div class="err" id="sessionErr"></div>
@@ -151,12 +145,8 @@
 
   <div class="card hidden" id="statusCard">
     <h3>Status</h3>
-    <div class="status-row">
-      <div class="chip a waiting" id="chipA"><span class="check">○</span>Participant A</div>
-      <div class="chip b waiting" id="chipB"><span class="check">○</span>Participant B</div>
-      <div class="chip c waiting" id="chipC"><span class="check">○</span>Participant C</div>
-    </div>
-    <div class="note" id="statusNote">Waiting for all three participants to submit their masked shares…</div>
+    <div class="status-row" id="statusRow"></div>
+    <div class="note" id="statusNote">Waiting for participants to submit their masked shares…</div>
   </div>
 
   <div class="card hidden" id="sharesCard">
@@ -173,10 +163,10 @@
   <div class="card hidden" id="resultCard">
     <h3>Result</h3>
     <div class="result">
-      <div class="label">Average of the three private figures</div>
+      <div class="label" id="resultLabel">Average of the private figures</div>
       <div class="value" id="avgValue">—</div>
     </div>
-    <div class="note">The aggregator derived only the sum (and therefore the average). Individual figures x<sub>A</sub>, x<sub>B</sub>, x<sub>C</sub> remain unknown.</div>
+    <div class="note" id="resultNote">The aggregator derived only the sum (and therefore the average). Individual figures remain unknown.</div>
   </div>
 
   <a href="/">← back to home</a>
@@ -186,8 +176,46 @@
   const SCALE = 1000000n;
   const fromFixed = b => Number(b) / Number(SCALE);
 
+  let SESSION = '';
+  let PARTIES = [];
+
+  function colorVar(p) { return `var(--${p.toLowerCase()})`; }
+
+  function renderInvites(code, tokens) {
+    const el = document.getElementById('invites');
+    el.innerHTML = PARTIES.map(p => `
+      <div class="invite-row" style="--role-color: ${colorVar(p)}">
+        <div class="invite-label">Participant ${p}</div>
+        <div class="invite-code" id="invite${p}">${code}-${tokens[p]}</div>
+        <button class="copy" data-party="${p}">Copy</button>
+      </div>
+    `).join('');
+    el.querySelectorAll('.copy').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const p = btn.dataset.party;
+        const text = document.getElementById('invite' + p).textContent;
+        try {
+          await navigator.clipboard.writeText(text);
+          const prev = btn.textContent;
+          btn.textContent = 'Copied';
+          setTimeout(() => { btn.textContent = prev; }, 1200);
+        } catch (_) { /* clipboard may be blocked; user can select manually */ }
+      });
+    });
+  }
+
+  function renderStatus() {
+    const el = document.getElementById('statusRow');
+    el.innerHTML = PARTIES.map(p => `
+      <div class="chip waiting" id="chip${p}" style="--role-color: ${colorVar(p)}">
+        <span class="check">○</span>Participant ${p}
+      </div>
+    `).join('');
+  }
+
   function setChip(party, submitted) {
     const chip = document.getElementById('chip' + party);
+    if (!chip) return;
     if (submitted) {
       chip.classList.remove('waiting');
       chip.classList.add('ready');
@@ -201,43 +229,46 @@
 
   function renderResult(shares, sumFixedStr) {
     document.getElementById('sharesCard').classList.remove('hidden');
-    document.getElementById('shareGrid').innerHTML = ['A','B','C'].map(p => `
-      <div class="share-card ${p.toLowerCase()}">
+    document.getElementById('shareGrid').innerHTML = PARTIES.map(p => `
+      <div class="share-card" style="--role-color: ${colorVar(p)}">
         <div class="label">s<sub>${p}</sub></div>
         <div class="mono">${shares[p]}</div>
       </div>`).join('');
 
     const sumFixed = BigInt(sumFixedStr);
     const sum = fromFixed(sumFixed);
-    const avg = sum / 3;
+    const n = PARTIES.length;
+    const avg = sum / n;
+
+    const sumExpr = PARTIES.map(p => `s<sub>${p}</sub>`).join(' + ');
+    const sumIdent = PARTIES.map(p => `x<sub>${p}</sub>`).join(' + ');
+    const sumLines = PARTIES.map((p, i) => `<div class="line">${i === 0 ? '= ' : '+ '}${shares[p]}</div>`).join('');
 
     document.getElementById('computeCard').classList.remove('hidden');
     document.getElementById('computeBody').innerHTML = `
       <div class="line">Sum of received masked shares:</div>
-      <div class="line">&nbsp;&nbsp;s<sub>A</sub> + s<sub>B</sub> + s<sub>C</sub></div>
-      <div class="line">= ${shares.A}</div>
-      <div class="line">+ ${shares.B}</div>
-      <div class="line">+ ${shares.C}</div>
+      <div class="line">&nbsp;&nbsp;${sumExpr}</div>
+      ${sumLines}
       <div class="line sum">= ${sumFixed.toString()}  <span style="color:var(--muted); font-weight:normal">(fixed-point, ×10⁶)</span></div>
       <div class="line">&nbsp;</div>
       <div class="line">Every pairwise mask appears with both + and −, so all masks cancel:</div>
-      <div class="line">  sum = x<sub>A</sub> + x<sub>B</sub> + x<sub>C</sub> = <b>${sum}</b></div>
-      <div class="line sum">  average = sum / 3 = ${avg}</div>
+      <div class="line">  sum = ${sumIdent} = <b>${sum}</b></div>
+      <div class="line sum">  average = sum / ${n} = ${avg}</div>
     `;
 
     document.getElementById('resultCard').classList.remove('hidden');
+    document.getElementById('resultLabel').textContent = `Average of the ${n} private figures`;
     const pretty = avg.toFixed(6).replace(/\.?0+$/, '');
     document.getElementById('avgValue').textContent = pretty;
-    document.getElementById('statusNote').textContent = 'All three participants submitted. Average computed from masked shares.';
+    document.getElementById('statusNote').textContent = `All ${n} participants submitted. Average computed from masked shares.`;
   }
-
-  let SESSION = '';
 
   async function poll() {
     try {
       const qs = '?session=' + encodeURIComponent(SESSION);
       const state = await fetch('/api/state' + qs).then(r => r.json());
-      for (const p of ['A','B','C']) setChip(p, (state.shares_submitted || []).includes(p));
+      const submitted = state.shares_submitted || [];
+      for (const p of PARTIES) setChip(p, submitted.includes(p));
 
       const result = await fetch('/api/result' + qs).then(r => r.json());
       if (result.ready) {
@@ -254,34 +285,30 @@
   }
 
   document.getElementById('createBtn').addEventListener('click', async () => {
+    const n = parseInt(document.getElementById('nInput').value, 10);
+    if (!Number.isInteger(n) || n < 2 || n > 10) {
+      showSessionErr('N must be an integer between 2 and 10.');
+      return;
+    }
     try {
-      const r = await fetch('/api/session/new', { method:'POST' });
+      const r = await fetch('/api/session/new', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ n }),
+      });
       if (!r.ok) throw new Error(await r.text());
-      const { code, tokens } = await r.json();
+      const { code, tokens, parties } = await r.json();
       SESSION = code;
-      for (const p of ['A','B','C']) {
-        document.getElementById('invite' + p).textContent = code + '-' + tokens[p];
-      }
+      PARTIES = parties;
+      renderInvites(code, tokens);
+      renderStatus();
       document.getElementById('createRow').classList.add('hidden');
       document.getElementById('codeRow').classList.remove('hidden');
       document.getElementById('statusCard').classList.remove('hidden');
+      document.getElementById('statusNote').textContent = `Waiting for ${PARTIES.length} participants to submit their masked shares…`;
       poll();
     } catch (e) {
       showSessionErr('Could not create a session: ' + e.message);
     }
-  });
-
-  document.querySelectorAll('.copy').forEach(btn => {
-    btn.addEventListener('click', async () => {
-      const p = btn.dataset.party;
-      const text = document.getElementById('invite' + p).textContent;
-      try {
-        await navigator.clipboard.writeText(text);
-        const prev = btn.textContent;
-        btn.textContent = 'Copied';
-        setTimeout(() => { btn.textContent = prev; }, 1200);
-      } catch (_) { /* clipboard may be blocked; user can select manually */ }
-    });
   });
 </script>
 </body>

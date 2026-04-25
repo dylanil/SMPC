@@ -7,7 +7,7 @@
   :root {
     --bg:#0b0f17; --panel:#141a24; --panel-2:#1b2230; --border:#283141;
     --text:#e6edf3; --muted:#8a97a8;
-    --a:#6ea8ff; --b:#ffb26e; --c:#8af0a5; --agg:#c79bff;
+    --agg:#c79bff;
   }
   * { box-sizing: border-box; }
   body { margin:0; padding:32px; font-family:'Segoe UI',-apple-system,sans-serif;
@@ -24,25 +24,16 @@
   .how p { margin:6px 0; font-size:14px; }
   .how code { background:var(--panel-2); padding:1px 6px; border-radius:4px;
               font-family:Consolas,monospace; font-size:13px; }
-  .grid { display:grid; grid-template-columns:repeat(2,1fr); gap:16px; }
   .card {
     display:flex; flex-direction:column; gap:8px; padding:20px;
     background:var(--panel); border:1px solid var(--border); border-radius:10px;
     text-decoration:none; color:var(--text); transition:transform .1s, border-color .1s;
   }
-  .card:hover { transform:translateY(-2px); }
-  .card.a:hover { border-color:var(--a); }
-  .card.b:hover { border-color:var(--b); }
-  .card.c:hover { border-color:var(--c); }
-  .card.agg:hover { border-color:var(--agg); }
+  .card:hover { transform:translateY(-2px); border-color:var(--agg); }
   .card .role { font-size:12px; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); }
   .card .name { font-size:20px; font-weight:600; display:flex; align-items:center; gap:10px; }
   .card .desc { font-size:13px; color:var(--muted); }
-  .dot { width:10px; height:10px; border-radius:50%; display:inline-block; }
-  .a .dot { background:var(--a); }
-  .b .dot { background:var(--b); }
-  .c .dot { background:var(--c); }
-  .agg .dot { background:var(--agg); }
+  .dot { width:10px; height:10px; border-radius:50%; display:inline-block; background:var(--agg); }
   .flow {
     background:linear-gradient(135deg,#1b2230,#23203a);
     border:1px solid var(--agg); border-radius:10px;
@@ -55,50 +46,37 @@
   .flow p { margin:4px 0; font-size:14px; }
   .flow code { background:var(--panel-2); padding:1px 6px; border-radius:4px;
                font-family:Consolas,monospace; font-size:13px; }
+  .note { font-size:12.5px; color:var(--muted); margin-top:14px; }
 </style>
 </head>
 <body>
 <div class="wrap">
   <h1>Secure Multi-Party Average</h1>
-  <div class="sub">Three participants each privately enter one figure on their own page. A separate aggregator computes the average from masked shares — raw figures are never transmitted.</div>
+  <div class="sub">Up to ten participants each privately enter one figure on their own page. A separate aggregator computes the average from masked shares — raw figures are never transmitted.</div>
 
   <div class="flow">
     <div class="label">How to start a round</div>
-    <p>1. The aggregator opens their page and clicks <b>Create session</b> — the server mints a unique 6-character code.</p>
-    <p>2. The aggregator shares that code with the three participants out-of-band (Slack, email, a phone call).</p>
-    <p>3. Each participant opens their page, enters the code, and submits their figure. The aggregator sees the average once all three are in.</p>
+    <p>1. The aggregator opens their page, picks how many participants will join (between 2 and 10), and clicks <b>Create session</b> — the server mints a unique 6-character session code plus one per-role invite token.</p>
+    <p>2. The aggregator shares each invite (formatted as <code>SESSION-TOKEN</code>) with its matching participant out-of-band (Slack, email, a phone call). Codes are role-bound: a participant given A's invite cannot claim slot B.</p>
+    <p>3. Each participant opens their page (e.g. <code>/party/A</code>), enters the invite, and submits their figure. The aggregator sees the average once everyone has submitted; each participant page also independently re-verifies the result.</p>
   </div>
 
   <div class="how">
     <h2>How it works</h2>
-    <p>1. Each pair of participants exchanges a random one-time-pad mask. For pair <code>(i, j)</code> with <code>i &lt; j</code>, participant <code>i</code> adds the mask, participant <code>j</code> subtracts it.</p>
+    <p>1. Each pair of participants <code>(i, j)</code> with <code>i &lt; j</code> derives a one-time-pad mask <code>r_ij</code> via ECDH + HKDF. Participant <code>i</code> adds it; participant <code>j</code> subtracts it.</p>
     <p>2. Each participant submits only <code>s_i = x_i ± masks</code> — a single number indistinguishable from uniform random.</p>
-    <p>3. The aggregator sums the three masked shares. Because every mask appears once with <code>+</code> and once with <code>−</code>, the masks cancel and the sum reveals <code>x_A + x_B + x_C</code>, from which the average follows.</p>
+    <p>3. The aggregator sums all <code>N</code> masked shares. Every mask appears once with <code>+</code> and once with <code>−</code>, so the masks cancel and the sum reveals <code>Σ x_i</code>, from which the average follows.</p>
   </div>
 
-  <div class="grid">
-    <a class="card a" href="/party/a" target="_blank">
-      <div class="role">Participant</div>
-      <div class="name"><span class="dot"></span>Participant A</div>
-      <div class="desc">Open in a new tab or browser window.</div>
-    </a>
-    <a class="card b" href="/party/b" target="_blank">
-      <div class="role">Participant</div>
-      <div class="name"><span class="dot"></span>Participant B</div>
-      <div class="desc">Open in a new tab or browser window.</div>
-    </a>
-    <a class="card c" href="/party/c" target="_blank">
-      <div class="role">Participant</div>
-      <div class="name"><span class="dot"></span>Participant C</div>
-      <div class="desc">Open in a new tab or browser window.</div>
-    </a>
-    <a class="card agg" href="/aggregator" target="_blank">
-      <div class="role">Coordinator</div>
-      <div class="name"><span class="dot"></span>Aggregator</div>
-      <div class="desc">Sees only masked shares and the computed average.</div>
-    </a>
-  </div>
+  <a class="card" href="/aggregator" target="_blank">
+    <div class="role">Coordinator</div>
+    <div class="name"><span class="dot"></span>Aggregator</div>
+    <div class="desc">Pick how many participants will join, mint the session, and watch the average appear once every share lands.</div>
+  </a>
 
+  <div class="note">
+    Participant pages live at <code>/party/A</code> through <code>/party/J</code>. You don't need to open them from here — the aggregator's invite includes a clickable link that pre-fills the right code.
+  </div>
 </div>
 </body>
 </html>
