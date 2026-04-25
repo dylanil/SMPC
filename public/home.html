@@ -52,11 +52,11 @@
 <body>
 <div class="wrap">
   <h1>Secure Multi-Party Average</h1>
-  <div class="sub">Up to ten participants each privately enter one figure on their own page. A separate aggregator computes the average from masked shares — raw figures are never transmitted.</div>
+  <div class="sub">Three to ten participants each privately enter one figure on their own page. A separate aggregator computes the average from masked shares — raw figures are never transmitted.</div>
 
   <div class="flow">
     <div class="label">How to start a round</div>
-    <p>1. The aggregator opens their page, picks how many participants will join (between 2 and 10), and clicks <b>Create session</b> — the server mints a unique 6-character session code plus one per-role invite token.</p>
+    <p>1. The aggregator opens their page, picks how many participants will join (between 3 and 10), and clicks <b>Create session</b> — the server mints a unique 6-character session code plus one per-role invite token.</p>
     <p>2. The aggregator shares each invite (formatted as <code>SESSION-TOKEN</code>) with its matching participant out-of-band (Slack, email, a phone call). Codes are role-bound: a participant given A's invite cannot claim slot B.</p>
     <p>3. Each participant opens their page (e.g. <code>/party/A</code>), enters the invite, and submits their figure. The aggregator sees the average once everyone has submitted; each participant page also independently re-verifies the result.</p>
   </div>

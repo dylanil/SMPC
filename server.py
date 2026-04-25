@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-SMPC coordination server for an N-party pairwise-mask average (2 ≤ N ≤ 10),
+SMPC coordination server for an N-party pairwise-mask average (3 ≤ N ≤ 10),
 using ECDH-derived masks so the server never sees any mask value.
 
 Roles:
@@ -84,7 +84,7 @@ PORT = int(os.environ.get("PORT", "8765"))
 PUBLIC_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "public")
 # Universe of role letters. A session uses parties[:n] for n in [MIN_N, MAX_N].
 MAX_PARTIES = list("ABCDEFGHIJ")
-MIN_N = 2
+MIN_N = 3
 MAX_N = len(MAX_PARTIES)
 DEFAULT_N = 3
 SESSION_ALPHABET = string.ascii_uppercase + string.digits

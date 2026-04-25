@@ -1,6 +1,6 @@
-# SMPC — Secure Average of Up to Ten Private Figures
+# SMPC — Secure Average of 3–10 Private Figures
 
-A small demo of Secure Multi-Party Computation. Between 2 and 10 participants each enter one private number ("figure") from their own browser. A separate aggregator picks the participant count when creating the session, then computes the average **without ever seeing any participant's raw figure**. Security comes from *pairwise one-time-pad masking*: every pair of participants shares a random mask that cancels out when all N masked shares are summed.
+A small demo of Secure Multi-Party Computation. Between 3 and 10 participants each enter one private number ("figure") from their own browser. A separate aggregator picks the participant count when creating the session, then computes the average **without ever seeing any participant's raw figure**. Security comes from *pairwise one-time-pad masking*: every pair of participants shares a random mask that cancels out when all N masked shares are summed.
 
 ---
 
@@ -20,7 +20,7 @@ s_B = x_B − r_AB + r_BC
 s_C = x_C − r_AC − r_BC
 ```
 
-…and the same shape generalises to any 2–10 participants. Only the masked shares are sent to the aggregator. Every mask appears once with `+` and once with `−`, so:
+…and the same shape generalises to any 3–10 participants. Only the masked shares are sent to the aggregator. Every mask appears once with `+` and once with `−`, so:
 
 ```
 Σ s_k = Σ x_k        (all masks cancel)
@@ -54,7 +54,7 @@ Then open each page in a **separate** browser tab or window:
 | Participant | <http://127.0.0.1:8765/party/A> through `/party/J` |
 | Aggregator  | <http://127.0.0.1:8765/aggregator>             |
 
-The aggregator opens their page, picks how many participants (2–10) will join, and clicks **Create session**. The server mints a unique 6-character session code plus N per-party invite tokens and returns one combined invite per participant in the form `SESSION-TOKEN`. The aggregator shares each invite with its matching participant out-of-band (Slack, email, etc.) — each code is bound to a specific role, so a participant holding A's invite cannot claim slot B. Each participant enters their invite on their own page before submitting a figure.
+The aggregator opens their page, picks how many participants (3–10) will join, and clicks **Create session**. The server mints a unique 6-character session code plus N per-party invite tokens and returns one combined invite per participant in the form `SESSION-TOKEN`. The aggregator shares each invite with its matching participant out-of-band (Slack, email, etc.) — each code is bound to a specific role, so a participant holding A's invite cannot claim slot B. Each participant enters their invite on their own page before submitting a figure.
 
 Each participant enters their figure and clicks *Start Protocol*. Once all N shares have been submitted, each participant's page independently recomputes the sum from the N public masked shares (a quick cross-check against the aggregator), and the aggregator page reveals the average.
 
@@ -82,7 +82,7 @@ SMPC/
 
 A participant's first POST is `/api/join` with `(session, party, token, vk)` — they redeem their invite token and register their ECDSA verifying key. The server returns a server-signed bearer token (HMAC-SHA256 over `{session, party, vk, exp}`). All subsequent party-scoped POSTs carry that bearer token plus an ECDSA signature over a canonical `<action>|<session>|<party>|<content>` message; the server verifies its own HMAC, extracts the registered vk, and verifies the share/pubkey signature against it. Read-only observation endpoints require only a `session=` query param. POSTs with `Content-Length > 16 KB` return `413`.
 
-- `POST /api/session/new` — mint a new session of size `n` (2–10, default 3). Body `{n}` optional. Returns `{code, tokens: {<role>: <token>}, parties: [<role>, …]}` (aggregator; unprotected)
+- `POST /api/session/new` — mint a new session of size `n` (3–10, default 3). Body `{n}` optional. Returns `{code, tokens: {<role>: <token>}, parties: [<role>, …]}` (aggregator; unprotected)
 - `POST /api/join` — redeem an invite, register a signing vk, receive a bearer token (`{session, party, token, vk}` → `{server_token}`)
 - `POST /api/pubkey` — publish an ECDH public key, signed (`{server_token, pubkey, sig}`)
 - `POST /api/share` — submit a final masked share, signed (`{server_token, share, sig}`)
