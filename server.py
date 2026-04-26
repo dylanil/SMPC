@@ -368,6 +368,22 @@ def mint_bearer_token(session_code, party, vk_b64, ttl=SERVER_TOKEN_TTL_SECS):
     return _b64url_encode(raw) + "." + _b64url_encode(sig)
 
 
+def _cookie_hmac_key():
+    """HMAC key for the aggregator cookie, derived from AGGREGATOR_PASSWORD
+    so the cookie survives server restarts (fly redeploys, machine recycles)
+    as long as the password itself is unchanged. Rotating the password
+    invalidates every outstanding cookie, which is exactly what we want.
+    Falls back to SERVER_HMAC_KEY when no password is set — in that mode the
+    cookie is unused anyway because _check_aggregator_auth short-circuits
+    True before consulting it."""
+    if not AGGREGATOR_PASSWORD:
+        return SERVER_HMAC_KEY
+    return hashlib.sha256(b"smpc-aggregator-cookie\x00" + AGGREGATOR_PASSWORD.encode("utf-8")).digest()
+
+
+_COOKIE_HMAC_KEY = _cookie_hmac_key()
+
+
 def mint_aggregator_cookie(ttl=AGGREGATOR_COOKIE_TTL_SECS):
     """Sign a small `{exp}` payload that proves the bearer cleared the
     Basic-Auth gate at /aggregator. Stateless — verified by re-running the
@@ -376,7 +392,7 @@ def mint_aggregator_cookie(ttl=AGGREGATOR_COOKIE_TTL_SECS):
     auth across to subsequent API POSTs."""
     payload = {"agg": True, "exp": int(time.time()) + ttl}
     raw = json.dumps(payload, separators=(",", ":"), sort_keys=True).encode("utf-8")
-    sig = hmac.new(SERVER_HMAC_KEY, raw, hashlib.sha256).digest()
+    sig = hmac.new(_COOKIE_HMAC_KEY, raw, hashlib.sha256).digest()
     return _b64url_encode(raw) + "." + _b64url_encode(sig)
 
 
@@ -389,7 +405,7 @@ def verify_aggregator_cookie(token):
         sig = _b64url_decode(sig_b64)
     except Exception:
         return False
-    expected = hmac.new(SERVER_HMAC_KEY, raw, hashlib.sha256).digest()
+    expected = hmac.new(_COOKIE_HMAC_KEY, raw, hashlib.sha256).digest()
     if not hmac.compare_digest(sig, expected):
         return False
     try:
