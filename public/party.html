@@ -318,10 +318,30 @@
       );
       powLine.className = 'line ok';
       powLine.innerHTML = `&nbsp;&nbsp;solved in ${pow.pow_nonce.toLocaleString()} tries (difficulty ${pow.difficulty})`;
-      if (!response.ok) throw new Error(await response.text());
+      if (!response.ok) {
+        let detail = '';
+        try { const o = await response.json(); detail = o && o.error ? o.error : ''; } catch (_) {}
+        const status = response.status;
+        let msg;
+        if (status === 403) {
+          msg = `Could not join: ${detail || 'session, token, or party rejected'} (403). The session may have expired or restarted on the server, or the invite may be for a different participant. Ask the aggregator to mint a fresh invite.`;
+        } else if (status === 409) {
+          msg = `Could not join: ${detail || 'slot already taken'} (409). Participant ${ROLE}'s slot has already been claimed in this session. If that wasn't you, the session is compromised — ask the aggregator to start a fresh round.`;
+        } else if (status === 429) {
+          msg = `Rate limited (429). Wait a minute and try again.`;
+        } else if (status === 401) {
+          msg = `Could not join: ${detail || 'authentication failed'} (401). Try clicking Start Protocol again.`;
+        } else if (status === 400) {
+          msg = `Browser-side error: ${detail || 'bad request'} (400).`;
+        } else {
+          msg = `Could not join: ${detail || ('HTTP ' + status)}.`;
+        }
+        showInputErr(msg);
+        return;
+      }
       joinResp = await response.json();
     } catch (err) {
-      showInputErr('Invite is not valid for Participant ' + ROLE + '. Ask the aggregator to resend.');
+      showInputErr('Could not reach the server: ' + (err && err.message ? err.message : 'network error') + '.');
       return;
     }
     SESSION = code;
