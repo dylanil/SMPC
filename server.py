@@ -517,12 +517,23 @@ class Handler(http.server.BaseHTTPRequestHandler):
         return  # quiet
 
     # --- response helpers -------------------------------------------------
+    def _emit_security_headers(self):
+        """Defense-in-depth headers applied to every response. Currently
+        just X-Frame-Options to block clickjacking — an attacker would
+        otherwise be able to put the aggregator UI invisibly inside a
+        bait page (e.g. 'Click to claim your prize') so a misclick fires
+        the real Create-session button. There's no legitimate reason to
+        iframe our own pages, so DENY has no downside. CSP/HSTS are a
+        larger commitment (see CLAUDE.md) and not added here."""
+        self.send_header("X-Frame-Options", "DENY")
+
     def _send_json(self, code, payload):
         body = json.dumps(payload).encode("utf-8")
         self.send_response(code)
         self.send_header("Content-Type", "application/json")
         self.send_header("Content-Length", str(len(body)))
         self.send_header("Cache-Control", "no-store")
+        self._emit_security_headers()
         self.end_headers()
         self.wfile.write(body)
 
@@ -537,6 +548,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
         self.send_header("Content-Type", content_type)
         self.send_header("Content-Length", str(len(body)))
         self.send_header("Cache-Control", "no-store")
+        self._emit_security_headers()
         if extra_headers:
             for name, value in extra_headers:
                 self.send_header(name, value)
@@ -616,6 +628,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
         self.send_header("Content-Length", str(len(body)))
         self.send_header("Cache-Control", "no-store")
         self.send_header("WWW-Authenticate", 'Basic realm="SMPC aggregator", charset="UTF-8"')
+        self._emit_security_headers()
         self.end_headers()
         self.wfile.write(body)
 
