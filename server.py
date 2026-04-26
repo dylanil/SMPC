@@ -335,9 +335,10 @@ def reap_old_rate_counters():
 
 
 def start_session_reaper():
-    """Start a daemon thread that periodically reaps expired sessions and
-    sweeps stale rate-counter entries. Both are best-effort; exceptions
-    never escape the loop so a transient bug can't crash the reaper."""
+    """Start a daemon thread that periodically reaps expired sessions,
+    sweeps stale rate-counter entries, and clears expired PoW
+    used-challenge markers. Each step is best-effort; exceptions never
+    escape the loop so a transient bug can't crash the reaper."""
     def loop():
         while True:
             time.sleep(SESSION_REAPER_INTERVAL_SECS)
@@ -347,6 +348,10 @@ def start_session_reaper():
                 pass
             try:
                 reap_old_rate_counters()
+            except Exception:
+                pass
+            try:
+                _cleanup_used_challenges()
             except Exception:
                 pass
     t = threading.Thread(target=loop, name="session-reaper", daemon=True)
