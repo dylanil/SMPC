@@ -60,6 +60,20 @@ Each participant enters their figure and clicks *Start Protocol*. Once all N sha
 
 To abandon an in-flight round, reload the aggregator page and create a new one; old sessions live in memory until the server restarts.
 
+### Restricting who can create sessions
+
+Set `AGGREGATOR_PASSWORD` to a shared secret of your choice and restart the server:
+
+```bash
+AGGREGATOR_PASSWORD='something-only-you-know' python server.py     # macOS / Linux
+set AGGREGATOR_PASSWORD=something-only-you-know && python server.py # Windows cmd
+$env:AGGREGATOR_PASSWORD='something-only-you-know'; python server.py # PowerShell
+```
+
+When the variable is set, `/api/session/new` and `/api/reset` require an `Authorization: Bearer <password>` header (compared in constant time with `hmac.compare_digest`). The aggregator page prompts for the password on the first **Create session** click and stores it in `sessionStorage` (cleared on tab close); a wrong password triggers a single re-prompt. Participants don't need the password — their per-party invite token still gates `/api/join`. Leaving the variable unset keeps session creation open, which is fine for local dev.
+
+This is a single shared secret with no per-user attribution. For real access control (revocable per person, audit log, MFA), put the whole app behind an identity proxy such as Cloudflare Access or Tailscale Funnel; `server.py` doesn't need to change.
+
 ### Deploying
 
 The repo includes a `Dockerfile` and respects `HOST` / `PORT` env vars (defaulting to `0.0.0.0:8765`), so any container PaaS that injects `PORT` (Fly.io, Render, Cloud Run, Railway) will work out of the box. **Pin to exactly one always-on instance** — protocol state is in process memory, so autoscaling or scale-to-zero will break rounds in flight. Health-check path is `/healthz`.
@@ -82,14 +96,14 @@ SMPC/
 
 A participant's first POST is `/api/join` with `(session, party, token, vk)` — they redeem their invite token and register their ECDSA verifying key. The server returns a server-signed bearer token (HMAC-SHA256 over `{session, party, vk, exp}`). All subsequent party-scoped POSTs carry that bearer token plus an ECDSA signature over a canonical `<action>|<session>|<party>|<content>` message; the server verifies its own HMAC, extracts the registered vk, and verifies the share/pubkey signature against it. Read-only observation endpoints require only a `session=` query param. POSTs with `Content-Length > 16 KB` return `413`.
 
-- `POST /api/session/new` — mint a new session of size `n` (3–10, default 3). Body `{n}` optional. Returns `{code, tokens: {<role>: <token>}, parties: [<role>, …]}` (aggregator; unprotected)
+- `POST /api/session/new` — mint a new session of size `n` (3–10, default 3). Body `{n}` optional. Returns `{code, tokens: {<role>: <token>}, parties: [<role>, …]}`. Gated by the aggregator password (see *Restricting who can create sessions* below) when `AGGREGATOR_PASSWORD` is set
 - `POST /api/join` — redeem an invite, register a signing vk, receive a bearer token (`{session, party, token, vk}` → `{server_token}`)
 - `POST /api/pubkey` — publish an ECDH public key, signed (`{server_token, pubkey, sig}`)
 - `POST /api/share` — submit a final masked share, signed (`{server_token, share, sig}`)
 - `GET  /api/pubkeys?for=X&session=...` — participant `X` fetches the other two participants' ECDH pubkeys
 - `GET  /api/result?session=...` — masked shares + their signatures + the registered vks + the sum, once all three are in. The aggregator and the participants both use this to recompute the sum AND independently verify each share's signature
 - `GET  /api/state?session=...` — which participants have submitted so far in this session
-- `POST /api/reset` — delete the given session (`{session}`); useful for abandoning a round
+- `POST /api/reset` — delete the given session (`{session}`); useful for abandoning a round. Gated by the aggregator password when `AGGREGATOR_PASSWORD` is set
 - `GET  /healthz` — unprotected liveness probe for platform health checks
 
 ---
@@ -103,6 +117,7 @@ This is an educational demo, not production-grade:
 - **Server-signed bearer tokens** (HMAC-SHA256) committing to `(session, party, vk)` replace the raw invite for subsequent POSTs. Tamper-proof and stateless: the server re-verifies its own HMAC instead of remembering tokens.
 - **ECDSA P-256 signed shares.** Every `/api/pubkey` and `/api/share` POST carries a signature over `"<action>|<session>|<party>|<content>"`. The server verifies it against the vk registered at `/api/join`. `/api/result` returns each share's signature and vk so the aggregator and other participants can independently re-verify and recompute the sum — a dishonest aggregator can be caught.
 - **First-write-wins on slot writes.** Once a participant has committed a vk, ECDH pubkey, or masked share, that value is locked. Identical-content retries succeed (network glitches don't strand you); any rewrite returns 409. This closes the share-rewriting attack where a participant could otherwise wait for everyone else's submission and then overwrite their own share to nudge the average.
+- **Optional aggregator password.** When `AGGREGATOR_PASSWORD` is set, `/api/session/new` and `/api/reset` require `Authorization: Bearer <password>` (constant-time compare). Keeps casual visitors from creating or wiping sessions on a public deployment. Single shared secret with no per-user attribution — for real access control put the app behind an identity proxy. See *Restricting who can create sessions*.
 - **Per-IP rate limits** (sliding window) on `/api/session/new` (10/min), `/api/join`/`/api/pubkey`/`/api/share`/`/api/reset` (30/min each), `/api/pow-challenge` (60/min). Caps memory-DoS via session-creation flooding, ECDSA-verify CPU exhaustion, and brute-force invite-token guessing. Read endpoints are unlimited.
 - **Proof-of-work** on `/api/session/new` and `/api/join`. Client mines `SHA-256(challenge:n)` until it clears a difficulty bar; server verifies in one hash op. The challenge is HMAC-signed by the server (so attackers can't mint easy challenges) and spend-once (so a mined solution can't be replayed). Pegs the per-request cost to ~0.5–2s of CPU regardless of source IP, complementing the rate limiter (which only caps single sources). Difficulty knob: `POW_DIFFICULTY` in `server.py`.
 - **Session TTL.** A background reaper deletes sessions older than `SESSION_TTL_SECS` (default 30 min, matching the bearer-token TTL). Bounds memory growth even if an attacker drips session-creation requests in below the rate-limit cap.

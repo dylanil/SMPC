@@ -101,6 +101,10 @@ from cryptography.hazmat.primitives.asymmetric.utils import encode_dss_signature
 HOST = os.environ.get("HOST", "0.0.0.0")
 PORT = int(os.environ.get("PORT", "8765"))
 PUBLIC_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "public")
+# Optional shared secret that gates aggregator-only endpoints (session creation
+# and reset). Empty/unset disables the check, preserving the local-dev experience.
+# Read once at import time so per-request lookups are constant-time.
+AGGREGATOR_PASSWORD = os.environ.get("AGGREGATOR_PASSWORD", "").strip()
 # Universe of role letters. A session uses parties[:n] for n in [MIN_N, MAX_N].
 MAX_PARTIES = list("ABCDEFGHIJ")
 MIN_N = 3
@@ -468,6 +472,20 @@ class Handler(http.server.BaseHTTPRequestHandler):
     def _reject(self):
         return self._send_json(403, {"error": "invalid session, token, or signature"})
 
+    def _check_aggregator_auth(self):
+        """Constant-time check of the Authorization: Bearer header against
+        AGGREGATOR_PASSWORD. Returns True (and lets the request through) when
+        no password is configured, so unprotected dev setups keep working."""
+        if not AGGREGATOR_PASSWORD:
+            return True
+        header = self.headers.get("Authorization", "")
+        prefix = "Bearer "
+        if not header.startswith(prefix):
+            return False
+        supplied = header[len(prefix):].encode("utf-8")
+        expected = AGGREGATOR_PASSWORD.encode("utf-8")
+        return hmac.compare_digest(supplied, expected)
+
     def _conflict(self, what):
         # FWW: a different value was already committed for this slot. Honest
         # network retries with byte-identical content succeed (200); rewrites
@@ -592,6 +610,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
 
         # /api/session/new: requires PoW + optional {n}. Default to DEFAULT_N.
         if path == "/api/session/new":
+            if not self._check_aggregator_auth():
+                return self._send_json(401, {"error": "aggregator password required"})
             n = DEFAULT_N
             challenge = ""
             pow_nonce = None
@@ -647,9 +667,12 @@ class Handler(http.server.BaseHTTPRequestHandler):
             bearer = mint_bearer_token(session_code, party, vk)
             return self._send_json(200, {"server_token": bearer, "parties": parties})
 
-        # Delete a session (aggregator abandoning a round). Session code alone
-        # suffices — anyone in the round can end it.
+        # Delete a session (aggregator abandoning a round). Gated by the same
+        # aggregator password as session creation so a leaked code doesn't let
+        # anyone wipe an in-flight round.
         if path == "/api/reset":
+            if not self._check_aggregator_auth():
+                return self._send_json(401, {"error": "aggregator password required"})
             supplied = str(body.get("session", "")).upper()
             return self._send_json(200, {"ok": True}) if delete_session(supplied) else self._reject()
 
@@ -714,6 +737,7 @@ def main():
     print(f"  Aggregator: http://{display_host}:{PORT}/aggregator")
     print(f"  Participant pages at /party/A through /party/{MAX_PARTIES[-1]} (session size {MIN_N}-{MAX_N})")
     print(f"  Session TTL: {SESSION_TTL_SECS}s; reaper interval: {SESSION_REAPER_INTERVAL_SECS}s")
+    print(f"  Aggregator password: {'required (AGGREGATOR_PASSWORD set)' if AGGREGATOR_PASSWORD else 'not set — session creation is open'}")
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:

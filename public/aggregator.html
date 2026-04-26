@@ -296,6 +296,32 @@
     e.textContent = msg; e.classList.add('show');
   }
 
+  // sessionStorage (not localStorage) so the password clears when the tab
+  // closes — closer to the spirit of "the aggregator owns this round only".
+  const PW_KEY = 'aggregator_password';
+  function getStoredPassword() { return sessionStorage.getItem(PW_KEY) || ''; }
+  function setStoredPassword(pw) { sessionStorage.setItem(PW_KEY, pw); }
+  function clearStoredPassword() { sessionStorage.removeItem(PW_KEY); }
+  function promptForPassword(message) {
+    const pw = window.prompt(message || 'Enter aggregator password:');
+    if (pw == null || pw === '') return '';
+    setStoredPassword(pw);
+    return pw;
+  }
+
+  async function postSessionNew(n, password) {
+    const pow = await window.SMPCPoW.getPoWAndMine((tries) => {
+      document.getElementById('createBtn').textContent = `Verifying… (${tries.toLocaleString()} tries)`;
+    });
+    const headers = { 'Content-Type': 'application/json' };
+    if (password) headers['Authorization'] = 'Bearer ' + password;
+    return fetch('/api/session/new', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ n, challenge: pow.challenge, pow_nonce: pow.pow_nonce }),
+    });
+  }
+
   document.getElementById('createBtn').addEventListener('click', async () => {
     const n = parseInt(document.getElementById('nInput').value, 10);
     if (!Number.isInteger(n) || n < 3 || n > 10) {
@@ -306,16 +332,21 @@
     const origLabel = btn.textContent;
     btn.disabled = true;
     try {
+      let password = getStoredPassword();
+      if (!password) {
+        password = promptForPassword('Enter aggregator password (set via AGGREGATOR_PASSWORD on the server). Leave blank if the server has none configured.');
+      }
       btn.textContent = 'Verifying…';
-      const pow = await window.SMPCPoW.getPoWAndMine((tries) => {
-        btn.textContent = `Verifying… (${tries.toLocaleString()} tries)`;
-      });
-      btn.textContent = 'Creating…';
-      const r = await fetch('/api/session/new', {
-        method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ n, challenge: pow.challenge, pow_nonce: pow.pow_nonce }),
-      });
+      let r = await postSessionNew(n, password);
+      if (r.status === 401) {
+        clearStoredPassword();
+        password = promptForPassword('Wrong or missing aggregator password. Try again:');
+        if (!password) throw new Error('aggregator password required');
+        btn.textContent = 'Verifying…';
+        r = await postSessionNew(n, password);
+      }
       if (!r.ok) throw new Error(await r.text());
+      btn.textContent = 'Creating…';
       const { code, tokens, parties } = await r.json();
       SESSION = code;
       PARTIES = parties;
