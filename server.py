@@ -41,6 +41,13 @@ Identity / integrity stack (atop the existing pairwise-mask protocol):
      the bearer token. /api/result returns share+sig+vk so observers can
      independently re-verify and recompute the sum.
 
+  4. First-write-wins (FWW) on /api/join, /api/pubkey, /api/share. The first
+     value committed for a slot is locked in; a subsequent POST with byte-
+     identical content succeeds idempotently (so honest network retries still
+     work), but a POST with different content gets 409 Conflict. This closes
+     the share-rewriting / steering attack: a participant cannot wait for
+     others to land then overwrite their own share to nudge the average.
+
   IMPORTANT: this stack does NOT solve session-time impersonation while vks
   are session-ephemeral. A token-interceptor who races the legitimate
   participant to /api/join publishes their own vk, and signatures verify
@@ -281,6 +288,12 @@ class Handler(http.server.BaseHTTPRequestHandler):
     def _reject(self):
         return self._send_json(403, {"error": "invalid session, token, or signature"})
 
+    def _conflict(self, what):
+        # FWW: a different value was already committed for this slot. Honest
+        # network retries with byte-identical content succeed (200); rewrites
+        # land here.
+        return self._send_json(409, {"error": f"{what} already committed with different content"})
+
     # --- GET --------------------------------------------------------------
     def do_GET(self):
         parsed = urlparse(self.path)
@@ -408,7 +421,10 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 sess = sessions.get(session_code)
                 if sess is None or sess["tokens"].get(party) != invite_token:
                     return self._reject()
-                sess["vks"][party] = vk
+                existing_vk = sess["vks"].get(party)
+                if existing_vk is not None and existing_vk != vk:
+                    return self._conflict("participant slot")
+                sess["vks"][party] = vk  # idempotent if same vk
                 parties = list(sess["parties"])
             bearer = mint_bearer_token(session_code, party, vk)
             return self._send_json(200, {"server_token": bearer, "parties": parties})
@@ -441,6 +457,9 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 sess = sessions.get(session_code)
                 if sess is None or sess["vks"].get(party) != vk or party not in sess["parties"]:
                     return self._reject()
+                existing = sess["pubkeys"].get(party)
+                if existing is not None and existing != pubkey:
+                    return self._conflict("pubkey")
                 sess["pubkeys"][party] = pubkey
             return self._send_json(200, {"ok": True})
 
@@ -456,6 +475,9 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 sess = sessions.get(session_code)
                 if sess is None or sess["vks"].get(party) != vk or party not in sess["parties"]:
                     return self._reject()
+                existing = sess["shares"].get(party)
+                if existing is not None and existing != share:
+                    return self._conflict("share")
                 sess["shares"][party] = share
                 sess["share_sigs"][party] = sig
             return self._send_json(200, {"ok": True})
