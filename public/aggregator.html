@@ -275,19 +275,40 @@
     document.getElementById('statusNote').textContent = `All ${n} participants submitted. Average computed from masked shares.`;
   }
 
+  let SESSION_LOST = false;
+  function markSessionLost() {
+    if (SESSION_LOST) return;
+    SESSION_LOST = true;
+    const note = document.getElementById('statusNote');
+    note.style.color = '#ff7a8a';
+    note.textContent = 'Session lost — the server appears to have restarted (or the session expired after 30 min). In-memory sessions don\'t survive a restart by design. Reload this page and create a new session, then resend invites.';
+  }
+
   async function poll() {
+    if (SESSION_LOST) return;
     try {
       const qs = '?session=' + encodeURIComponent(SESSION);
-      const state = await fetch('/api/state' + qs).then(r => r.json());
-      const submitted = state.shares_submitted || [];
-      for (const p of PARTIES) setChip(p, submitted.includes(p));
-
-      const result = await fetch('/api/result' + qs).then(r => r.json());
-      if (result.ready) {
-        renderResult(result.shares, result.sum);
-        return; // stop polling
+      const stateResp = await fetch('/api/state' + qs);
+      // 403 from /api/state means the session no longer exists on the
+      // server. Stop polling and tell the user so they don't sit in front
+      // of a "Waiting for participants…" screen forever.
+      if (stateResp.status === 403) { markSessionLost(); return; }
+      if (stateResp.ok) {
+        const state = await stateResp.json();
+        const submitted = state.shares_submitted || [];
+        for (const p of PARTIES) setChip(p, submitted.includes(p));
       }
-    } catch (e) { /* server might be restarting; ignore */ }
+
+      const resultResp = await fetch('/api/result' + qs);
+      if (resultResp.status === 403) { markSessionLost(); return; }
+      if (resultResp.ok) {
+        const result = await resultResp.json();
+        if (result.ready) {
+          renderResult(result.shares, result.sum);
+          return; // stop polling
+        }
+      }
+    } catch (e) { /* network blip; keep polling */ }
     setTimeout(poll, 600);
   }
 
