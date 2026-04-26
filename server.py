@@ -48,6 +48,13 @@ Identity / integrity stack (atop the existing pairwise-mask protocol):
      the share-rewriting / steering attack: a participant cannot wait for
      others to land then overwrite their own share to nudge the average.
 
+  5. Proof of work on /api/session/new and /api/join. Each call must include
+     a fresh server-signed challenge plus a nonce that makes
+     SHA-256(challenge:nonce) clear a configurable difficulty bar. Caps the
+     per-request cost an attacker pays for memory-DoS via session creation
+     and brute-force invite-token guessing — orthogonal to per-IP rate
+     limits, since PoW costs the attacker compute regardless of source IP.
+
   IMPORTANT: this stack does NOT solve session-time impersonation while vks
   are session-ephemeral. A token-interceptor who races the legitimate
   participant to /api/join publishes their own vk, and signatures verify
@@ -115,12 +122,20 @@ SERVER_HMAC_KEY = secrets.token_bytes(32)
 # ~1 join + 1 pubkey + 1 share per round) but tight enough to make brute-force
 # token guessing and memory-DoS via session creation impractical.
 RATE_LIMITS = {
-    "/api/session/new": (10, 60),    # 10/min — caps memory growth
-    "/api/join":        (30, 60),    # 30/min — caps brute-force + race-bot speed
-    "/api/pubkey":      (30, 60),    # 30/min — caps signature-verify CPU
-    "/api/share":       (30, 60),    # 30/min — caps signature-verify CPU
-    "/api/reset":       (30, 60),    # 30/min — caps reset spam
+    "/api/session/new":   (10, 60),  # 10/min — caps memory growth
+    "/api/join":          (30, 60),  # 30/min — caps brute-force + race-bot speed
+    "/api/pubkey":        (30, 60),  # 30/min — caps signature-verify CPU
+    "/api/share":         (30, 60),  # 30/min — caps signature-verify CPU
+    "/api/reset":         (30, 60),  # 30/min — caps reset spam
+    "/api/pow-challenge": (60, 60),  # 60/min — generous, each session/join needs one
 }
+
+# Proof-of-work tuning. Each session/join request must include a successfully
+# mined challenge + nonce. Difficulty 18 ≈ 256K SHA-256 hashes ≈ 0.5–2s on a
+# typical browser using the pure-JS miner in /static/pow.js. Bump to 22+ if
+# you start seeing botnet abuse.
+POW_DIFFICULTY = 18
+POW_CHALLENGE_TTL = 60  # seconds — long enough for a slow phone, short enough to limit pre-mining
 
 rate_lock = threading.Lock()
 # (path, ip) -> deque of monotonic timestamps within the active window.
@@ -145,6 +160,89 @@ def rate_limit_check(path, ip):
             return False
         q.append(now)
         return True
+
+
+# --- Proof of work ---------------------------------------------------------
+
+# Spent challenge IDs (the inner `nonce` field of the challenge payload).
+# Tracking them stops a successfully-mined challenge from being replayed for
+# many session creations. Cleaned periodically; bounded by challenge TTL.
+USED_CHALLENGES = {}
+USED_CHALLENGES_LOCK = threading.Lock()
+LAST_POW_CLEANUP = [0.0]
+
+
+def _cleanup_used_challenges():
+    now = time.time()
+    if now - LAST_POW_CLEANUP[0] < 30:
+        return
+    LAST_POW_CLEANUP[0] = now
+    with USED_CHALLENGES_LOCK:
+        for n in [n for n, exp in USED_CHALLENGES.items() if now > exp]:
+            USED_CHALLENGES.pop(n, None)
+
+
+def mint_pow_challenge(difficulty=POW_DIFFICULTY):
+    """Issue a fresh challenge: HMAC-signed payload that the client must mine
+    against. The signature stops attackers from forging easy challenges; the
+    `exp` field caps pre-mining; the `nonce` field is the spend-once ID."""
+    payload = {
+        "nonce": secrets.token_hex(16),
+        "exp": int(time.time()) + POW_CHALLENGE_TTL,
+        "difficulty": difficulty,
+    }
+    raw = json.dumps(payload, separators=(",", ":"), sort_keys=True).encode("utf-8")
+    sig = hmac.new(SERVER_HMAC_KEY, raw, hashlib.sha256).digest()
+    return _b64url_encode(raw) + "." + _b64url_encode(sig), payload
+
+
+def _leading_zero_bits(b):
+    n = 0
+    for byte in b:
+        if byte == 0:
+            n += 8
+            continue
+        n += 8 - byte.bit_length()
+        return n
+    return n
+
+
+def verify_pow(challenge, pow_nonce):
+    """Validate a (challenge, pow_nonce) pair: HMAC checks out, not expired,
+    not already spent, and SHA-256(challenge:pow_nonce) clears the difficulty
+    bar. Marks the challenge spent on success."""
+    if not isinstance(challenge, str) or "." not in challenge:
+        return False
+    try:
+        pow_nonce = int(pow_nonce)
+    except (TypeError, ValueError):
+        return False
+    try:
+        raw_b64, sig_b64 = challenge.split(".", 1)
+        raw = _b64url_decode(raw_b64)
+        sig = _b64url_decode(sig_b64)
+    except Exception:
+        return False
+    expected = hmac.new(SERVER_HMAC_KEY, raw, hashlib.sha256).digest()
+    if not hmac.compare_digest(sig, expected):
+        return False
+    try:
+        payload = json.loads(raw.decode("utf-8"))
+    except Exception:
+        return False
+    if int(time.time()) > int(payload.get("exp", 0)):
+        return False
+    difficulty = int(payload.get("difficulty", POW_DIFFICULTY))
+    h = hashlib.sha256(f"{challenge}:{pow_nonce}".encode("utf-8")).digest()
+    if _leading_zero_bits(h) < difficulty:
+        return False
+    challenge_id = payload.get("nonce", "")
+    _cleanup_used_challenges()
+    with USED_CHALLENGES_LOCK:
+        if challenge_id in USED_CHALLENGES:
+            return False
+        USED_CHALLENGES[challenge_id] = payload["exp"]
+    return True
 
 
 def generate_code():
@@ -356,9 +454,32 @@ class Handler(http.server.BaseHTTPRequestHandler):
         if len(parts) == 2 and parts[0] == "party" and parts[1].upper() in MAX_PARTIES:
             return self._send_file(os.path.join(PUBLIC_DIR, "party.html"))
 
+        # Static JS shipped to the browser (PoW miner). Tightly scoped: only
+        # serves a flat `.js` filename out of public/static/.
+        if path.startswith("/static/"):
+            name = path[len("/static/"):]
+            if not name or "/" in name or name.startswith(".") or not name.endswith(".js"):
+                return self.send_error(404)
+            full = os.path.join(PUBLIC_DIR, "static", name)
+            if not os.path.isfile(full):
+                return self.send_error(404)
+            return self._send_file(full, content_type="application/javascript; charset=utf-8")
+
         # Unprotected health check for platform liveness probes.
         if path == "/healthz":
             return self._send_json(200, {"ok": True})
+
+        # PoW challenge issuance. Rate-limited; clients call this once per
+        # /api/session/new or /api/join.
+        if path == "/api/pow-challenge":
+            if not rate_limit_check(path, self._client_ip()):
+                return self._send_json(429, {"error": "rate limit exceeded; slow down"})
+            challenge, payload = mint_pow_challenge()
+            return self._send_json(200, {
+                "challenge": challenge,
+                "difficulty": payload["difficulty"],
+                "expires_in": POW_CHALLENGE_TTL,
+            })
 
         # Read-only session-scoped APIs (any session-code holder can observe).
         # Participants use these to independently verify the aggregator's
@@ -434,9 +555,11 @@ class Handler(http.server.BaseHTTPRequestHandler):
         if not rate_limit_check(path, self._client_ip()):
             return self._send_json(429, {"error": "rate limit exceeded; slow down"})
 
-        # /api/session/new: optional {n} body. Default to DEFAULT_N if absent.
+        # /api/session/new: requires PoW + optional {n}. Default to DEFAULT_N.
         if path == "/api/session/new":
             n = DEFAULT_N
+            challenge = ""
+            pow_nonce = None
             if length > 0:
                 try:
                     body = self._read_json()
@@ -446,8 +569,12 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 if not isinstance(raw_n, int):
                     return self._send_json(400, {"error": f"n must be an integer in [{MIN_N},{MAX_N}]"})
                 n = raw_n
+                challenge = body.get("challenge", "")
+                pow_nonce = body.get("pow_nonce", None)
             if not (MIN_N <= n <= MAX_N):
                 return self._send_json(400, {"error": f"n must be between {MIN_N} and {MAX_N}"})
+            if not verify_pow(challenge, pow_nonce):
+                return self._send_json(401, {"error": "invalid or missing proof-of-work"})
             code, tokens, parties = new_session(n)
             return self._send_json(200, {"code": code, "tokens": tokens, "parties": parties})
 
@@ -459,15 +586,20 @@ class Handler(http.server.BaseHTTPRequestHandler):
         # /api/join: party redeems an invite token and registers their signing
         # vk. Returns a server-signed bearer token bound to (session, party,
         # vk) plus the session's parties list so the client knows the roster.
+        # PoW-gated to make brute-force token guessing expensive per-attempt.
         if path == "/api/join":
             session_code = str(body.get("session", "")).upper()
             party = str(body.get("party", "")).upper()
             invite_token = str(body.get("token", "")).upper()
             vk = body.get("vk", "")
+            challenge = body.get("challenge", "")
+            pow_nonce = body.get("pow_nonce", None)
             if party not in MAX_PARTIES:
                 return self._reject()
             if not is_pubkey_b64(vk):
                 return self._send_json(400, {"error": "vk must be base64-encoded uncompressed P-256 (65 bytes)"})
+            if not verify_pow(challenge, pow_nonce):
+                return self._send_json(401, {"error": "invalid or missing proof-of-work"})
             with state_lock:
                 sess = sessions.get(session_code)
                 if sess is None or sess["tokens"].get(party) != invite_token:

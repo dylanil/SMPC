@@ -133,6 +133,7 @@
   <a href="/">← back to home</a>
 </div>
 
+<script src="/static/pow.js"></script>
 <script>
   const SCALE = 1000000n;
   const MAX_PARTIES = 'ABCDEFGHIJ'.split('');
@@ -292,17 +293,30 @@
       showInputErr('Please enter a figure.'); return;
     }
 
-    // === Step 2: generate signing key and join ===
+    // === Step 2: generate signing key, mine PoW, and join ===
     document.getElementById('joinCard').classList.remove('muted');
     logLine('joinLog', `Generating ECDSA P-256 signing keypair locally — sk<sub>${ROLE}</sub> never leaves this browser.`, 'warn');
     SIGN_KP = await generateSigningKeypair();
     const myVkB64 = await exportVkB64(SIGN_KP);
-    logLine('joinLog', `→ Posting vk<sub>${ROLE}</sub> + invite token to /api/join …`, 'warn');
+
+    logLine('joinLog', `Mining proof-of-work to gate /api/join …`, 'warn');
+    const powLine = document.createElement('div');
+    powLine.className = 'line warn';
+    powLine.innerHTML = '&nbsp;&nbsp;tries: 0';
+    document.getElementById('joinLog').appendChild(powLine);
+    const pow = await window.SMPCPoW.getPoWAndMine((tries) => {
+      powLine.innerHTML = `&nbsp;&nbsp;tries: ${tries.toLocaleString()}`;
+    });
+    powLine.className = 'line ok';
+    powLine.innerHTML = `&nbsp;&nbsp;solved in ${pow.pow_nonce.toLocaleString()} tries (difficulty ${pow.difficulty})`;
+
+    logLine('joinLog', `→ Posting vk<sub>${ROLE}</sub> + invite token + PoW to /api/join …`, 'warn');
 
     let joinResp;
     try {
       joinResp = await apiPost('/api/join', {
         session: code, party: ROLE, token: inviteToken, vk: myVkB64,
+        challenge: pow.challenge, pow_nonce: pow.pow_nonce,
       });
     } catch (err) {
       showInputErr('Invite is not valid for Participant ' + ROLE + '. Ask the aggregator to resend.');
