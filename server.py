@@ -473,18 +473,39 @@ class Handler(http.server.BaseHTTPRequestHandler):
         return self._send_json(403, {"error": "invalid session, token, or signature"})
 
     def _check_aggregator_auth(self):
-        """Constant-time check of the Authorization: Bearer header against
-        AGGREGATOR_PASSWORD. Returns True (and lets the request through) when
-        no password is configured, so unprotected dev setups keep working."""
+        """Constant-time check of the Authorization header against
+        AGGREGATOR_PASSWORD. Accepts both `Bearer <pw>` (curl / fetch flows)
+        and `Basic <b64(user:pw)>` (browser auth dialog from the gated
+        /aggregator page — username is ignored, only the password matters).
+        Returns True when no password is configured so dev setups still work."""
         if not AGGREGATOR_PASSWORD:
             return True
         header = self.headers.get("Authorization", "")
-        prefix = "Bearer "
-        if not header.startswith(prefix):
-            return False
-        supplied = header[len(prefix):].encode("utf-8")
         expected = AGGREGATOR_PASSWORD.encode("utf-8")
-        return hmac.compare_digest(supplied, expected)
+        if header.startswith("Bearer "):
+            supplied = header[len("Bearer "):].encode("utf-8")
+            return hmac.compare_digest(supplied, expected)
+        if header.startswith("Basic "):
+            try:
+                decoded = base64.b64decode(header[len("Basic "):], validate=True)
+            except Exception:
+                return False
+            # Basic Auth format is `username:password`; we accept any username.
+            if b":" not in decoded:
+                return False
+            supplied = decoded.split(b":", 1)[1]
+            return hmac.compare_digest(supplied, expected)
+        return False
+
+    def _send_basic_auth_challenge(self):
+        body = b'{"error": "aggregator password required"}'
+        self.send_response(401)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(body)))
+        self.send_header("Cache-Control", "no-store")
+        self.send_header("WWW-Authenticate", 'Basic realm="SMPC aggregator", charset="UTF-8"')
+        self.end_headers()
+        self.wfile.write(body)
 
     def _conflict(self, what):
         # FWW: a different value was already committed for this slot. Honest
@@ -502,6 +523,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
         if path in ("/", "/index.html"):
             return self._send_file(os.path.join(PUBLIC_DIR, "home.html"))
         if path == "/aggregator":
+            if not self._check_aggregator_auth():
+                return self._send_basic_auth_challenge()
             return self._send_file(os.path.join(PUBLIC_DIR, "aggregator.html"))
         parts = path.strip("/").split("/")
         if len(parts) == 2 and parts[0] == "party" and parts[1].upper() in MAX_PARTIES:
