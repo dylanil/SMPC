@@ -119,6 +119,12 @@ PUBKEY_RAW_LEN = 65
 PUBKEY_B64_LEN = 88
 # Bearer-token TTL. Generous because rounds can take minutes if humans are slow.
 SERVER_TOKEN_TTL_SECS = 30 * 60
+# How long the `agg` cookie minted on a successful Basic-Auth page load
+# stays valid. Subsequent same-origin POSTs to gated endpoints can present
+# this cookie instead of an Authorization header — needed because browsers
+# don't pre-emptively attach Basic Auth creds to fetch() requests.
+AGGREGATOR_COOKIE_NAME = "agg"
+AGGREGATOR_COOKIE_TTL_SECS = 30 * 60
 # Session TTL: a background reaper deletes sessions older than this. Bounded
 # memory under sustained (rate-limited) session creation, and matches the
 # bearer-token TTL so an expiring bearer aligns with an expiring session.
@@ -362,6 +368,37 @@ def mint_bearer_token(session_code, party, vk_b64, ttl=SERVER_TOKEN_TTL_SECS):
     return _b64url_encode(raw) + "." + _b64url_encode(sig)
 
 
+def mint_aggregator_cookie(ttl=AGGREGATOR_COOKIE_TTL_SECS):
+    """Sign a small `{exp}` payload that proves the bearer cleared the
+    Basic-Auth gate at /aggregator. Stateless — verified by re-running the
+    HMAC. Used because browsers don't pre-emptively attach Basic Auth to
+    fetch() requests, so a cookie is the cleanest way to ride the page-load
+    auth across to subsequent API POSTs."""
+    payload = {"agg": True, "exp": int(time.time()) + ttl}
+    raw = json.dumps(payload, separators=(",", ":"), sort_keys=True).encode("utf-8")
+    sig = hmac.new(SERVER_HMAC_KEY, raw, hashlib.sha256).digest()
+    return _b64url_encode(raw) + "." + _b64url_encode(sig)
+
+
+def verify_aggregator_cookie(token):
+    if not isinstance(token, str) or "." not in token:
+        return False
+    try:
+        raw_b64, sig_b64 = token.split(".", 1)
+        raw = _b64url_decode(raw_b64)
+        sig = _b64url_decode(sig_b64)
+    except Exception:
+        return False
+    expected = hmac.new(SERVER_HMAC_KEY, raw, hashlib.sha256).digest()
+    if not hmac.compare_digest(sig, expected):
+        return False
+    try:
+        payload = json.loads(raw.decode("utf-8"))
+    except Exception:
+        return False
+    return payload.get("agg") is True and int(time.time()) <= int(payload.get("exp", 0))
+
+
 def verify_bearer_token(token):
     """Return the payload dict if the token's HMAC checks out and it hasn't
     expired, else None. Constant-time signature compare."""
@@ -438,7 +475,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
-    def _send_file(self, path, content_type="text/html; charset=utf-8"):
+    def _send_file(self, path, content_type="text/html; charset=utf-8", extra_headers=None):
         try:
             with open(path, "rb") as f:
                 body = f.read()
@@ -449,6 +486,9 @@ class Handler(http.server.BaseHTTPRequestHandler):
         self.send_header("Content-Type", content_type)
         self.send_header("Content-Length", str(len(body)))
         self.send_header("Cache-Control", "no-store")
+        if extra_headers:
+            for name, value in extra_headers:
+                self.send_header(name, value)
         self.end_headers()
         self.wfile.write(body)
 
@@ -472,29 +512,50 @@ class Handler(http.server.BaseHTTPRequestHandler):
     def _reject(self):
         return self._send_json(403, {"error": "invalid session, token, or signature"})
 
+    def _cookie(self, name):
+        """Pull a single cookie value by name from the Cookie header. Avoids
+        bringing in http.cookies just for one parse."""
+        header = self.headers.get("Cookie", "")
+        if not header:
+            return ""
+        for kv in header.split(";"):
+            n, _, v = kv.strip().partition("=")
+            if n == name:
+                return v
+        return ""
+
     def _check_aggregator_auth(self):
-        """Constant-time check of the Authorization header against
-        AGGREGATOR_PASSWORD. Accepts both `Bearer <pw>` (curl / fetch flows)
-        and `Basic <b64(user:pw)>` (browser auth dialog from the gated
-        /aggregator page — username is ignored, only the password matters).
-        Returns True when no password is configured so dev setups still work."""
+        """Returns True if the request is authorized to hit aggregator-only
+        endpoints. Three accepted forms when AGGREGATOR_PASSWORD is set:
+          - `Authorization: Bearer <password>` (curl / scripts)
+          - `Authorization: Basic <b64(user:pw)>` (browser auth dialog;
+            username is ignored, only the password matters)
+          - `Cookie: agg=<signed>` (auto-sent by the browser after the
+            /aggregator page-load Basic-Auth cleared, since browsers don't
+            pre-emptively attach Basic Auth to fetch() requests)
+        Returns True unconditionally when no password is configured so dev
+        setups keep working."""
         if not AGGREGATOR_PASSWORD:
             return True
         header = self.headers.get("Authorization", "")
         expected = AGGREGATOR_PASSWORD.encode("utf-8")
         if header.startswith("Bearer "):
             supplied = header[len("Bearer "):].encode("utf-8")
-            return hmac.compare_digest(supplied, expected)
+            if hmac.compare_digest(supplied, expected):
+                return True
         if header.startswith("Basic "):
             try:
                 decoded = base64.b64decode(header[len("Basic "):], validate=True)
             except Exception:
-                return False
+                decoded = b""
             # Basic Auth format is `username:password`; we accept any username.
-            if b":" not in decoded:
-                return False
-            supplied = decoded.split(b":", 1)[1]
-            return hmac.compare_digest(supplied, expected)
+            if b":" in decoded:
+                supplied = decoded.split(b":", 1)[1]
+                if hmac.compare_digest(supplied, expected):
+                    return True
+        cookie = self._cookie(AGGREGATOR_COOKIE_NAME)
+        if cookie and verify_aggregator_cookie(cookie):
+            return True
         return False
 
     def _send_basic_auth_challenge(self):
@@ -525,7 +586,27 @@ class Handler(http.server.BaseHTTPRequestHandler):
         if path == "/aggregator":
             if not self._check_aggregator_auth():
                 return self._send_basic_auth_challenge()
-            return self._send_file(os.path.join(PUBLIC_DIR, "aggregator.html"))
+            extra_headers = []
+            if AGGREGATOR_PASSWORD:
+                # The browser caches Basic Auth credentials but refuses to
+                # attach them pre-emptively to fetch() requests. Hand back a
+                # signed cookie so subsequent same-origin POSTs to gated
+                # endpoints can ride that auth without the JS doing anything.
+                # Secure flag only when the front edge says we're on HTTPS
+                # (X-Forwarded-Proto on fly.io / proxies); skipping it on
+                # plain HTTP local dev so the cookie still lands.
+                cookie_value = mint_aggregator_cookie()
+                attrs = [
+                    f"{AGGREGATOR_COOKIE_NAME}={cookie_value}",
+                    "HttpOnly",
+                    "SameSite=Strict",
+                    "Path=/",
+                    f"Max-Age={AGGREGATOR_COOKIE_TTL_SECS}",
+                ]
+                if self.headers.get("X-Forwarded-Proto", "") == "https":
+                    attrs.append("Secure")
+                extra_headers.append(("Set-Cookie", "; ".join(attrs)))
+            return self._send_file(os.path.join(PUBLIC_DIR, "aggregator.html"), extra_headers=extra_headers)
         parts = path.strip("/").split("/")
         if len(parts) == 2 and parts[0] == "party" and parts[1].upper() in MAX_PARTIES:
             return self._send_file(os.path.join(PUBLIC_DIR, "party.html"))

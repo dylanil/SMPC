@@ -76,7 +76,7 @@ When the variable is set, three things are gated:
 - **`POST /api/session/new`** — session creation.
 - **`POST /api/reset`** — session deletion.
 
-The server accepts either `Authorization: Basic <b64(user:pw)>` (what the browser auto-attaches after the dialog) or `Authorization: Bearer <password>` (what curl/scripts can send), compared in constant time with `hmac.compare_digest`. Once the browser has the page-load credentials it auto-sends them on the same-origin `/api/session/new` POST, so the aggregator page does no password handling itself. Participants don't need the password — their per-party invite token still gates `/api/join`, and the participant pages are not behind the auth gate. Leaving the variable unset keeps everything open, which is fine for local dev.
+The server accepts three auth forms (constant-time compared): `Authorization: Bearer <password>` (curl/scripts), `Authorization: Basic <b64(user:pw)>` (browser dialog; username ignored), or a signed `agg` cookie. The cookie is minted by the server when `/aggregator` clears Basic Auth and is what the browser actually presents on subsequent `fetch()` calls — browsers cache Basic Auth creds but won't pre-emptively attach them to fetch, so the cookie carries the page-load auth across to `/api/session/new`. The aggregator page does no password handling itself. Participants don't need the password — their per-party invite token still gates `/api/join`, and the participant pages are not behind the auth gate. Leaving the variable unset keeps everything open, which is fine for local dev.
 
 Browser Basic Auth has no clean logout: closing the browser clears the cached credentials. That's a known UX wart of the protocol.
 
