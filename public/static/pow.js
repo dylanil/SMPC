@@ -108,5 +108,35 @@
     return { challenge, pow_nonce, difficulty };
   }
 
-  window.SMPCPoW = { sha256Hex, leadingZeroBitsHex, minePoW, getPoWAndMine };
+  // Mine a PoW and POST it to a gated endpoint, retrying once if the server
+  // rejects with 401 "invalid or missing proof-of-work" — the common cause
+  // is a stale challenge (60s TTL) when the tab was backgrounded during
+  // mining and timer-throttled, or a server restart that wiped the HMAC
+  // secret between challenge issuance and submission. baseBody is merged
+  // with {challenge, pow_nonce}; init is forwarded to fetch (e.g. headers).
+  // Returns {response, pow} where pow is the *accepted* solution.
+  async function mineAndPost(url, baseBody, init, onProgress) {
+    init = init || {};
+    const headers = Object.assign({ "Content-Type": "application/json" }, init.headers || {});
+    let response = null;
+    let pow = null;
+    for (let attempt = 0; attempt < 2; attempt++) {
+      pow = await getPoWAndMine(onProgress);
+      response = await fetch(url, Object.assign({}, init, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(Object.assign({}, baseBody, {
+          challenge: pow.challenge,
+          pow_nonce: pow.pow_nonce,
+        })),
+      }));
+      if (response.status !== 401) break;
+      const peek = await response.clone().text();
+      if (!/proof-of-work/i.test(peek)) break;
+      // Stale or wrong challenge — fall through to one more attempt.
+    }
+    return { response, pow };
+  }
+
+  window.SMPCPoW = { sha256Hex, leadingZeroBitsHex, minePoW, getPoWAndMine, mineAndPost };
 })();

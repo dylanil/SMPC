@@ -299,25 +299,27 @@
     SIGN_KP = await generateSigningKeypair();
     const myVkB64 = await exportVkB64(SIGN_KP);
 
-    logLine('joinLog', `Mining proof-of-work to gate /api/join …`, 'warn');
+    logLine('joinLog', `Mining proof-of-work and posting vk<sub>${ROLE}</sub> + invite token to /api/join …`, 'warn');
     const powLine = document.createElement('div');
     powLine.className = 'line warn';
     powLine.innerHTML = '&nbsp;&nbsp;tries: 0';
     document.getElementById('joinLog').appendChild(powLine);
-    const pow = await window.SMPCPoW.getPoWAndMine((tries) => {
-      powLine.innerHTML = `&nbsp;&nbsp;tries: ${tries.toLocaleString()}`;
-    });
-    powLine.className = 'line ok';
-    powLine.innerHTML = `&nbsp;&nbsp;solved in ${pow.pow_nonce.toLocaleString()} tries (difficulty ${pow.difficulty})`;
 
-    logLine('joinLog', `→ Posting vk<sub>${ROLE}</sub> + invite token + PoW to /api/join …`, 'warn');
-
+    // mineAndPost retries once if the server rejects the PoW (e.g. challenge
+    // expired because the tab was backgrounded mid-mine). The accepted pow
+    // is the one whose nonce was actually credited.
     let joinResp;
     try {
-      joinResp = await apiPost('/api/join', {
-        session: code, party: ROLE, token: inviteToken, vk: myVkB64,
-        challenge: pow.challenge, pow_nonce: pow.pow_nonce,
-      });
+      const { response, pow } = await window.SMPCPoW.mineAndPost(
+        '/api/join',
+        { session: code, party: ROLE, token: inviteToken, vk: myVkB64 },
+        {},
+        (tries) => { powLine.innerHTML = `&nbsp;&nbsp;tries: ${tries.toLocaleString()}`; },
+      );
+      powLine.className = 'line ok';
+      powLine.innerHTML = `&nbsp;&nbsp;solved in ${pow.pow_nonce.toLocaleString()} tries (difficulty ${pow.difficulty})`;
+      if (!response.ok) throw new Error(await response.text());
+      joinResp = await response.json();
     } catch (err) {
       showInputErr('Invite is not valid for Participant ' + ROLE + '. Ask the aggregator to resend.');
       return;
