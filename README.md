@@ -4,6 +4,23 @@ A small demo of Secure Multi-Party Computation. Between 3 and 10 participants ea
 
 ---
 
+## Recent updates
+
+A round of hardening and UX fixes landed together. In simple terms:
+
+- **Optional aggregator password.** Set `AGGREGATOR_PASSWORD` and the `/aggregator` page itself goes behind a browser auth dialog (HTTP Basic Auth). Casual visitors can't even see the form, and only people who hold the password can mint or wipe sessions. Leaving the variable unset keeps everything open, which is fine for local dev. See *Restricting who can create sessions* below.
+- **Browser-friendly auth bridge.** After the auth dialog accepts, the server hands the browser a signed cookie. Subsequent API calls ride that cookie automatically — there's no JS-side password handling at all. The cookie key is derived from the password itself, so cookies survive server restarts (a fly redeploy doesn't bounce you out) but invalidate the moment the password rotates.
+- **Auto-retry on stale proof-of-work.** If you switch tabs while the client is mining the PoW puzzle, browsers throttle the JS timer and the puzzle can expire mid-mine (60s server-side TTL). The client now silently fetches a fresh puzzle and tries once more instead of failing the request outright.
+- **Real `/api/join` error messages.** The participant page used to show a generic "Invite is not valid" no matter what went wrong. It now surfaces the actual HTTP status and the server's error string, with a status-aware next step (expired session vs. slot taken vs. rate limited vs. network).
+- **Aggregator detects session loss.** If the server restarts mid-round (so the in-memory session is gone), the aggregator now paints a red "session lost — reload" message after a few seconds of sustained 403s, instead of silently polling forever. Single-blip 403s are tolerated to avoid false positives.
+- **Memory-hygiene sweeps.** The per-IP rate-counter map and the proof-of-work used-challenge tracker are now swept by the session-reaper thread on its existing schedule, so neither accumulates dead entries indefinitely. Plain language: like tearing empty pages out of a guestbook so it doesn't grow forever even after visitors have left.
+- **Clickjacking defence.** Every response now carries `X-Frame-Options: DENY`, so a malicious page can't invisibly embed our aggregator UI inside fake bait UI to capture misclicks.
+- **Non-root container.** The Docker container creates a regular user (uid 1000) and switches to it before launching the server, so a hypothetical container-escape exploit doesn't start at admin privileges.
+
+Detailed entries with the full rationale live under *Security notes* further down.
+
+---
+
 ## Protocol
 
 For every pair `(i, j)` with `i < j`, a 64-bit mask `r_ij` is **derived locally by both participants** from an ECDH shared secret — neither sends the mask to anyone, and the coordinator never sees it. Each participant `k` then computes a local masked share:
