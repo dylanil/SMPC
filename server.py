@@ -70,6 +70,7 @@ BigInt on the client.
 """
 
 import base64
+import collections
 import hashlib
 import hmac
 import http.server
@@ -108,6 +109,42 @@ SERVER_TOKEN_TTL_SECS = 30 * 60
 # every restart, which invalidates any in-flight tokens — fine because the
 # in-memory session state also doesn't survive restart.
 SERVER_HMAC_KEY = secrets.token_bytes(32)
+
+# Per-endpoint, per-IP rate limits: (max_requests, window_seconds). All caps
+# sit comfortably above any legitimate usage pattern (a participant makes
+# ~1 join + 1 pubkey + 1 share per round) but tight enough to make brute-force
+# token guessing and memory-DoS via session creation impractical.
+RATE_LIMITS = {
+    "/api/session/new": (10, 60),    # 10/min — caps memory growth
+    "/api/join":        (30, 60),    # 30/min — caps brute-force + race-bot speed
+    "/api/pubkey":      (30, 60),    # 30/min — caps signature-verify CPU
+    "/api/share":       (30, 60),    # 30/min — caps signature-verify CPU
+    "/api/reset":       (30, 60),    # 30/min — caps reset spam
+}
+
+rate_lock = threading.Lock()
+# (path, ip) -> deque of monotonic timestamps within the active window.
+rate_counters = collections.defaultdict(collections.deque)
+
+
+def rate_limit_check(path, ip):
+    """Sliding-window rate limit. Returns True if the request is within the
+    cap (and records its timestamp), False if it should be 429'd. No-op for
+    paths not in RATE_LIMITS."""
+    cfg = RATE_LIMITS.get(path)
+    if cfg is None:
+        return True
+    max_reqs, window = cfg
+    now = time.monotonic()
+    with rate_lock:
+        q = rate_counters[(path, ip)]
+        cutoff = now - window
+        while q and q[0] <= cutoff:
+            q.popleft()
+        if len(q) >= max_reqs:
+            return False
+        q.append(now)
+        return True
 
 
 def generate_code():
@@ -285,6 +322,16 @@ class Handler(http.server.BaseHTTPRequestHandler):
         raw = self.rfile.read(length)
         return json.loads(raw.decode("utf-8"))
 
+    def _client_ip(self):
+        # Behind fly.io / Cloudflare-style proxies, the real client IP arrives
+        # in X-Forwarded-For (fly's edge strips inbound XFF and rewrites it to
+        # the actual client, so we can trust it there). For local dev there's
+        # no proxy and we fall back to the socket peer.
+        fwd = self.headers.get("X-Forwarded-For", "")
+        if fwd:
+            return fwd.split(",")[0].strip()
+        return self.client_address[0]
+
     def _reject(self):
         return self._send_json(403, {"error": "invalid session, token, or signature"})
 
@@ -382,6 +429,10 @@ class Handler(http.server.BaseHTTPRequestHandler):
         length = int(self.headers.get("Content-Length", "0") or "0")
         if length > MAX_BODY_BYTES:
             return self._send_json(413, {"error": "body too large"})
+
+        # Per-IP rate limit. Cheap to check; bails out before any crypto.
+        if not rate_limit_check(path, self._client_ip()):
+            return self._send_json(429, {"error": "rate limit exceeded; slow down"})
 
         # /api/session/new: optional {n} body. Default to DEFAULT_N if absent.
         if path == "/api/session/new":
