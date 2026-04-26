@@ -69,8 +69,12 @@ Wire-level state held by this server:
       share_sigs  : {role -> base64 ECDSA signature over canonical share msg}
       vks         : {role -> base64 ECDSA verifying key, captured at /api/join}
       tokens      : {role -> 6-char invite token}
+      created_at  : unix timestamp; reaped after SESSION_TTL_SECS
   Plus the per-process HMAC secret for bearer tokens. None of this survives a
   restart.
+
+A daemon thread (started in main()) reaps expired sessions every minute, so
+memory stays bounded even under sustained (rate-limited) session creation.
 
 All figure arithmetic is in fixed-point (x * 1_000_000) so decimals work with
 BigInt on the client.
@@ -111,6 +115,11 @@ PUBKEY_RAW_LEN = 65
 PUBKEY_B64_LEN = 88
 # Bearer-token TTL. Generous because rounds can take minutes if humans are slow.
 SERVER_TOKEN_TTL_SECS = 30 * 60
+# Session TTL: a background reaper deletes sessions older than this. Bounded
+# memory under sustained (rate-limited) session creation, and matches the
+# bearer-token TTL so an expiring bearer aligns with an expiring session.
+SESSION_TTL_SECS = 30 * 60
+SESSION_REAPER_INTERVAL_SECS = 60
 
 # Per-process HMAC secret for server-signed bearer tokens. Regenerated on
 # every restart, which invalidates any in-flight tokens — fine because the
@@ -270,6 +279,7 @@ def new_session(n):
                     "share_sigs": {},
                     "vks": {},
                     "tokens": tokens,
+                    "created_at": time.time(),
                 }
                 return code, tokens, parties
 
@@ -277,6 +287,31 @@ def new_session(n):
 def delete_session(code):
     with state_lock:
         return sessions.pop(code, None) is not None
+
+
+def reap_old_sessions(ttl_secs=SESSION_TTL_SECS):
+    """Drop sessions whose age exceeds ttl_secs. Returns count reaped."""
+    cutoff = time.time() - ttl_secs
+    with state_lock:
+        expired = [c for c, s in sessions.items() if s.get("created_at", 0) < cutoff]
+        for c in expired:
+            del sessions[c]
+    return len(expired)
+
+
+def start_session_reaper():
+    """Start a daemon thread that periodically reaps expired sessions."""
+    def loop():
+        while True:
+            time.sleep(SESSION_REAPER_INTERVAL_SECS)
+            try:
+                reap_old_sessions()
+            except Exception:
+                # Never let the reaper crash the server. Keep running.
+                pass
+    t = threading.Thread(target=loop, name="session-reaper", daemon=True)
+    t.start()
+    return t
 
 
 def is_decimal_string(s):
@@ -673,10 +708,12 @@ def main():
         raise SystemExit(f"Missing public dir: {PUBLIC_DIR}")
     httpd = http.server.ThreadingHTTPServer((HOST, PORT), Handler)
     display_host = "127.0.0.1" if HOST in ("0.0.0.0", "::") else HOST
+    start_session_reaper()
     print(f"SMPC server listening on {HOST}:{PORT}")
     print(f"  Home:       http://{display_host}:{PORT}/")
     print(f"  Aggregator: http://{display_host}:{PORT}/aggregator")
-    print(f"  Participant pages at /party/A through /party/{MAX_PARTIES[-1]} (session size 2-{MAX_N})")
+    print(f"  Participant pages at /party/A through /party/{MAX_PARTIES[-1]} (session size {MIN_N}-{MAX_N})")
+    print(f"  Session TTL: {SESSION_TTL_SECS}s; reaper interval: {SESSION_REAPER_INTERVAL_SECS}s")
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:
