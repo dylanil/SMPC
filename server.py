@@ -309,15 +309,45 @@ def reap_old_sessions(ttl_secs=SESSION_TTL_SECS):
     return len(expired)
 
 
+def reap_old_rate_counters():
+    """Drop rate_counters entries whose deque is now fully stale. The
+    sliding-window check in rate_limit_check pops expired timestamps but
+    never deletes the dict entry itself, so without this sweep every
+    distinct IP that ever hit a rate-limited endpoint leaves a permanent
+    key behind. On a public deployment scraped by botnets that's a slow
+    memory leak. Returns count dropped."""
+    now = time.monotonic()
+    with rate_lock:
+        to_drop = []
+        for key, q in rate_counters.items():
+            cfg = RATE_LIMITS.get(key[0])
+            if cfg is None:
+                to_drop.append(key)
+                continue
+            cutoff = now - cfg[1]
+            while q and q[0] <= cutoff:
+                q.popleft()
+            if not q:
+                to_drop.append(key)
+        for key in to_drop:
+            del rate_counters[key]
+    return len(to_drop)
+
+
 def start_session_reaper():
-    """Start a daemon thread that periodically reaps expired sessions."""
+    """Start a daemon thread that periodically reaps expired sessions and
+    sweeps stale rate-counter entries. Both are best-effort; exceptions
+    never escape the loop so a transient bug can't crash the reaper."""
     def loop():
         while True:
             time.sleep(SESSION_REAPER_INTERVAL_SECS)
             try:
                 reap_old_sessions()
             except Exception:
-                # Never let the reaper crash the server. Keep running.
+                pass
+            try:
+                reap_old_rate_counters()
+            except Exception:
                 pass
     t = threading.Thread(target=loop, name="session-reaper", daemon=True)
     t.start()
