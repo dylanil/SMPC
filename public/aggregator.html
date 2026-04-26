@@ -276,6 +276,19 @@
   }
 
   let SESSION_LOST = false;
+  // Only declare a session "lost" after we've seen at least one successful
+  // poll AND then accumulated several consecutive 403s. Two failure modes
+  // we deliberately tolerate: (a) a request arriving at the server a few
+  // ms before the session-creation write becomes visible to readers; (b)
+  // fly.io routing alternating between machines if more than one is up
+  // (which is itself a misconfiguration — see CLAUDE.md — but shouldn't
+  // produce a false-positive "session lost" message). The real failure
+  // mode (server restart wipes everything) produces a sustained run of
+  // 403s and gets surfaced after a couple of seconds.
+  let everSeenAlive = false;
+  let consecutiveLost = 0;
+  const LOST_THRESHOLD = 5; // 5 polls × 600ms ≈ 3s of sustained 403s
+
   function markSessionLost() {
     if (SESSION_LOST) return;
     SESSION_LOST = true;
@@ -284,24 +297,36 @@
     note.textContent = 'Session lost — the server appears to have restarted (or the session expired after 30 min). In-memory sessions don\'t survive a restart by design. Reload this page and create a new session, then resend invites.';
   }
 
+  function noteLostHit() {
+    consecutiveLost++;
+    return everSeenAlive && consecutiveLost >= LOST_THRESHOLD;
+  }
+
+  function noteLostMiss() {
+    everSeenAlive = true;
+    consecutiveLost = 0;
+  }
+
   async function poll() {
     if (SESSION_LOST) return;
     try {
       const qs = '?session=' + encodeURIComponent(SESSION);
+
       const stateResp = await fetch('/api/state' + qs);
-      // 403 from /api/state means the session no longer exists on the
-      // server. Stop polling and tell the user so they don't sit in front
-      // of a "Waiting for participants…" screen forever.
-      if (stateResp.status === 403) { markSessionLost(); return; }
-      if (stateResp.ok) {
+      if (stateResp.status === 403) {
+        if (noteLostHit()) { markSessionLost(); return; }
+      } else if (stateResp.ok) {
+        noteLostMiss();
         const state = await stateResp.json();
         const submitted = state.shares_submitted || [];
         for (const p of PARTIES) setChip(p, submitted.includes(p));
       }
 
       const resultResp = await fetch('/api/result' + qs);
-      if (resultResp.status === 403) { markSessionLost(); return; }
-      if (resultResp.ok) {
+      if (resultResp.status === 403) {
+        if (noteLostHit()) { markSessionLost(); return; }
+      } else if (resultResp.ok) {
+        noteLostMiss();
         const result = await resultResp.json();
         if (result.ready) {
           renderResult(result.shares, result.sum);
