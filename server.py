@@ -150,10 +150,11 @@ RATE_LIMITS = {
 }
 
 # Proof-of-work tuning. Each session/join request must include a successfully
-# mined challenge + nonce. Difficulty 18 ≈ 256K SHA-256 hashes ≈ 0.5–2s on a
-# typical browser using the pure-JS miner in /static/pow.js. Bump to 22+ if
-# you start seeing botnet abuse.
-POW_DIFFICULTY = 18
+# mined challenge + nonce. Difficulty 14 ≈ 16K SHA-256 hashes ≈ 30–80ms on a
+# typical browser using the pure-JS miner in /static/pow.js — fast enough to
+# feel instant in a demo while still being real per-request CPU work. Bump
+# toward 18–22 if you start seeing botnet abuse.
+POW_DIFFICULTY = 14
 POW_CHALLENGE_TTL = 60  # seconds — long enough for a slow phone, short enough to limit pre-mining
 
 rate_lock = threading.Lock()
