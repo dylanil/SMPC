@@ -175,8 +175,9 @@
 </div>
 
 <script src="/static/pow.js"></script>
+<script src="/static/smpc-core.js"></script>
 <script>
-  const SCALE = 1000000n;
+  const { SCALE } = window.SMPCCore;
   const fromFixed = b => Number(b) / Number(SCALE);
 
   let SESSION = '';

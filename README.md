@@ -109,12 +109,17 @@ The repo includes a `Dockerfile` and respects `HOST` / `PORT` env vars (defaulti
 
 ```
 SMPC/
-├── server.py          # Python stdlib HTTP server: relays masks, collects masked shares
+├── server.py              # Python stdlib HTTP server: relays masks, collects masked shares
 ├── public/
-│   ├── home.html      # Landing page with links to each role
-│   ├── party.html     # Per-participant page (served for /party/a, /party/b, /party/c)
-│   └── aggregator.html
-└── index.html         # Earlier single-page demo (kept as a reference)
+│   ├── home.html          # Landing page with links to each role
+│   ├── party.html         # Per-participant page (served for /party/a … /party/j)
+│   ├── aggregator.html
+│   └── static/
+│       ├── pow.js         # Pure-JS SHA-256 proof-of-work miner
+│       └── smpc-core.js   # Shared protocol crypto (masks, signatures, canonical message)
+├── Dockerfile             # python:3.11-slim, drops to non-root uid 1000
+├── fly.toml               # Single pinned machine — in-memory state can't autoscale
+└── index.html             # Earlier single-page demo (kept as a reference)
 ```
 
 ### Server endpoints

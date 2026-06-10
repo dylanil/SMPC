@@ -134,8 +134,17 @@
 </div>
 
 <script src="/static/pow.js"></script>
+<script src="/static/smpc-core.js"></script>
 <script>
-  const SCALE = 1000000n;
+  // Protocol crypto (curve, HKDF info string, signed-BigInt conversion,
+  // canonical message format, sign convention) is shared with the
+  // aggregator's demo mode via smpc-core.js — see CLAUDE.md.
+  const {
+    SCALE, toFixed, canonicalMessage, maskSign,
+    generateECDHKeypair, exportEcdhPubB64, derivePairwiseMask,
+    generateSigningKeypair, exportVkB64, signMessage, verifyMessage,
+  } = window.SMPCCore;
+
   const MAX_PARTIES = 'ABCDEFGHIJ'.split('');
 
   // Determine role from URL path: /party/a -> A, /party/g -> G, etc.
@@ -153,88 +162,7 @@
   let PARTIES = [];
   let OTHERS = [];
 
-  const toFixed = x => BigInt(Math.round(x * Number(SCALE)));
   const sleep = ms => new Promise(r => setTimeout(r, ms));
-
-  // --- Base64 helpers (binary <-> ASCII) ---
-  function b64encode(buf) {
-    const bytes = new Uint8Array(buf);
-    let s = '';
-    for (let i = 0; i < bytes.length; i++) s += String.fromCharCode(bytes[i]);
-    return btoa(s);
-  }
-  function b64decode(s) {
-    const bin = atob(s);
-    const out = new Uint8Array(bin.length);
-    for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
-    return out;
-  }
-
-  // --- ECDH (P-256) + HKDF (SHA-256) for mask derivation ---
-  async function generateECDHKeypair() {
-    return crypto.subtle.generateKey(
-      { name: "ECDH", namedCurve: "P-256" }, true, ["deriveBits"]
-    );
-  }
-  async function exportEcdhPubB64(kp) {
-    const raw = await crypto.subtle.exportKey("raw", kp.publicKey);
-    return b64encode(raw);
-  }
-  async function importEcdhPub(b64) {
-    return crypto.subtle.importKey(
-      "raw", b64decode(b64),
-      { name: "ECDH", namedCurve: "P-256" }, false, []
-    );
-  }
-  async function derivePairwiseMask(myPriv, theirPubB64, loLetter, hiLetter) {
-    const theirPub = await importEcdhPub(theirPubB64);
-    const sharedBits = await crypto.subtle.deriveBits(
-      { name: "ECDH", public: theirPub }, myPriv, 256
-    );
-    const hkdfKey = await crypto.subtle.importKey(
-      "raw", sharedBits, "HKDF", false, ["deriveBits"]
-    );
-    const info = new TextEncoder().encode("SMPC mask " + loLetter + hiLetter);
-    const maskBits = await crypto.subtle.deriveBits(
-      { name: "HKDF", hash: "SHA-256", salt: new Uint8Array(0), info },
-      hkdfKey, 64
-    );
-    const bytes = new Uint8Array(maskBits);
-    let u = 0n;
-    for (const b of bytes) u = (u << 8n) | BigInt(b);
-    return u >= (1n << 63n) ? u - (1n << 64n) : u;
-  }
-
-  // --- ECDSA (P-256, SHA-256) for share signatures ---
-  async function generateSigningKeypair() {
-    return crypto.subtle.generateKey(
-      { name: "ECDSA", namedCurve: "P-256" }, true, ["sign", "verify"]
-    );
-  }
-  async function exportVkB64(kp) {
-    const raw = await crypto.subtle.exportKey("raw", kp.publicKey);
-    return b64encode(raw);
-  }
-  async function signMessage(sk, msg) {
-    const sig = await crypto.subtle.sign(
-      { name: "ECDSA", hash: { name: "SHA-256" } },
-      sk, new TextEncoder().encode(msg)
-    );
-    return b64encode(sig);
-  }
-  async function importVk(b64) {
-    return crypto.subtle.importKey(
-      "raw", b64decode(b64),
-      { name: "ECDSA", namedCurve: "P-256" }, false, ["verify"]
-    );
-  }
-  async function verifyMessage(vkB64, sigB64, msg) {
-    const vk = await importVk(vkB64);
-    return crypto.subtle.verify(
-      { name: "ECDSA", hash: { name: "SHA-256" } },
-      vk, b64decode(sigB64), new TextEncoder().encode(msg)
-    );
-  }
 
   function logLine(containerId, html, cls='') {
     const el = document.getElementById(containerId);
@@ -366,7 +294,7 @@
 
     const ecdhKp = await generateECDHKeypair();
     const myEcdhPubB64 = await exportEcdhPubB64(ecdhKp);
-    const pubkeyMsg = `pubkey|${SESSION}|${ROLE}|${myEcdhPubB64}`;
+    const pubkeyMsg = canonicalMessage('pubkey', SESSION, ROLE, myEcdhPubB64);
     const pubkeySig = await signMessage(SIGN_KP.privateKey, pubkeyMsg);
     await apiPost('/api/pubkey', {
       server_token: SERVER_TOKEN, pubkey: myEcdhPubB64, sig: pubkeySig,
@@ -402,13 +330,8 @@
     for (const other of OTHERS) {
       const lo = ROLE < other ? ROLE : other;
       const hi = ROLE < other ? other : ROLE;
-      if (ROLE < other) {
-        share += masks[other];
-        parts.push(`+ r<sub>${lo}${hi}</sub>`);
-      } else {
-        share -= masks[other];
-        parts.push(`− r<sub>${lo}${hi}</sub>`);
-      }
+      share += maskSign(ROLE, other) * masks[other];
+      parts.push(`${maskSign(ROLE, other) === 1n ? '+' : '−'} r<sub>${lo}${hi}</sub>`);
     }
 
     document.getElementById('computeBody').innerHTML = `
@@ -429,7 +352,7 @@
     await sleep(250);
     document.getElementById('submitCard').classList.remove('muted');
     const shareStr = share.toString();
-    const shareMsg = `share|${SESSION}|${ROLE}|${shareStr}`;
+    const shareMsg = canonicalMessage('share', SESSION, ROLE, shareStr);
     const shareSig = await signMessage(SIGN_KP.privateKey, shareMsg);
     await apiPost('/api/share', {
       server_token: SERVER_TOKEN, share: shareStr, sig: shareSig,
@@ -457,7 +380,7 @@
             // Verify each party's signature against their registered vk.
             const sigChecks = {};
             for (const p of PARTIES) {
-              const msg = `share|${SESSION}|${p}|${data.shares[p]}`;
+              const msg = canonicalMessage('share', SESSION, p, data.shares[p]);
               try {
                 sigChecks[p] = await verifyMessage(data.vks[p], data.share_sigs[p], msg);
               } catch (_) {
