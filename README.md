@@ -107,6 +107,18 @@ This is a single shared secret with no per-user attribution. For real access con
 
 The repo includes a `Dockerfile` and respects `HOST` / `PORT` env vars (defaulting to `0.0.0.0:8765`), so any container PaaS that injects `PORT` (Fly.io, Render, Cloud Run, Railway) will work out of the box. **Pin to exactly one always-on instance** — protocol state is in process memory, so autoscaling or scale-to-zero will break rounds in flight. Health-check path is `/healthz`.
 
+#### Optional: custom domain + Cloudflare in front
+
+Worth doing if you're sharing the demo publicly: ~£10/yr for a domain buys a presentable URL, and Cloudflare's free tier adds WAF/bot mitigation in front of the proof-of-work layer plus traffic analytics — useful since the app's only other observability is the stdout access log. Note Cloudflare cannot proxy a `*.fly.dev` address; the custom domain is the prerequisite.
+
+1. Buy a domain and add the site to Cloudflare. Create a proxied (orange-cloud) `CNAME` (or `A`) record pointing at the fly app.
+2. Run `fly certs add <domain>` so fly can terminate TLS for the new hostname. Cloudflare's proxying can interfere with the ACME HTTP-01 challenge — if issuance stalls, temporarily grey-cloud the record or use the DNS-01 instructions `fly certs` prints.
+3. Set the Cloudflare SSL/TLS mode to **Full (strict)**. Never "Flexible" — that downgrades the Cloudflare→fly hop to plain HTTP behind your back.
+4. Run `fly secrets set TRUST_CF_CONNECTING_IP=1` so per-IP rate limiting keys on the real client address (`CF-Connecting-IP`) instead of Cloudflare's shared egress IPs, which would lump unrelated visitors into one bucket. Leave this unset on deployments without Cloudflare — fly passes unknown client headers through, so trusting it unconditionally would let clients spoof their rate-limit identity.
+5. Nothing else changes: with Full (strict), fly's edge still sees HTTPS and keeps setting `X-Forwarded-Proto: https`, so the aggregator cookie's `Secure` flag behaves as before.
+
+To verify after cut-over: `curl -I https://<domain>/healthz` should return 200 with a `server: cloudflare` header; the aggregator login + cookie flow should work on the new domain; and hitting a rate limit from one network shouldn't affect a client on another.
+
 ---
 
 ## Project layout
