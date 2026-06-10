@@ -18,7 +18,11 @@ from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 
 BASE = "http://127.0.0.1:8765"
 SCALE = 1_000_000
-FIGURES = {"A": 10.0, "B": 20.0, "C": 30.0}
+# Round size comes from argv (default 3); figures are 10, 20, 30, … so the
+# expected average is always computable by eye. N=10 doubles as an empirical
+# check of the demo-mode rate budget: this script produces the same traffic
+# pattern from one IP as the aggregator's simulator.
+N = int(sys.argv[1]) if len(sys.argv) > 1 else 3
 
 
 def api(path, body=None):
@@ -81,8 +85,9 @@ def derive_mask(my_ecdh, their_pub_b64, lo, hi):
 
 
 def main():
-    sess = api("/api/session/new", {"n": 3, **mine_pow()})
+    sess = api("/api/session/new", {"n": N, **mine_pow()})
     code, tokens, parties = sess["code"], sess["tokens"], sess["parties"]
+    figures = {p: 10.0 * (i + 1) for i, p in enumerate(parties)}
     print(f"session {code} parties {parties}")
 
     sign_keys, ecdh_keys, bearer = {}, {}, {}
@@ -102,7 +107,7 @@ def main():
 
     for p in parties:
         others = api(f"/api/pubkeys?for={p}&session={code}")["pubkeys"]
-        share = int(round(FIGURES[p] * SCALE))
+        share = int(round(figures[p] * SCALE))
         for item in others:
             o = item["party"]
             if o == p:
@@ -120,7 +125,7 @@ def main():
     total = sum(int(result["shares"][p]) for p in parties)
     assert total == int(result["sum"]), "local/server sum mismatch"
     avg = total / SCALE / len(parties)
-    expected = sum(FIGURES.values()) / len(FIGURES)
+    expected = sum(figures.values()) / len(figures)
     assert abs(avg - expected) < 1e-9, f"average {avg} != {expected}"
     print(f"PASS: masks cancelled exactly; average = {avg} (expected {expected})")
 

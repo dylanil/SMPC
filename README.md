@@ -75,6 +75,10 @@ The aggregator opens their page, picks how many participants (3–10) will join,
 
 Each participant enters their figure and clicks *Start Protocol*. Once all N shares have been submitted, each participant's page independently recomputes the sum from the N public masked shares (a quick cross-check against the aggregator), and the aggregator page reveals the average.
 
+### Try it alone
+
+After creating a session, the aggregator page offers **Demo: simulate all participants in this tab**. It runs every participant's side of the protocol — proof-of-work, join, signed key exchange, mask derivation, signed masked shares — over the real wire, with random figures, so you can watch a complete round solo. Two honest caveats, which the page itself displays: a simulated round has no privacy (one tab necessarily knows every figure — that's why the page shows a reveal card at the end, something nobody can produce in a real round), and the simulation consumes all the session's invites, so create a fresh session for rounds with real participants.
+
 To abandon an in-flight round, reload the aggregator page and create a new one; old sessions live in memory until the server restarts.
 
 ### Restricting who can create sessions

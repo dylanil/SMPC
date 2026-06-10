@@ -114,6 +114,26 @@
   .share-hint { font-size:13px; color:var(--muted); margin-top:10px; }
   .err { margin-top:10px; color:#ff7a8a; font-size:13px; display:none; }
   .err.show { display:block; }
+
+  button.demo {
+    margin-top:14px; padding:10px 18px; background:transparent; color:var(--agg);
+    border:1px solid var(--agg); border-radius:6px; font-weight:600; font-size:13px;
+    cursor:pointer; font-family:inherit;
+  }
+  button.demo:disabled { opacity:.4; cursor:not-allowed; }
+  .demo-log { font-family:Consolas,monospace; font-size:12.5px; margin-top:10px; }
+  .demo-log .line { padding:2px 0; color:var(--muted); }
+  .demo-log .ok { color:var(--ok); }
+  .demo-log .bad { color:#ff7a8a; }
+  .demo-banner {
+    margin-bottom:12px; padding:12px 14px; background:rgba(255,178,110,.08);
+    border:1px solid rgba(255,178,110,.45); border-radius:6px;
+    color:#ffb26e; font-size:13px;
+  }
+  .reveal-check {
+    margin-top:12px; padding:10px 14px; background:var(--panel-2);
+    border-radius:6px; font-family:Consolas,monospace; font-size:13px; color:var(--ok);
+  }
 </style>
 </head>
 <body>
@@ -141,12 +161,18 @@
       <label>Each invite is bound to a specific role. Send each participant their own invite — either the bare code (they paste it into <code>/party/&lt;letter&gt;</code>) or the full link (one click takes them to a pre-filled page). Anyone trying to use another's invite is rejected by the server.</label>
       <div class="invites" id="invites"></div>
       <div class="share-hint">Codes live in this tab only. If you close or reload this page the session is abandoned.</div>
+      <button class="demo" id="demoBtn">▶ Demo: simulate all participants in this tab</button>
+      <div class="note">Alone? This runs the real wire protocol for every invite above — join, key exchange, signed masked shares — so you can watch a full round solo. It consumes all the invites, so don't use it for a round with real participants.</div>
+      <div class="demo-log hidden" id="demoLog"></div>
     </div>
     <div class="err" id="sessionErr"></div>
   </div>
 
   <div class="card hidden" id="statusCard">
     <h3>Status</h3>
+    <div class="demo-banner hidden" id="demoBanner">
+      <b>Simulated round.</b> All participants are running inside this one tab, so this tab necessarily knows every figure — privacy holds only when each participant runs on their own device. The protocol traffic below is real: every join, key exchange, and signed masked share went over the wire and was verified by the server exactly as in a live round.
+    </div>
     <div class="status-row" id="statusRow"></div>
     <div class="note" id="statusNote">Waiting for participants to submit their masked shares…</div>
   </div>
@@ -171,17 +197,31 @@
     <div class="note" id="resultNote">The aggregator derived only the sum (and therefore the average). Individual figures remain unknown.</div>
   </div>
 
+  <div class="card hidden" id="revealCard">
+    <h3>Reveal — simulation only</h3>
+    <div class="share-grid" id="revealGrid"></div>
+    <div class="reveal-check" id="revealCheck"></div>
+    <div class="note">These figures come straight from this tab's JS memory — they were never transmitted. The server only ever saw the masked shares above. In a real round nobody, including the aggregator, can produce this card.</div>
+  </div>
+
   <a href="/">← back to home</a>
 </div>
 
 <script src="/static/pow.js"></script>
 <script src="/static/smpc-core.js"></script>
 <script>
-  const { SCALE } = window.SMPCCore;
+  const {
+    SCALE, toFixed, canonicalMessage, maskSign,
+    generateECDHKeypair, exportEcdhPubB64, derivePairwiseMask,
+    generateSigningKeypair, exportVkB64, signMessage,
+  } = window.SMPCCore;
   const fromFixed = b => Number(b) / Number(SCALE);
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
 
   let SESSION = '';
   let PARTIES = [];
+  let TOKENS = null;        // invite tokens, kept for the demo simulator
+  let DEMO_FIGURES = null;  // set only by the simulator; triggers the reveal card
 
   function colorVar(p) { return `var(--${p.toLowerCase()})`; }
 
@@ -274,6 +314,28 @@
     const pretty = avg.toFixed(6).replace(/\.?0+$/, '');
     document.getElementById('avgValue').textContent = pretty;
     document.getElementById('statusNote').textContent = `All ${n} participants submitted. Average computed from masked shares.`;
+
+    if (DEMO_FIGURES) renderReveal(sumFixed);
+  }
+
+  // Simulation-only teaching moment: the simulator knows every figure (it
+  // generated them in this tab), so it can show that the average derived
+  // from masked shares matches the average of the raw inputs — inputs the
+  // server never saw.
+  function renderReveal(sumFixed) {
+    document.getElementById('revealCard').classList.remove('hidden');
+    document.getElementById('revealGrid').innerHTML = PARTIES.map(p => `
+      <div class="share-card" style="--role-color: ${colorVar(p)}">
+        <div class="label">x<sub>${p}</sub> (never transmitted)</div>
+        <div class="mono">${DEMO_FIGURES[p]}</div>
+      </div>`).join('');
+    const figuresSumFixed = PARTIES.reduce((acc, p) => acc + toFixed(DEMO_FIGURES[p]), 0n);
+    const match = figuresSumFixed === sumFixed;
+    const avg = fromFixed(figuresSumFixed) / PARTIES.length;
+    document.getElementById('revealCheck').textContent =
+      `(${PARTIES.map(p => DEMO_FIGURES[p]).join(' + ')}) / ${PARTIES.length} = ${avg.toFixed(6).replace(/\.?0+$/, '')} ` +
+      (match ? '✓ matches the average computed from masked shares'
+             : '✗ DOES NOT match the masked-share average — this is a bug');
   }
 
   let SESSION_LOST = false;
@@ -343,6 +405,105 @@
     e.textContent = msg; e.classList.add('show');
   }
 
+  // --- Solo demo mode -----------------------------------------------------
+  // Runs every party's side of the protocol inside this tab, over the real
+  // wire: PoW + join, signed ECDH pubkey, mask derivation, signed masked
+  // share. The server can't tell it from a live round; the status chips and
+  // result cards animate via the unchanged poll() loop. No privacy in this
+  // mode (one tab knows everything) — the banner says so.
+
+  function demoLine(html, cls = '') {
+    const log = document.getElementById('demoLog');
+    log.classList.remove('hidden');
+    const div = document.createElement('div');
+    div.className = 'line ' + cls;
+    div.innerHTML = html;
+    log.appendChild(div);
+    return div;
+  }
+
+  function demoErrMessage(status, party, step) {
+    if (status === 429) {
+      return `Rate limited (429) at ${step} for ${party}. The simulator and real participants share your IP's rate budget — wait a minute, then create a fresh session and run the demo again.`;
+    }
+    if (status === 409) {
+      return `Participant ${party}'s slot is already claimed (409) — this session has real participants. Create a fresh session to run the simulation.`;
+    }
+    return `HTTP ${status} at ${step} for ${party}. Create a fresh session and try again.`;
+  }
+
+  async function signedPost(url, body, party, step) {
+    const r = await fetch(url, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    if (!r.ok) throw new Error(demoErrMessage(r.status, party, step));
+    return r.json();
+  }
+
+  async function runDemo() {
+    const btn = document.getElementById('demoBtn');
+    btn.disabled = true;
+    document.getElementById('demoBanner').classList.remove('hidden');
+
+    const figures = {}, signKps = {}, ecdhKps = {}, bearers = {};
+    try {
+      // Phase 1: join — sequential so the mining progress reads sensibly.
+      for (const p of PARTIES) {
+        figures[p] = Math.round(Math.random() * 10000) / 100; // 0.00–100.00
+        signKps[p] = await generateSigningKeypair();
+        const vk = await exportVkB64(signKps[p]);
+        const line = demoLine(`${p}: mining proof-of-work…`);
+        const { response } = await window.SMPCPoW.mineAndPost(
+          '/api/join',
+          { session: SESSION, party: p, token: TOKENS[p], vk },
+          {},
+          (tries) => { line.textContent = `${p}: mining proof-of-work… ${tries.toLocaleString()} tries`; },
+        );
+        if (!response.ok) throw new Error(demoErrMessage(response.status, p, 'join'));
+        bearers[p] = (await response.json()).server_token;
+        line.className = 'line ok';
+        line.textContent = `${p}: joined — invite redeemed, vk registered, bearer token received`;
+      }
+
+      // Phase 2: publish signed ECDH pubkeys.
+      for (const p of PARTIES) {
+        ecdhKps[p] = await generateECDHKeypair();
+        const pub = await exportEcdhPubB64(ecdhKps[p]);
+        const sig = await signMessage(signKps[p].privateKey, canonicalMessage('pubkey', SESSION, p, pub));
+        await signedPost('/api/pubkey', { server_token: bearers[p], pubkey: pub, sig }, p, 'pubkey');
+        demoLine(`${p}: published signed ECDH public key`, 'ok');
+      }
+
+      // Phase 3: derive masks, sign and submit shares (staggered so the
+      // status chips visibly light up one by one). DEMO_FIGURES must be set
+      // before the last share lands: the poll loop may render the result the
+      // instant the server has all N shares, before our POST even resolves.
+      DEMO_FIGURES = figures;
+      for (const p of PARTIES) {
+        const { pubkeys } = await (await fetch(`/api/pubkeys?for=${p}&session=${encodeURIComponent(SESSION)}`)).json();
+        let share = toFixed(figures[p]);
+        for (const item of pubkeys) {
+          const o = item.party;
+          if (o === p) continue;
+          const lo = p < o ? p : o, hi = p < o ? o : p;
+          share += maskSign(p, o) * await derivePairwiseMask(ecdhKps[p].privateKey, item.pubkey, lo, hi);
+        }
+        const s = share.toString();
+        const sig = await signMessage(signKps[p].privateKey, canonicalMessage('share', SESSION, p, s));
+        await sleep(300 + Math.random() * 300);
+        await signedPost('/api/share', { server_token: bearers[p], share: s, sig }, p, 'share');
+        demoLine(`${p}: submitted signed masked share`, 'ok');
+      }
+
+      demoLine(`All ${PARTIES.length} simulated participants done — waiting for the result to land…`, 'ok');
+    } catch (e) {
+      demoLine(e.message, 'bad');
+    }
+  }
+
+  document.getElementById('demoBtn').addEventListener('click', runDemo);
+
   document.getElementById('createBtn').addEventListener('click', async () => {
     const n = parseInt(document.getElementById('nInput').value, 10);
     if (!Number.isInteger(n) || n < 3 || n > 10) {
@@ -369,6 +530,7 @@
       const { code, tokens, parties } = await r.json();
       SESSION = code;
       PARTIES = parties;
+      TOKENS = tokens;
       renderInvites(code, tokens);
       renderStatus();
       document.getElementById('createRow').classList.add('hidden');
