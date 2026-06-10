@@ -520,9 +520,35 @@ def canonical_message(action, session_code, party, content):
 
 # --- HTTP handler ----------------------------------------------------------
 
+# Paths excluded from the access log unconditionally — even errors. These are
+# polled sub-second by the pages (party.html's Step 6 retries /api/result
+# every 700ms forever, including against reaped sessions), so logging them,
+# even at >= 400, floods stdout at ~85 lines/min per abandoned tab.
+QUIET_LOG_PATHS = {"/api/state", "/api/result", "/api/pubkeys", "/healthz"}
+
+
 class Handler(http.server.BaseHTTPRequestHandler):
     def log_message(self, fmt, *args):
-        return  # quiet
+        return  # quiet — log_request below is the only logger
+
+    def log_request(self, code="-", size="-"):
+        # Minimal abuse-visibility log, readable via `fly logs`: POSTs and
+        # error responses only, never the polled read endpoints. The line
+        # carries timestamp/IP/method/path/status — never bodies (tokens,
+        # shares) and never the query string (?session=CODE is a read
+        # capability; invite tokens already ride in URL fragments, which
+        # never reach the server).
+        try:
+            path = urlparse(self.path).path
+            if path in QUIET_LOG_PATHS:
+                return
+            status = int(code)
+            if self.command != "POST" and status < 400:
+                return
+            ts = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+            print(f"{ts} {self._client_ip()} {self.command} {path} {status}", flush=True)
+        except Exception:
+            pass  # logging must never break request handling
 
     # --- response helpers -------------------------------------------------
     def _emit_security_headers(self):
