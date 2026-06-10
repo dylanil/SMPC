@@ -105,6 +105,13 @@ PUBLIC_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "public")
 # and reset). Empty/unset disables the check, preserving the local-dev experience.
 # Read once at import time so per-request lookups are constant-time.
 AGGREGATOR_PASSWORD = os.environ.get("AGGREGATOR_PASSWORD", "").strip()
+# Set to a non-empty value only when Cloudflare fronts the deployment: rate
+# limiting then keys on CF-Connecting-IP (the real client) instead of
+# Fly-Client-IP (which would be a shared Cloudflare egress IP). Must stay off
+# otherwise — fly's edge passes unknown client headers through, so trusting
+# CF-Connecting-IP unconditionally would let clients spoof their rate-limit
+# identity, the exact bug this knob's plumbing replaced.
+TRUST_CF_CONNECTING_IP = bool(os.environ.get("TRUST_CF_CONNECTING_IP", "").strip())
 # Universe of role letters. A session uses parties[:n] for n in [MIN_N, MAX_N].
 MAX_PARTIES = list("ABCDEFGHIJ")
 MIN_N = 3
@@ -564,13 +571,24 @@ class Handler(http.server.BaseHTTPRequestHandler):
         return json.loads(raw.decode("utf-8"))
 
     def _client_ip(self):
-        # Behind fly.io / Cloudflare-style proxies, the real client IP arrives
-        # in X-Forwarded-For (fly's edge strips inbound XFF and rewrites it to
-        # the actual client, so we can trust it there). For local dev there's
-        # no proxy and we fall back to the socket peer.
-        fwd = self.headers.get("X-Forwarded-For", "")
-        if fwd:
-            return fwd.split(",")[0].strip()
+        # Rate-limit identity. We deliberately ignore X-Forwarded-For: fly's
+        # edge *appends* to it rather than replacing it, so the first entry is
+        # client-controlled and a spoofer could mint a fresh identity per
+        # request. Fly-Client-IP is set authoritatively by fly-proxy on every
+        # request (the machine isn't reachable except through it, so a client
+        # can't inject the header), making it safe to prefer without any
+        # trusted-proxy CIDR machinery. Remaining spoof surface is other
+        # machines on our own fly private network — acceptable for a demo.
+        # CF-Connecting-IP is only honoured behind the explicit env knob; see
+        # TRUST_CF_CONNECTING_IP above. Local dev has neither header and
+        # falls back to the socket peer.
+        if TRUST_CF_CONNECTING_IP:
+            ip = self.headers.get("CF-Connecting-IP", "").strip()
+            if ip:
+                return ip
+        ip = self.headers.get("Fly-Client-IP", "").strip()
+        if ip:
+            return ip
         return self.client_address[0]
 
     def _reject(self):
