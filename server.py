@@ -121,6 +121,12 @@ SESSION_ALPHABET = string.ascii_uppercase + string.digits
 SESSION_LEN = 6
 # Generous ceiling for any legitimate POST. Pubkey + sig + token ~ 500 bytes.
 MAX_BODY_BYTES = 16 * 1024
+# Optional per-session "what's being benchmarked" label, set by the aggregator
+# at session creation and shown on participant pages. Display metadata only —
+# never part of the signed canonical message. Length-capped because it's
+# aggregator-supplied text rendered on other people's screens (clients must
+# additionally render it with textContent, never innerHTML).
+MAX_METRIC_LEN = 80
 # Raw uncompressed P-256 public key: 0x04 || X(32) || Y(32) = 65 bytes -> 88 b64 chars.
 PUBKEY_RAW_LEN = 65
 PUBKEY_B64_LEN = 88
@@ -277,11 +283,11 @@ def generate_code():
 
 
 state_lock = threading.Lock()
-# code -> {parties, pubkeys, shares, share_sigs, vks, tokens}
+# code -> {parties, pubkeys, shares, share_sigs, vks, tokens, metric, created_at}
 sessions = {}
 
 
-def new_session(n):
+def new_session(n, metric=""):
     """Mint a session for n participants. Returns (code, tokens, parties)."""
     parties = MAX_PARTIES[:n]
     with state_lock:
@@ -297,6 +303,7 @@ def new_session(n):
                     "share_sigs": {},
                     "vks": {},
                     "tokens": tokens,
+                    "metric": metric,
                     "created_at": time.time(),
                 }
                 return code, tokens, parties
@@ -759,6 +766,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
                     "parties": list(sess["parties"]),
                     "pubkeys_published": sorted(sess["pubkeys"].keys()),
                     "shares_submitted": sorted(sess["shares"].keys()),
+                    "metric": sess.get("metric", ""),
                 }
             if data is None:
                 return self._reject()
@@ -826,6 +834,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
             if not self._check_aggregator_auth():
                 return self._send_json(401, {"error": "aggregator password required"})
             n = DEFAULT_N
+            metric = ""
             challenge = ""
             pow_nonce = None
             if length > 0:
@@ -837,14 +846,17 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 if not isinstance(raw_n, int):
                     return self._send_json(400, {"error": f"n must be an integer in [{MIN_N},{MAX_N}]"})
                 n = raw_n
+                metric = str(body.get("metric", "")).strip()
                 challenge = body.get("challenge", "")
                 pow_nonce = body.get("pow_nonce", None)
             if not (MIN_N <= n <= MAX_N):
                 return self._send_json(400, {"error": f"n must be between {MIN_N} and {MAX_N}"})
+            if len(metric) > MAX_METRIC_LEN:
+                return self._send_json(400, {"error": f"metric too long ({MAX_METRIC_LEN} chars max)"})
             if not verify_pow(challenge, pow_nonce):
                 return self._send_json(401, {"error": "invalid or missing proof-of-work"})
-            code, tokens, parties = new_session(n)
-            return self._send_json(200, {"code": code, "tokens": tokens, "parties": parties})
+            code, tokens, parties = new_session(n, metric)
+            return self._send_json(200, {"code": code, "tokens": tokens, "parties": parties, "metric": metric})
 
         try:
             body = self._read_json()
@@ -877,8 +889,9 @@ class Handler(http.server.BaseHTTPRequestHandler):
                     return self._conflict("participant slot")
                 sess["vks"][party] = vk  # idempotent if same vk
                 parties = list(sess["parties"])
+                metric = sess.get("metric", "")
             bearer = mint_bearer_token(session_code, party, vk)
-            return self._send_json(200, {"server_token": bearer, "parties": parties})
+            return self._send_json(200, {"server_token": bearer, "parties": parties, "metric": metric})
 
         # Delete a session (aggregator abandoning a round). Gated by the same
         # aggregator password as session creation so a leaked code doesn't let

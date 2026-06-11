@@ -84,11 +84,17 @@ def derive_mask(my_ecdh, their_pub_b64, lo, hi):
     return u - (1 << 64) if u >= (1 << 63) else u
 
 
+METRIC = "Average claim severity (£)"
+
+
 def main():
-    sess = api("/api/session/new", {"n": N, **mine_pow()})
+    sess = api("/api/session/new", {"n": N, "metric": METRIC, **mine_pow()})
     code, tokens, parties = sess["code"], sess["tokens"], sess["parties"]
+    assert sess.get("metric") == METRIC, "metric missing from creation response"
+    state = api(f"/api/state?session={code}")
+    assert state.get("metric") == METRIC, "metric missing from /api/state"
     figures = {p: 10.0 * (i + 1) for i, p in enumerate(parties)}
-    print(f"session {code} parties {parties}")
+    print(f"session {code} parties {parties} metric {sess['metric']!r}")
 
     sign_keys, ecdh_keys, bearer = {}, {}, {}
     for p in parties:
@@ -96,6 +102,7 @@ def main():
         j = api("/api/join", {"session": code, "party": p, "token": tokens[p],
                               "vk": b64(raw_pub(sign_keys[p])), **mine_pow()})
         bearer[p] = j["server_token"]
+        assert j.get("metric") == METRIC, "metric missing from join response"
         print(f"  {p} joined")
 
     for p in parties:
