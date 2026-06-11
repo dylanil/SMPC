@@ -78,6 +78,11 @@
     border:1px solid rgba(105,213,138,.35); border-radius:6px;
     color:var(--ok); font-size:13px;
   }
+  .metric-note {
+    margin-bottom:14px; padding:8px 12px; background:var(--panel-2);
+    border-left:3px solid var(--role-color, var(--border)); border-radius:4px;
+    font-size:13px;
+  }
   a { color:var(--muted); font-size:12px; }
 </style>
 </head>
@@ -97,6 +102,7 @@
       <label>Invite code <span class="pill">from the aggregator</span></label>
       <input type="text" class="code" id="inviteInput" maxlength="13" placeholder="XXXXXX-YYYYYY" autocomplete="off" spellcheck="false" autofocus>
     </div>
+    <div class="metric-note" id="metricNote" hidden></div>
     <div class="field-row">
       <label>Private figure <span class="pill">stays local</span></label>
       <input type="number" id="numInput" step="any" placeholder="e.g. 42">
@@ -189,6 +195,7 @@
   let SESSION = '';
   let SERVER_TOKEN = '';
   let SIGN_KP = null;
+  let ROUND_METRIC = '';
   const INVITE_RE = /^([A-Z0-9]{6})-([A-Z0-9]{6})$/;
 
   // Prefill from URL hash so the aggregator can share a clickable link,
@@ -197,6 +204,34 @@
     const h = location.hash.slice(1).toUpperCase();
     if (INVITE_RE.test(h)) document.getElementById('inviteInput').value = h;
   }
+
+  // The round may carry a "what's being benchmarked" label. The participant
+  // types their figure before joining, so as soon as the invite parses we
+  // fetch the label from /api/state (session-code-gated read) and show it
+  // above the figure input. textContent only — the label is text typed by
+  // the aggregator, rendered here on someone else's screen.
+  function showMetric(metric) {
+    ROUND_METRIC = metric || '';
+    const note = document.getElementById('metricNote');
+    if (ROUND_METRIC) {
+      note.textContent = `This round benchmarks: ${ROUND_METRIC}`;
+      note.hidden = false;
+    } else {
+      note.hidden = true;
+    }
+  }
+  let metricFetchedFor = '';
+  async function maybeFetchMetric() {
+    const m = document.getElementById('inviteInput').value.trim().toUpperCase().match(INVITE_RE);
+    if (!m || m[1] === metricFetchedFor) return;
+    metricFetchedFor = m[1];
+    try {
+      const r = await fetch('/api/state?session=' + encodeURIComponent(m[1]));
+      if (r.ok) showMetric((await r.json()).metric);
+    } catch (_) { /* stale invite or network blip; join revalidates everything */ }
+  }
+  document.getElementById('inviteInput').addEventListener('input', maybeFetchMetric);
+  maybeFetchMetric(); // covers the hash-prefilled invite
 
   function showInputErr(msg) {
     const e = document.getElementById('inputErr');
@@ -276,6 +311,7 @@
     SERVER_TOKEN = joinResp.server_token;
     PARTIES = joinResp.parties;
     OTHERS = PARTIES.filter(p => p !== ROLE);
+    showMetric(joinResp.metric); // authoritative, replaces the pre-join fetch
     if (!PARTIES.includes(ROLE)) {
       showInputErr(`This session is for participants ${PARTIES.join(', ')} — not ${ROLE}. Open the right /party/<letter> URL.`);
       return;
@@ -405,12 +441,17 @@
                 <div class="mono ${allSigsOk ? 'masked' : 'secret'}">${allSigsOk ? '✓ everyone signed what the server says they signed' : '✗ at least one share was tampered with'}</div>
                 <div class="k">Sum (local):</div><div class="mono masked">${localSum.toString()}</div>
                 <div class="k">Sum (server):</div><div class="mono ${sumOk ? 'masked' : 'secret'}">${serverSum.toString()} ${sumOk ? '✓ match' : '✗ MISMATCH'}</div>
-                <div class="k">Average:</div><div class="mono ${allSigsOk && sumOk ? 'masked' : 'secret'}">${avgStr}</div>
+                <div class="k" id="avgRowLabel">Average:</div><div class="mono ${allSigsOk && sumOk ? 'masked' : 'secret'}">${avgStr}</div>
               </div>
               <div style="margin-top:10px; font-size:12px; color:var(--muted); font-style:italic;">
                 Each share is signed by its party's sk; the server stores both the sig and the vk that arrived at /api/join. ECDSA verification here uses the vk the server returned — so a tampered share, or a vk substitution, would surface as ✗ INVALID. Without all ${PARTIES.length} sigs valid, you should not trust the average.
               </div>
             `;
+            // Metric is aggregator-typed text: inject via textContent, never
+            // into the innerHTML template above.
+            if (ROUND_METRIC) {
+              document.getElementById('avgRowLabel').textContent = `Average — ${ROUND_METRIC}:`;
+            }
             break;
           }
         }
