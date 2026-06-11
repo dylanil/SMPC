@@ -84,6 +84,13 @@
     font-size:18px; font-family:Consolas,monospace; text-align:center;
   }
   input[type=number].n:focus { border-color:var(--agg); outline:none; }
+  input[type=text].metric {
+    width:100%; max-width:420px; padding:10px 12px; background:var(--panel-2);
+    border:1px solid var(--border); border-radius:6px; color:var(--text);
+    font-size:15px; font-family:inherit;
+  }
+  input[type=text].metric:focus { border-color:var(--agg); outline:none; }
+  .metric-row { margin-bottom:14px; }
   .create {
     padding:12px 22px; background:var(--agg); color:#0b0f17; border:none;
     border-radius:6px; font-weight:600; font-size:14px; cursor:pointer;
@@ -149,6 +156,10 @@
   <div class="card" id="sessionCard">
     <h3>Session</h3>
     <div id="createRow">
+      <div class="metric-row">
+        <label>What's being benchmarked? (optional — shown to every participant)</label>
+        <input type="text" class="metric" id="metricInput" maxlength="80">
+      </div>
       <label>How many participants will join this round?</label>
       <div class="n-row">
         <div>
@@ -160,6 +171,7 @@
     <div id="codeRow" class="hidden">
       <label>Each invite is bound to a specific role. Send each participant their own invite — either the bare code (they paste it into <code>/party/&lt;letter&gt;</code>) or the full link (one click takes them to a pre-filled page). Anyone trying to use another's invite is rejected by the server.</label>
       <div class="invites" id="invites"></div>
+      <div class="share-hint hidden" id="metricEcho"></div>
       <div class="share-hint">Codes live in this tab only. If you close or reload this page the session is abandoned.</div>
       <button class="demo" id="demoBtn">▶ Demo: simulate all participants in this tab</button>
       <div class="note">Alone? This runs the real wire protocol for every invite above — join, key exchange, signed masked shares — so you can watch a full round solo. It consumes all the invites, so don't use it for a round with real participants.</div>
@@ -222,6 +234,12 @@
   let PARTIES = [];
   let TOKENS = null;        // invite tokens, kept for the demo simulator
   let DEMO_FIGURES = null;  // set only by the simulator; triggers the reveal card
+  let METRIC = '';          // optional "what's being benchmarked" label (server-echoed)
+
+  // The example metric. Pre-filled so a fresh round reads like a real
+  // benchmarking exercise; fully editable/clearable — the app stays generic.
+  const METRIC_PREFILL = 'Average claim severity (£)';
+  document.getElementById('metricInput').value = METRIC_PREFILL;
 
   function colorVar(p) { return `var(--${p.toLowerCase()})`; }
 
@@ -310,7 +328,9 @@
     `;
 
     document.getElementById('resultCard').classList.remove('hidden');
-    document.getElementById('resultLabel').textContent = `Average of the ${n} private figures`;
+    document.getElementById('resultLabel').textContent = METRIC
+      ? `${METRIC} — average of ${n} private figures`
+      : `Average of the ${n} private figures`;
     const pretty = avg.toFixed(6).replace(/\.?0+$/, '');
     document.getElementById('avgValue').textContent = pretty;
     document.getElementById('statusNote').textContent = `All ${n} participants submitted. Average computed from masked shares.`;
@@ -448,9 +468,14 @@
 
     const figures = {}, signKps = {}, ecdhKps = {}, bearers = {};
     try {
+      // Demo figures should look like the metric: 4–5 digit amounts for the
+      // claim-severity example, a generic 0–100 otherwise.
+      const claimsLike = METRIC === METRIC_PREFILL;
       // Phase 1: join — sequential so the mining progress reads sensibly.
       for (const p of PARTIES) {
-        figures[p] = Math.round(Math.random() * 10000) / 100; // 0.00–100.00
+        figures[p] = claimsLike
+          ? Math.round((800 + Math.random() * 24200) * 100) / 100 // £800.00–£25,000.00
+          : Math.round(Math.random() * 10000) / 100;              // 0.00–100.00
         signKps[p] = await generateSigningKeypair();
         const vk = await exportVkB64(signKps[p]);
         const line = demoLine(`${p}: mining proof-of-work…`);
@@ -521,22 +546,30 @@
       // says the PoW expired (common when the tab was backgrounded mid-mine).
       const { response: r } = await window.SMPCPoW.mineAndPost(
         '/api/session/new',
-        { n },
+        { n, metric: document.getElementById('metricInput').value.trim() },
         {},
         (tries) => { btn.textContent = `Verifying… (${tries.toLocaleString()} tries)`; },
       );
       if (!r.ok) throw new Error(await r.text());
       btn.textContent = 'Creating…';
-      const { code, tokens, parties } = await r.json();
+      const { code, tokens, parties, metric } = await r.json();
       SESSION = code;
       PARTIES = parties;
       TOKENS = tokens;
+      METRIC = metric || '';
       renderInvites(code, tokens);
       renderStatus();
+      if (METRIC) {
+        const echo = document.getElementById('metricEcho');
+        echo.textContent = `Participants will be asked for: ${METRIC}`;
+        echo.classList.remove('hidden');
+      }
       document.getElementById('createRow').classList.add('hidden');
       document.getElementById('codeRow').classList.remove('hidden');
       document.getElementById('statusCard').classList.remove('hidden');
-      document.getElementById('statusNote').textContent = `Waiting for ${PARTIES.length} participants to submit their masked shares…`;
+      document.getElementById('statusNote').textContent =
+        `Waiting for ${PARTIES.length} participants to submit their masked shares…`
+        + (METRIC ? ` Benchmarking: ${METRIC}` : '');
       poll();
     } catch (e) {
       btn.disabled = false;
