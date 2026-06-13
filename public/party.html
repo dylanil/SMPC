@@ -178,12 +178,30 @@
     el.appendChild(div);
   }
 
-  async function apiPost(url, body) {
+  // Map a non-OK status to a participant-readable line, reusing the join
+  // handler's vocabulary (403/409/429/401/400). `action` names the step that
+  // failed, e.g. "publish your key".
+  function statusMessage(status, detail, action) {
+    if (status === 403) return `Could not ${action}: ${detail || 'session, token, or signature rejected'} (403). The session may have expired (sessions last ~30 min) or the server may have restarted. Ask the aggregator to start a fresh round.`;
+    if (status === 409) return `Could not ${action}: ${detail || 'a different value was already committed'} (409). This slot is locked to its first value — recovery needs a fresh invite, not a reload.`;
+    if (status === 429) return `Rate limited (429). Wait a minute and try again.`;
+    if (status === 401) return `Could not ${action}: ${detail || 'authentication failed'} (401). The session may have expired — ask for a fresh invite.`;
+    if (status === 400) return `Browser-side error: ${detail || 'bad request'} (400).`;
+    return `Could not ${action}: ${detail || ('HTTP ' + status)}.`;
+  }
+  // Post and, on a non-OK response, render a status-aware inline error in
+  // #inputErr (never a raw alert) and abort start() via a sentinel throw.
+  async function apiPostInline(url, body, action) {
     const r = await fetch(url, {
       method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify(body),
     });
-    if (!r.ok) throw new Error(await r.text());
+    if (!r.ok) {
+      let detail = '';
+      try { const o = await r.json(); detail = o && o.error ? o.error : ''; } catch (_) {}
+      showInputErr(statusMessage(r.status, detail, action));
+      throw { inline: true };
+    }
     return r.json();
   }
   async function apiGet(url) {
@@ -332,9 +350,9 @@
     const myEcdhPubB64 = await exportEcdhPubB64(ecdhKp);
     const pubkeyMsg = canonicalMessage('pubkey', SESSION, ROLE, myEcdhPubB64);
     const pubkeySig = await signMessage(SIGN_KP.privateKey, pubkeyMsg);
-    await apiPost('/api/pubkey', {
+    await apiPostInline('/api/pubkey', {
       server_token: SERVER_TOKEN, pubkey: myEcdhPubB64, sig: pubkeySig,
-    });
+    }, 'publish your key');
     logLine('exchangeLog', `→ Published pub<sub>${ROLE}</sub> + signature. Server verified the signature against vk<sub>${ROLE}</sub>.`, 'ok');
 
     logLine('exchangeLog', `Waiting for public keys from [${OTHERS.join(', ')}]…`, 'warn');
@@ -390,9 +408,9 @@
     const shareStr = share.toString();
     const shareMsg = canonicalMessage('share', SESSION, ROLE, shareStr);
     const shareSig = await signMessage(SIGN_KP.privateKey, shareMsg);
-    await apiPost('/api/share', {
+    await apiPostInline('/api/share', {
       server_token: SERVER_TOKEN, share: shareStr, sig: shareSig,
-    });
+    }, 'submit your share');
     document.getElementById('submitBody').innerHTML = `
       <div class="log">
         <div class="line ok">→ Signed canonical "share|${SESSION}|${ROLE}|${shareStr.slice(0, 16)}…" with sk<sub>${ROLE}</sub>.</div>
@@ -406,12 +424,36 @@
     // === Step 6: independently verify every signature + the sum ===
     document.getElementById('verifyCard').classList.remove('muted');
     const verifyBody = document.getElementById('verifyBody');
-    verifyBody.innerHTML = `<div class="log"><div class="line warn">Waiting for all ${PARTIES.length} shares to land, then verifying signatures locally…</div></div>`;
+    verifyBody.innerHTML = `<div class="log"><div class="line warn" id="verifyProgress">Waiting for all ${PARTIES.length} shares to land, then verifying signatures locally…</div></div>`;
+    const verifyProgress = document.getElementById('verifyProgress');
+    // Session-lost detection, ported from the aggregator: only declare the
+    // session dead after at least one successful poll AND ~3.5s of sustained
+    // 403s, so a transient blip (or a poll landing before a write is visible)
+    // doesn't false-positive. The common real failure — a participant never
+    // submits, or the session is reaped/restarted — otherwise shows a falsely
+    // reassuring "waiting…" forever (RB-02). On the happy path we also show
+    // live progress ("3 of 5 in — waiting on B, D") from /api/result's
+    // shares_submitted, so the wait is legible instead of opaque.
+    let everSeenAlive = false, consecutiveLost = 0;
+    const LOST_THRESHOLD = 5; // 5 polls × 700ms ≈ 3.5s of sustained 403s
     while (true) {
       try {
         const r = await fetch('/api/result?session=' + encodeURIComponent(SESSION));
-        if (r.ok) {
+        if (r.status === 403) {
+          consecutiveLost++;
+          if (everSeenAlive && consecutiveLost >= LOST_THRESHOLD) {
+            verifyProgress.style.color = '#ff7a8a';
+            verifyProgress.textContent = 'Session lost — the server appears to have restarted, or this session expired (sessions are in-memory and last ~30 min), so the round can\'t complete. Ask the aggregator to start a fresh round and reissue invites.';
+            break;
+          }
+        } else if (r.ok) {
+          everSeenAlive = true; consecutiveLost = 0;
           const data = await r.json();
+          if (!data.ready) {
+            const submitted = data.shares_submitted || [];
+            const missing = PARTIES.filter(p => !submitted.includes(p));
+            verifyProgress.textContent = `Waiting for shares — ${submitted.length} of ${PARTIES.length} in${missing.length ? '; still waiting on ' + missing.join(', ') : ''}…`;
+          }
           if (data.ready) {
             // Verify each party's signature against their registered vk.
             const sigChecks = {};
@@ -462,10 +504,14 @@
 
   document.getElementById('startBtn').addEventListener('click', () => {
     start().catch(err => {
-      alert('Error: ' + err.message);
-      document.getElementById('startBtn').disabled = false;
-      document.getElementById('numInput').disabled = false;
-      document.getElementById('inviteInput').disabled = false;
+      // apiPostInline errors already rendered themselves inline; anything else
+      // is an unexpected JS/network failure — surface it inline too, never a
+      // raw alert(). Inputs are deliberately NOT re-enabled mid-round: a second
+      // start() re-keys the signing key and 409s (RB-27), so recovery is a
+      // fresh invite, which the inline messages say.
+      if (!err || !err.inline) {
+        showInputErr('Unexpected error: ' + (err && err.message ? err.message : err) + '. If this persists, reload and use a fresh invite.');
+      }
     });
   });
 </script>
