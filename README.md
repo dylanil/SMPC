@@ -1,6 +1,12 @@
 # SMPC — Secure Average of 3–10 Private Figures
 
-A small demo of Secure Multi-Party Computation. Between 3 and 10 participants each enter one private number ("figure") from their own browser. A separate aggregator picks the participant count when creating the session, then computes the average **without ever seeing any participant's raw figure**. Security comes from *pairwise one-time-pad masking*: every pair of participants shares a random mask that cancels out when all N masked shares are summed.
+A small demo of Secure Multi-Party Computation. Between 3 and 10 participants each enter one private number ("figure") from their own browser. A separate aggregator picks the participant count when creating the session, then computes the average **without any participant's raw figure ever crossing the wire**. Security comes from *pairwise one-time-pad masking*: every pair of participants shares a random mask that cancels out when all N masked shares are summed.
+
+> **Demonstration project.** This is a portfolio proof-of-concept showing the mechanics of
+> privacy-preserving secure aggregation. It is **not** a production or commercial service, is
+> provided **as-is with no warranty**, and runs as a single in-memory instance with no persistence
+> or support. Please don't enter real or sensitive data. The "insurance claim severity" wording is
+> only an illustrative example metric.
 
 ---
 
