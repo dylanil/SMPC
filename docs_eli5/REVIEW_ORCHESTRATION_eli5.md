@@ -5,91 +5,88 @@
 
 ## What this is
 
-A ready-to-go plan for running **all** the project's reviews at once using a team of AI
-assistants ("agents"), with one **manager** agent in charge of pulling everything together into a
-single balanced to-do list — instead of doing the reviews one at a time across many sessions, the
+A ready-to-go plan for re-running **all** the project's reviews using a team of AI assistants
+("agents"), led by a dedicated **manager** agent that runs the whole job and pulls everything into a
+single balanced action plan — instead of doing the reviews one at a time across many sessions, the
 way they were built up until now.
 
 The idea: open a **fresh** session (so there's plenty of working memory), point it at the original
-brief, and let it run the whole thing.
+brief, and let the manager run it.
 
-## Why a fresh session
+## Who runs it: a dedicated manager agent
 
-The manager has to keep *every* agent's findings in its head at once to weigh them against each
-other, and each helper agent also starts from scratch (which is costly). Doing this with a clean,
-empty working memory means nothing important gets squeezed out or summarised halfway through.
+When you start the job, your session spawns **one manager agent**, and that manager then runs
+everything itself — it brings in the reviewers, runs the debate, and writes the final plan. The
+manager is the boss of the whole job from the start; your session just launches it and passes
+messages between you and it.
 
-## The important catch: it's not all at the same time
+**One honest caveat:** this is "an assistant that runs other assistants," and that kind of nesting
+can sometimes hit limits. If the manager can't bring in its own helpers, the plan falls back to
+**your session acting as the manager itself** (same role, same steps) — and it'll tell you which way
+it actually ran rather than quietly switching.
 
-You might picture every review running simultaneously. It can't *quite*, because each
-"second-opinion" review has to read the review it's checking. So it runs in **three rounds**:
+**Who the manager "is."** It's told to act like a rare, top-tier all-rounder — an expert
+**actuary, software developer, business strategist, and product designer all in one** — so it
+judges every issue from all four angles. The aim is a plan that's **fair, practical, and genuinely
+worth doing for a portfolio demo**, not over-engineered beyond what the project needs.
 
-1. **Round 1 — the eight reviews, all at once.** Security, cryptography, quality, legal, user
-   experience, product, visual design, and a catch-all "other angles" review. They don't depend on
-   each other, so they all run in parallel. Each writes its findings into a **dated folder** so it
-   doesn't overwrite the existing, carefully-curated reviews.
-2. **Round 2 — the eight second opinions, all at once.** Each one double-checks its matching review
-   from Round 1 (so it has to wait for Round 1 to finish), confirming, correcting, or refuting the
-   findings and spotting anything missed.
-3. **Round 3 — the manager.** It reads all sixteen results, applies the corrections from the
-   second opinions, removes duplicates (the same issue often shows up in several reviews), decides
-   *when* each thing should be done (must-fix / should-fix / nice-to-have / accepted / false
-   alarm), and produces the final balanced to-do list and plan. It then updates the plain-English
+## The four phases (the debate only happens AFTER the solo reviews)
+
+The manager runs the job in four steps, in order. The first two are done **in isolation** — each
+reviewer works alone and sees nobody else's work. Nothing argues with anything until both solo
+rounds are finished.
+
+1. **Solo reviews.** Eight reviewers (security, cryptography, quality, legal, user experience,
+   product, visual design, and a catch-all "other angles" review) each examine the code **on their
+   own**, with no sight of each other, and write up their findings.
+2. **Solo second opinions.** Eight "checker" reviewers each double-check **their own matching
+   review only** — again alone, no debate yet — confirming, correcting, or refuting it and spotting
+   anything missed.
+3. **The debate (now, and only now).** With both solo rounds done, the manager runs the
+   arguments: in each subject area it has the **reviewer and its checker hash out their
+   disagreements**, and where two subject areas clash (say, tighter security vs. a simpler
+   experience) it has **those two reviewers argue it out** too. It then settles each one and writes
+   down *why*.
+4. **The balanced action plan.** The manager takes the settled results and produces the final
+   prioritised to-do list and plan — must-fix / should-fix / nice-to-have / accepted / false alarm —
+   plus a short section of **challenges to your own thinking**. It then updates the plain-English
    versions and the README's "Known limitations" if anything important changed.
 
-   **Who the manager "is."** The brief tells the manager to act like a rare, top-tier all-rounder —
-   an expert **actuary, software developer, business strategist, and product designer all in one** —
-   so it judges every issue from all four angles, not just the one that raised it. The aim is a
-   plan that's **fair, practical, and genuinely worth doing for a portfolio demo** — not
-   over-engineered beyond what the project needs.
+**How the "debate" actually works:** the helper agents can't talk to each other directly — they do
+their bit and finish. So the manager acts as a go-between: it carries the checker's criticism back
+to the original reviewer, gets the reply, carries it back again, and keeps going until it's resolved
+— then makes the call. It's a real back-and-forth; the manager is just the messenger in the middle.
 
-   **It runs a debate, it doesn't just staple findings together.** Where two reviewers disagree or
-   pull in opposite directions (say, tighter security vs. a simpler experience), the manager puts
-   the two views head-to-head, has them argue it out, and settles on the best-justified balance —
-   writing down *why* it landed there.
+## The rules every agent (and the manager) must follow
 
-   **It asks before it guesses (the "95% rule").** If the manager is ever less than ~95% sure what
-   you actually want, it **stops and asks you** until it's sure, instead of guessing. And it will
-   **never make a hidden assumption** — anything it has to assume is stated out loud and flagged to
-   you. (This same rule applies to me and to every helper agent too, on this and any task.)
+The brief hands everyone the project's fixed decisions so nobody wastes effort re-arguing settled
+points: no caps on number size, keep the "Simulated round" warning, never claim the signatures stop
+impersonation, keep the app lightweight (no database, accounts, or heavy infrastructure), keep
+user-typed text display-only, and **don't change any actual code** — just produce findings. It also
+tells the user-experience reviewer to **recompute the colour-contrast numbers itself**, because
+that's the one thing the previous round got wrong.
 
-   **It challenges your thinking, not just the findings.** The manager is told to push back on your
-   *own* framing and design choices too — pointing out hidden assumptions and offering alternative
-   angles (a different core use case or audience, a sharper pitch, a simpler or bolder design) so
-   you might see the product in a new light. It makes the strongest honest case for the alternative,
-   flags it clearly (especially if it touches a decision you've already made), and leaves the choice
-   to you — the aim is to *illuminate*, never to be contrarian for its own sake.
-
-That's **17 agents in total** (8 + 8 + 1).
-
-## The rules every agent must follow
-
-The brief hands every agent the project's fixed decisions so none of them waste effort
-re-arguing settled points: no caps on number size, keep the "Simulated round" warning, never claim
-the signatures stop impersonation, keep the app lightweight (no database, accounts, or heavy
-infrastructure), keep user-typed text display-only, and **don't change any actual code** — just
-produce findings. It also tells the user-experience agent to **recompute the colour-contrast
-numbers itself**, because that's the one thing the previous round got wrong.
-
-On top of those, a few conduct rules bind **every** agent, the manager, and the session driving the
-run: **never make a hidden assumption** (if you must assume something, say so out loud and flag it);
-**ask before you guess** — if you're less than ~95% sure what's wanted, stop and ask rather than
-press on; surface disagreements instead of papering over them; **constructively challenge the
-owner's own thinking and design choices** (offer alternative angles to illuminate, not to be
-contrarian, and only raise an already-settled decision once, as a fresh lens); and stay within the
-project's scope.
+On top of those, a few conduct rules bind everyone — the helpers, the manager, and the session
+running it: **never make a hidden assumption** (if you must assume something, say it out loud and
+flag it); **ask before you guess** — if you're less than ~95% sure what's wanted, stop and ask;
+surface disagreements instead of papering over them; **constructively challenge your thinking and
+design choices** (offer alternative angles to illuminate, not to be contrarian, and raise an
+already-settled decision only once, as a fresh lens); and stay within the project's scope.
 
 ## A couple of practical safeguards
 
-- Agents write into a **dated folder**, so a parallel run can't trample the existing reviews; the
+- Reviewers write into a **dated folder**, so a parallel run can't trample the existing reviews; the
   manager merges the new findings in deliberately.
+- **Isolation is enforced by what each agent is given** — a solo reviewer only gets its own task and
+  the code; a checker only gets its own review. Nobody sees another's work until the debate phase.
 - At launch you choose whether the agents do a **completely fresh** review (most independent, but
   more churn against decisions you've already accepted) or **refresh and reconcile** the existing
   ones (cheaper, respects what's settled) — the second is recommended.
-- Each agent is told to report back **briefly** (its detailed findings go in its file), so the
-  manager doesn't get flooded.
+- Each agent reports back **briefly** (its detailed findings go in its file), so the manager isn't
+  flooded.
 
 ## How to start it
 
 In a fresh session, say something like *"read `docs/REVIEW_ORCHESTRATION.md` and execute it,"*
-confirm the run-mode choice and today's date for the run folder, and let it go.
+confirm the run-mode choice and today's date for the run folder, and let the manager take it from
+there.
