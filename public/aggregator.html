@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>SMPC Aggregator</title>
 <style>
   :root {
@@ -83,13 +84,15 @@
     border:1px solid var(--border); border-radius:6px; color:var(--text);
     font-size:18px; font-family:Consolas,monospace; text-align:center;
   }
-  input[type=number].n:focus { border-color:var(--agg); outline:none; }
+  input[type=number].n:focus { border-color:var(--agg); }
+  input[type=number].n:focus:not(:focus-visible) { outline:none; }
   input[type=text].metric {
     width:100%; max-width:420px; padding:10px 12px; background:var(--panel-2);
     border:1px solid var(--border); border-radius:6px; color:var(--text);
     font-size:15px; font-family:inherit;
   }
-  input[type=text].metric:focus { border-color:var(--agg); outline:none; }
+  input[type=text].metric:focus { border-color:var(--agg); }
+  input[type=text].metric:focus:not(:focus-visible) { outline:none; }
   .metric-row { margin-bottom:14px; }
   .create {
     padding:12px 22px; background:var(--agg); color:#0b0f17; border:none;
@@ -141,6 +144,9 @@
     margin-top:12px; padding:10px 14px; background:var(--panel-2);
     border-radius:6px; font-family:Consolas,monospace; font-size:13px; color:var(--ok);
   }
+  /* RB-11: visible keyboard-focus ring on every interactive control (WCAG 2.4.7).
+     The :not(:focus-visible) guards above keep mouse-focus on the inputs ring-free. */
+  :focus-visible { outline:2px solid var(--agg, #c79bff); outline-offset:2px; }
 </style>
 </head>
 <body>

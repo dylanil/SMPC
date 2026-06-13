@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>SMPC Participant</title>
 <style>
   :root {
@@ -84,6 +85,8 @@
     font-size:13px;
   }
   a { color:var(--muted); font-size:12px; }
+  /* RB-11: visible keyboard-focus ring on every interactive control (WCAG 2.4.7). */
+  :focus-visible { outline:2px solid var(--agg, #c79bff); outline-offset:2px; }
 </style>
 </head>
 <body>
