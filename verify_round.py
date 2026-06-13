@@ -9,6 +9,7 @@ import base64
 import hashlib
 import json
 import sys
+import urllib.error
 import urllib.request
 
 from cryptography.hazmat.primitives import hashes, serialization
@@ -53,6 +54,18 @@ def mine_pow():
         if bits >= difficulty:
             return {"challenge": challenge, "pow_nonce": n}
         n += 1
+
+
+def api_status(path, body):
+    """POST and return the HTTP status code (no exception on 4xx/5xx)."""
+    req = urllib.request.Request(
+        BASE + path, data=json.dumps(body).encode(),
+        headers={"Content-Type": "application/json"}, method="POST")
+    try:
+        with urllib.request.urlopen(req) as r:
+            return r.status, r.read().decode()
+    except urllib.error.HTTPError as e:
+        return e.code, e.read().decode()
 
 
 def b64(raw):
@@ -135,6 +148,15 @@ def main():
     expected = sum(figures.values()) / len(figures)
     assert abs(avg - expected) < 1e-9, f"average {avg} != {expected}"
     print(f"PASS: masks cancelled exactly; average = {avg} (expected {expected})")
+
+    # RB-01 regression: a non-ASCII "digit" share must be rejected at /api/share write
+    # time (str.isdigit() accepts these, but int()/BigInt() then choke), and /api/result
+    # must stay healthy afterwards rather than crashing the request thread.
+    for bad in ("²", "١٠", "०४", "３"):  # ²  ١٠  ०४  ３
+        st, body = api_status("/api/share", {"server_token": bearer[parties[0]], "share": bad, "sig": ""})
+        assert st == 400, f"non-ASCII share {bad!r} accepted ({st} {body!r}), expected 400"
+    assert api(f"/api/result?session={code}")["ready"], "/api/result broke after bad-share probe"
+    print("PASS: non-ASCII-digit shares rejected at /api/share; /api/result intact (RB-01)")
 
 
 if __name__ == "__main__":

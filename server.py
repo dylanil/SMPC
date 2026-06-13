@@ -375,7 +375,12 @@ def start_session_reaper():
 
 
 def is_decimal_string(s):
-    if not isinstance(s, str) or not s:
+    # ASCII-only: str.isdigit() is True for non-ASCII digits ('²', Arabic-Indic '١٠',
+    # Devanagari '५', fullwidth '３'…), which pass validation but then crash int() server-side
+    # or throw in the participants' BigInt() — silently desyncing a round (RB-01). The
+    # isascii() guard tightens the CHARSET only; there is deliberately NO value/magnitude cap
+    # here (AC-01 — any figure scale must work; the 16 KB body cap stands).
+    if not isinstance(s, str) or not s or not s.isascii():
         return False
     return s.lstrip("-").isdigit() and not (s == "-" or s.startswith("--"))
 
@@ -802,7 +807,13 @@ class Handler(http.server.BaseHTTPRequestHandler):
                     shares = {p: sess["shares"][p] for p in parties}
                     sigs = {p: sess["share_sigs"][p] for p in parties}
                     vks = {p: sess["vks"][p] for p in parties}
-                    total = sum(int(v) for v in shares.values())
+                    # Defence in depth for RB-01: shares are now ASCII-validated at /api/share
+                    # write time, so this should never raise — but guard anyway so a corrupt
+                    # stored share can never crash the request thread + flood stderr on every poll.
+                    try:
+                        total = sum(int(v) for v in shares.values())
+                    except ValueError:
+                        return self._send_json(500, {"error": "a stored share is not a valid integer"})
                     payload = {
                         "ready": True,
                         "parties": parties,
