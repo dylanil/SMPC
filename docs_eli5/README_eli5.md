@@ -90,3 +90,24 @@ It's also honest about the limits:
   own figure.
 - **Collusion has a floor:** in any scheme like this, enough people working together (or one
   plus the aggregator) can deduce a remaining person's number. This is inherent, and documented.
+
+## Known limitations
+
+The real README now has a dedicated **"Known limitations"** section that gathers the honest
+boundaries in one place, so nobody has to discover them. In plain terms, the demo:
+
+- **needs everyone online at once** — if anyone doesn't submit, the round just stalls;
+- **saves nothing** — it's one always-on machine, everything is wiped on restart, and old
+  sessions auto-delete;
+- **can't stop someone lying about their own number** (and deliberately puts no cap on how big a
+  number can be);
+- **doesn't stop a determined impersonator** who races to claim an invite;
+- **can be cracked by enough people colluding** (inherent to the method);
+- **uses one shared aggregator password** with no individual accounts;
+- **lets anyone with a session code read that round's summary info** (but never the raw numbers);
+- **relies on the hosting setup for its anti-flooding limits;** and
+- has some **"going public" gaps still on the to-do list** (no uptime alerts, untested capacity,
+  no filter on the free-text label, accessibility not yet tested with a screen reader, no privacy
+  note) — these are logged as RB-35 to RB-40.
+
+It's also honest that the reviews are thorough *self*-checks, not an outside certification.

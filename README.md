@@ -154,6 +154,46 @@ A participant's first POST is `/api/join` with `(session, party, token, vk)` —
 
 ---
 
+## Known limitations
+
+This is a deliberately lightweight educational demo. The boundaries below are known and, in most
+cases, intentional — listed here so they're explicit rather than discovered. Deeper rationale for
+the security-specific points is in *Security notes* immediately below; the full triage and
+planned improvements live in [`docs/review/RELEASE_BOARD.md`](docs/review/RELEASE_BOARD.md) and
+[`docs/PRODUCTION_READINESS_PLAN.md`](docs/PRODUCTION_READINESS_PLAN.md) (plain-English versions
+in [`docs_eli5/`](docs_eli5/)).
+
+- **All participants must be online together; there is no dropout handling.** If any participant
+  fails to submit, the round stalls — there's no threshold mask-sharing to recover the aggregate
+  from a partial set, as production secure-aggregation has.
+- **Not production-grade and not persistent.** A single in-memory instance: all state is lost on
+  restart, sessions are auto-deleted after ~30 minutes, and it must run as exactly one always-on
+  instance (it can't be horizontally scaled).
+- **No input-honesty guarantee and no figure caps.** A participant can submit any value
+  (including a very large one) and skew the average; signatures prove *who* submitted and that it
+  wasn't tampered with by others, not that the figure is truthful or reasonable. The absence of a
+  magnitude cap is a deliberate choice (any figure scale must work).
+- **Signed shares do not stop impersonation.** Identities are generated per-session in the
+  browser, so an interceptor who races to claim an invite first can pose as that participant
+  convincingly. Closing this needs a pre-established identity/key registry — out of scope.
+- **Collusion has a floor.** Enough colluding participants (or one plus the aggregator) can
+  reconstruct a remaining honest participant's figure. This is inherent to pairwise masking.
+- **Coarse access control.** A single shared aggregator password with no per-user attribution;
+  for real access control, front the app with an identity proxy.
+- **Anyone with a session code can read that round's metadata** (label, roster, masked shares,
+  signatures, the average) — though never the raw individual figures. Treat the code as a
+  read capability.
+- **Abuse controls depend on the hosting topology.** Per-IP rate limiting relies on the
+  platform's trusted client-IP header; on a direct/forwarding exposure it can be bypassed.
+- **Operational gaps for a wider public deployment** (logged, not yet addressed): no availability
+  monitoring, an unmeasured concurrency ceiling, no moderation of the free-text metric label
+  shown to others, accessibility not yet tested with real assistive technology, and no
+  user-facing privacy/cookie note. See RB-35…RB-40 on the release board.
+- **Author self-review only** — the `docs/review/` audits are rigorous self-cross-examination,
+  not an independent third-party security or cryptographic certification.
+
+---
+
 ## Security notes
 
 This is an educational demo, not production-grade:
