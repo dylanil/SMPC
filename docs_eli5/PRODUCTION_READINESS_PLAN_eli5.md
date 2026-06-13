@@ -1,6 +1,6 @@
 # Production-Readiness Plan — plain-English version
 
-> This is a plain-language companion to [`PRODUCTION_READINESS_PLAN.md`](PRODUCTION_READINESS_PLAN.md).
+> This is a plain-language companion to [`PRODUCTION_READINESS_PLAN.md`](../docs/PRODUCTION_READINESS_PLAN.md).
 > The original is the source of truth and hasn't been changed. This file just explains the
 > same thing without assuming you know the technical details. If anything here and the
 > original ever disagree, trust the original.
@@ -65,7 +65,7 @@ calculation that was wrong — which is exactly why double-checking was worth it
 important conclusions, the maths and the security, survived this double-checking.
 
 All the individual findings are collected and prioritised in the **Release Board** (see
-[`RELEASE_BOARD_eli5.md`](review/RELEASE_BOARD_eli5.md) for the plain-English version). This
+[`RELEASE_BOARD_eli5.md`](RELEASE_BOARD_eli5.md) for the plain-English version). This
 plan is just the strategy wrapper around that board.
 
 ## The rules we're holding ourselves to
