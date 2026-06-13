@@ -6,9 +6,10 @@ no-account demo. This document is the strategy wrapper; the per-finding triage l
 [`docs/review/RELEASE_BOARD.md`](review/RELEASE_BOARD.md), which is the single source of
 truth for what to fix and in what order.
 
-**Status: remediation started (2026-06-13).** The §8.1 P0 batch — **RB-01, RB-02, RB-03, RB-04** —
-plus **RB-05** and **RB-11** have been implemented and pushed (marked ✅ DONE on the board). The
-remaining items are still pending and follow this plan.
+**Status: remediation in progress (2026-06-13).** Done and pushed: the §8.1 P0 batch (RB-01–RB-04)
+plus P1 items **RB-05, RB-06, RB-07, RB-08, RB-09, RB-11, RB-26** (marked ✅ DONE on the board).
+**RB-10** and **RB-35** are partially done (text/meta in; a completed-round screenshot / preview
+image + the canonical public URL are still pending). The remaining items follow this plan.
 
 **Re-validated 2026-06-13.** A second multi-agent pass (8 isolated domain reviews + 8 isolated meta
 audits, archived under [`review/run-2026-06-13/`](review/run-2026-06-13/)) re-confirmed this plan and
@@ -148,11 +149,12 @@ Each step is its own commit (or small commit series) and must clear the §6 gate
    3. **RB-03** replace the post-join `alert()` with inline status-aware errors.
    4. **RB-04** add the MIT `LICENSE`. **RB-05** (viewport meta) rides along here — it's a
       one-line-per-file change and trivially low-risk.
-2. **P1 batch — credibility & surface.** RB-08 disclaimer + RB-07 claim hedge (do them
-   together so UI and README agree); RB-06 README threat-model section; RB-09 solo-demo
-   signpost; ~~RB-11 `:focus-visible`~~ ✅ DONE (`0f11cfa`); then RB-10 (README screenshot/GIF + surface the
-   `docs/review/` folder) once the above are in so the captured screenshots show the
-   improved UI.
+2. **P1 batch — credibility & surface. ✅ MOSTLY DONE 2026-06-13.** ~~RB-08 disclaimer + RB-07 claim
+   hedge~~ ✅ (`bc39b32`); ~~RB-06 README threat-model section~~ ✅ (covered by the existing *Known
+   limitations* + the RB-08 disclaimer); ~~RB-09 solo-demo signpost~~ ✅ (`0d4a152`); ~~RB-11
+   `:focus-visible`~~ ✅ (`0f11cfa`); RB-10 (README screenshot/GIF + surface the `docs/review/` folder)
+   — ⏳ **partial** (`a6ae549`): the `docs/review/` pointer + verify-it-yourself story are in; the
+   completed-round screenshot is still pending (needs a captured image).
 3. **P2 batch — polish, hardening, visual craft.** Quick wins first (RB-16 read timeout,
    RB-17 nosniff, RB-12/RB-22/RB-24 small UI fixes, RB-13/RB-14/RB-15, RB-20, RB-21, RB-23,
    RB-25-as-hint-only); then the **RB-18 visual-craft pass** as its own focused series
@@ -166,6 +168,8 @@ Each step is its own commit (or small commit series) and must clear the §6 gate
    pass, **not** actioned case-by-case:
    - **RB-35** Open Graph / `description` share-preview metadata + a preview image (the single
      cheapest reach win; the image doubles as RB-10's screenshot — slot near the P1 surface work).
+     ⏳ **PARTIAL** (`a6ae549`): `<meta name="description">` added to all three heads; the OG/Twitter
+     card tags + preview image are still pending (need a preview image and the canonical public URL).
    - **RB-36** a lightweight external uptime check on `/healthz` (ops; no app code).
    - **RB-37** a load/capacity reality-check on the single instance (pairs with the RB-16
      read-timeout).

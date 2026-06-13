@@ -32,6 +32,12 @@ layout, and the keyboard-focus outline (items RB-01, RB-02, RB-03, RB-04, RB-05,
 struck through and marked ✅ on the release board. Now the reviews can be shown off as "we found
 problems **and fixed them**," which is far more impressive than just "we found problems."
 
+Since then, most of the **should-fix** list landed too (2026-06-13): the "this is a demo"
+disclaimers, the softened wording, the solo-visitor signpost, and the inline "don't change this"
+code comments (RB-06 through RB-09, and RB-26). Two "get it seen more widely" items (RB-10, RB-35)
+are only **partly done** — their wording is in, but they're waiting on a screenshot of a finished
+round and the site's public web address.
+
 ## How the thing is built (the 30-second version)
 
 - **One small Python program** runs the whole back end. It's deliberately simple — one file,
@@ -129,10 +135,10 @@ accepted trade-offs, and four false alarms.**
 1. **First batch — correctness and blockers. ✅ DONE (2026-06-13).** Stopped the bad-entry crash,
    stopped the forever-frozen screen, replaced the ugly error pop-ups with friendly inline messages,
    added the licence, and added the one-line mobile fix.
-2. **Second batch — credibility and first impressions.** Add the "this is a demo" note and
-   tidy the over-strong wording, add a plain "what this is / isn't" section to the README, add
-   a signpost so solo visitors can see it work, ~~fix keyboard-focus visibility~~ ✅ DONE, and then
-   add a screenshot to the README (last, so the screenshot shows the improved version).
+2. **Second batch — credibility and first impressions. ✅ MOSTLY DONE (2026-06-13).** ~~Added the
+   "this is a demo" note and tidied the over-strong wording~~ ✅; the "what this is / isn't" content
+   was already covered ✅; ~~added a signpost so solo visitors can see it work~~ ✅; ~~fixed
+   keyboard-focus visibility~~ ✅. Still to do: add a screenshot to the README (needs a captured image).
 3. **Third batch — polish, hardening, and the visual-design overhaul.** Quick wins first, then
    the bigger, more subjective visual redesign as its own careful series of small steps.
 4. **Re-deploy** once the must-fixes are in and the safety gate is green, then re-test against

@@ -13,9 +13,13 @@ This board is the **single combined to-do list** — every issue, deduplicated, 
 a plain note on what to do about it. Where a second reviewer corrected the first, the corrected
 version is what's recorded here.
 
-**Update — 2026-06-13: the first fixes are now DONE.** All four must-fix (P0) items plus two
-quick should-fix items have been built and shipped: ✅ **RB-01, RB-02, RB-03, RB-04, RB-05, RB-11**.
-They're struck through and marked ✅ DONE below. Everything else is still on the to-do list.
+**Update — 2026-06-13: the must-fixes and most of the should-fixes are now DONE.** Built and shipped:
+✅ **RB-01, RB-02, RB-03, RB-04, RB-05, RB-06, RB-07, RB-08, RB-09, RB-11, RB-26** — the crash fix,
+the frozen-screen fix, the friendly errors, the licence, the phone layout, the keyboard-focus
+outline, the "this is a demo" disclaimers, the softened wording, the solo-demo signpost, and inline
+code-comment markers. Two more (**RB-10, RB-35**) are **partly done** — their text/wording is in, but
+a screenshot/preview image and the public web address are still needed to finish them. They're struck
+through (or marked ⏳ partial) below. Everything else is still on the to-do list.
 
 **Checked again on 2026-06-13 (before the fixes).** We first re-ran the whole thing — eight reviews
 and eight second opinions, each working alone — to see if the list still held up. It did: **nothing
@@ -88,29 +92,34 @@ A single missing line means phones show the desktop layout shrunk down and zoome
 the mobile-friendly design that already exists never actually kicks in. For a demo people open
 from a phone link, this is the biggest mobile problem — and it's a one-line-per-page fix.
 
-### RB-06 — The README doesn't say "here's what this is, and here's what it deliberately isn't"
+### ~~RB-06 — The README doesn't say "here's what this is, and here's what it deliberately isn't"~~ ✅ DONE
+**✅ DONE 2026-06-13.** Already covered: the README's "Known limitations" now spells out the most important caveat (the round stalls if anyone doesn't submit), the "Security notes" act as the threat model, and the new "this is a demo" disclaimer adds the rest — so no extra section was needed.
 The most important honest caveat — that the round stalls if anyone fails to submit — is only
 mentioned deep in a technical file, not in the main README. **Fix:** a short, honest section
 spelling out what the demo is, what it isn't, and its known limits. Owning the limitations
 actually builds credibility.
 
-### RB-07 — One claim is worded too strongly ("never sees any raw figure")
+### ~~RB-07 — One claim is worded too strongly ("never sees any raw figure")~~ ✅ DONE
+**✅ DONE 2026-06-13.** The README now says raw figures "never cross the wire" (always true), and the aggregator page spells out the one exception — the in-tab demo, which plays every role itself and so necessarily knows the figures it made up.
 That phrase appears as an absolute on two screens, but the built-in solo demo *does* generate
 and reveal figures (it openly says so). It's a small internal inconsistency a sharp reader could
 catch. **Fix:** add a short "in a real round…" qualifier in both places. Don't over-rewrite —
 the demo already hedges itself heavily.
 
-### RB-08 — There's no "this is just a demo" disclaimer
+### ~~RB-08 — There's no "this is just a demo" disclaimer~~ ✅ DONE
+**✅ DONE 2026-06-13.** Added a short "Demonstration only — please don't enter real or sensitive figures" line to the bottom of all three pages, and a matching note near the top of the README.
 Nothing on the pages plainly says "this is a toy — don't enter real data." Someone seeing the
 insurance example might type in a genuine figure. **Fix:** a short, plain footer line on each
 page plus a README paragraph.
 
-### RB-09 — A solo visitor hits a dead end
+### ~~RB-09 — A solo visitor hits a dead end~~ ✅ DONE
+**✅ DONE 2026-06-13.** Added a visible "Just exploring on your own? … click Demo" prompt right under the main Aggregator button, so a lone visitor immediately sees the way to watch a full round.
 The home page's main button leads to "how many participants will join?" — useless if you're
 alone. The one feature that lets a single person watch a full round (the simulator) is buried at
 the bottom. **Fix:** add a visible "Just exploring? Try the demo" signpost near the top.
 
-### RB-10 — The best parts of the project are hidden below the fold
+### RB-10 — The best parts of the project are hidden below the fold  ⏳ PARTIAL
+**⏳ PARTIAL 2026-06-13.** The README now points to the reviews folder near the top and highlights the "verify it yourself" story. **Still to do:** a screenshot of a finished round at the very top — that needs an actual captured image.
 For a CV piece, the GitHub page is the first thing people see — yet the strongest signals
 (correct maths, the "verify it yourself" feature, the honest docs, and the whole reviews folder)
 are all out of sight. **Fix:** put a screenshot at the top of the README and point clearly to
@@ -122,13 +131,15 @@ The buttons and links don't show a visible "you're here" outline when navigating
 and one input actively removes it. That's an accessibility failure across every control. **Fix:**
 one shared rule that restores a clear focus outline everywhere.
 
-### RB-26 — Deliberate decisions aren't flagged where a future developer would see them
+### ~~RB-26 — Deliberate decisions aren't flagged where a future developer would see them~~ ✅ DONE
+**✅ DONE 2026-06-13.** Added short "this is deliberate — don't "fix" it" comments right next to each of the spots in the code a future developer might otherwise trip over.
 Some choices ("don't cap number size," etc.) are written down in the project docs but **not**
 next to the actual code they affect. The worry: a future developer (or AI agent) fixing
 something nearby might "helpfully" re-add a thing we deliberately left out. **Fix:** a one-line
 comment at each such spot in the code pointing to the reasoning.
 
-### RB-35 — No "share preview" when the demo link is posted
+### RB-35 — No "share preview" when the demo link is posted  ⏳ PARTIAL
+**⏳ PARTIAL 2026-06-13.** Added a short page "description" tag (helps a little). **Still to do:** the full social-preview tags and a preview image — those need an actual preview image and the site's public web address.
 When you paste the link into LinkedIn, X, Slack, or a text message, it shows up as a bare URL —
 no title, no description, no preview image. For something whose whole point is to be *shared*,
 that blank card is the first impression *before* anyone even clicks. **Fix:** add the standard
