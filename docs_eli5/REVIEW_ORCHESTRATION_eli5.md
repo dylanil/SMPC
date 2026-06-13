@@ -53,6 +53,13 @@ You might picture every review running simultaneously. It can't *quite*, because
    **never make a hidden assumption** — anything it has to assume is stated out loud and flagged to
    you. (This same rule applies to me and to every helper agent too, on this and any task.)
 
+   **It challenges your thinking, not just the findings.** The manager is told to push back on your
+   *own* framing and design choices too — pointing out hidden assumptions and offering alternative
+   angles (a different core use case or audience, a sharper pitch, a simpler or bolder design) so
+   you might see the product in a new light. It makes the strongest honest case for the alternative,
+   flags it clearly (especially if it touches a decision you've already made), and leaves the choice
+   to you — the aim is to *illuminate*, never to be contrarian for its own sake.
+
 That's **17 agents in total** (8 + 8 + 1).
 
 ## The rules every agent must follow
@@ -64,10 +71,13 @@ infrastructure), keep user-typed text display-only, and **don't change any actua
 produce findings. It also tells the user-experience agent to **recompute the colour-contrast
 numbers itself**, because that's the one thing the previous round got wrong.
 
-On top of those, two conduct rules bind **every** agent, the manager, and the session driving the
-run: **never make a hidden assumption** (if you must assume something, say so out loud and flag it),
-and **ask before you guess** — if you're less than ~95% sure what's wanted, stop and ask rather than
-press on. Surface disagreements instead of papering over them, and stay within the project's scope.
+On top of those, a few conduct rules bind **every** agent, the manager, and the session driving the
+run: **never make a hidden assumption** (if you must assume something, say so out loud and flag it);
+**ask before you guess** — if you're less than ~95% sure what's wanted, stop and ask rather than
+press on; surface disagreements instead of papering over them; **constructively challenge the
+owner's own thinking and design choices** (offer alternative angles to illuminate, not to be
+contrarian, and only raise an already-settled decision once, as a fresh lens); and stay within the
+project's scope.
 
 ## A couple of practical safeguards
 
