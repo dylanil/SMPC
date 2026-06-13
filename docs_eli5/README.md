@@ -25,6 +25,7 @@ and decisions* without every technical nuance.
 | [PRODUCTION_READINESS_PLAN_eli5.md](PRODUCTION_READINESS_PLAN_eli5.md) — the "are we ready to show it off?" strategy | [`../docs/PRODUCTION_READINESS_PLAN.md`](../docs/PRODUCTION_READINESS_PLAN.md) |
 | [RELEASE_BOARD_eli5.md](RELEASE_BOARD_eli5.md) — the single combined, ranked to-do list | [`../docs/review/RELEASE_BOARD.md`](../docs/review/RELEASE_BOARD.md) |
 | [missing-dimensions_eli5.md](missing-dimensions_eli5.md) — gaps the main reviews didn't cover | [`../docs/review/missing-dimensions.md`](../docs/review/missing-dimensions.md) |
+| [missing-dimensions_meta_eli5.md](missing-dimensions_meta_eli5.md) — second opinion on the above | [`../docs/review/meta/missing-dimensions.md`](../docs/review/meta/missing-dimensions.md) |
 
 ## The seven reviews (each looks at the project from one angle)
 
