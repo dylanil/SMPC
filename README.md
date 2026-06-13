@@ -8,6 +8,13 @@ A small demo of Secure Multi-Party Computation. Between 3 and 10 participants ea
 > or support. Please don't enter real or sensitive data. The "insurance claim severity" wording is
 > only an illustrative example metric.
 
+**Reviewed in the open, and verifiable.** This repo is reviewed adversarially in the open — see
+[`docs/review/`](docs/review/): eight domain reviews, eight independent second opinions, and a
+consolidated [release board](docs/review/RELEASE_BOARD.md). And every result is independently
+checkable: each participant's page recomputes the sum and re-verifies every signature (Step 6), and
+[`verify_round.py`](verify_round.py) replays the entire wire protocol headless as a second
+implementation.
+
 ---
 
 ## Recent updates
