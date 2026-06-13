@@ -37,6 +37,22 @@ You might picture every review running simultaneously. It can't *quite*, because
    alarm), and produces the final balanced to-do list and plan. It then updates the plain-English
    versions and the README's "Known limitations" if anything important changed.
 
+   **Who the manager "is."** The brief tells the manager to act like a rare, top-tier all-rounder —
+   an expert **actuary, software developer, business strategist, and product designer all in one** —
+   so it judges every issue from all four angles, not just the one that raised it. The aim is a
+   plan that's **fair, practical, and genuinely worth doing for a portfolio demo** — not
+   over-engineered beyond what the project needs.
+
+   **It runs a debate, it doesn't just staple findings together.** Where two reviewers disagree or
+   pull in opposite directions (say, tighter security vs. a simpler experience), the manager puts
+   the two views head-to-head, has them argue it out, and settles on the best-justified balance —
+   writing down *why* it landed there.
+
+   **It asks before it guesses (the "95% rule").** If the manager is ever less than ~95% sure what
+   you actually want, it **stops and asks you** until it's sure, instead of guessing. And it will
+   **never make a hidden assumption** — anything it has to assume is stated out loud and flagged to
+   you. (This same rule applies to me and to every helper agent too, on this and any task.)
+
 That's **17 agents in total** (8 + 8 + 1).
 
 ## The rules every agent must follow
@@ -47,6 +63,11 @@ the signatures stop impersonation, keep the app lightweight (no database, accoun
 infrastructure), keep user-typed text display-only, and **don't change any actual code** — just
 produce findings. It also tells the user-experience agent to **recompute the colour-contrast
 numbers itself**, because that's the one thing the previous round got wrong.
+
+On top of those, two conduct rules bind **every** agent, the manager, and the session driving the
+run: **never make a hidden assumption** (if you must assume something, say so out loud and flag it),
+and **ask before you guess** — if you're less than ~95% sure what's wanted, stop and ask rather than
+press on. Surface disagreements instead of papering over them, and stay within the project's scope.
 
 ## A couple of practical safeguards
 
