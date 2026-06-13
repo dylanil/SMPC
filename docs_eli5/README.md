@@ -27,6 +27,12 @@ and decisions* without every technical nuance.
 | [missing-dimensions_eli5.md](missing-dimensions_eli5.md) — gaps the main reviews didn't cover | [`../docs/review/missing-dimensions.md`](../docs/review/missing-dimensions.md) |
 | [missing-dimensions_meta_eli5.md](missing-dimensions_meta_eli5.md) — second opinion on the above | [`../docs/review/meta/missing-dimensions.md`](../docs/review/meta/missing-dimensions.md) |
 
+## Process
+
+| Plain-English file | Original |
+| --- | --- |
+| [REVIEW_ORCHESTRATION_eli5.md](REVIEW_ORCHESTRATION_eli5.md) — how to run all the reviews at once with a team of agents | [`../docs/REVIEW_ORCHESTRATION.md`](../docs/REVIEW_ORCHESTRATION.md) |
+
 ## The seven reviews (each looks at the project from one angle)
 
 | Plain-English file | Original |
