@@ -125,6 +125,16 @@ accepted trade-offs, and four false alarms.**
    the bigger, more subjective visual redesign as its own careful series of small steps.
 4. **Re-deploy** once the must-fixes are in and the safety gate is green, then re-test against
    the live site.
+5. **"Going public" extras — written down on 2026-06-13, not scheduled yet.** These came up when
+   thinking about sharing the demo *widely* with the public (rather than inviting a few people).
+   They're logged on the board (items RB-35 to RB-40) so they can be prioritised together in a
+   future planning round, not grabbed at random:
+   - **RB-35** a proper "share preview" so the link looks good when posted (cheapest win).
+   - **RB-36** a simple uptime alert so you know if the site goes down.
+   - **RB-37** a quick load test to learn how much traffic it can handle.
+   - **RB-38** decide what to do about offensive text in the free-text label (probably accept).
+   - **RB-39** an actual screen-reader/keyboard accessibility check (so far only reasoned, not run).
+   - **RB-40** a one-line privacy/cookie note for public users.
 
 Accepted items get at most a note in the docs; false positives get nothing. Nothing in this
 plan adds a database, accounts, or any of the heavy infrastructure we deliberately skipped.

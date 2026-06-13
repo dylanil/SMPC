@@ -121,7 +121,9 @@ Every remediation change must pass this gate before it's considered done:
 - **False positive / no action.** Findings refuted or corrected on audit; recorded so they
   aren't mistakenly actioned.
 
-The board is the instance of this framework: **P0 ×4, P1 ×7, P2 ×14, Accepted ×10, FP ×4.**
+The board is the instance of this framework: **P0 ×4, P1 ×9, P2 ×27, Accepted ×13, FP ×4.**
+*(Totals include the missing-dimensions pass, RB-26…RB-34 / AC-11…AC-13, and the
+public-deployment dimension scan, RB-35…RB-40 — see step 5 below.)*
 
 ## 8. Proposed order of work
 
@@ -148,6 +150,20 @@ Each step is its own commit (or small commit series) and must clear the §6 gate
    commit, since it's the largest and most subjective bucket.
 4. **Re-deploy** (`fly deploy`) once P0 (and ideally P1) are merged and the gate is green;
    re-run the click-through against production.
+5. **Public-deployment dimension — logged 2026-06-13, not yet scheduled.** Surfaced when
+   scoping "share this more widely with the public" rather than "invite a few people." These
+   are logged on the board (RB-35…RB-40) to be prioritised holistically in the next planning
+   pass, **not** actioned case-by-case:
+   - **RB-35** Open Graph / `description` share-preview metadata + a preview image (the single
+     cheapest reach win; the image doubles as RB-10's screenshot — slot near the P1 surface work).
+   - **RB-36** a lightweight external uptime check on `/healthz` (ops; no app code).
+   - **RB-37** a load/capacity reality-check on the single instance (pairs with the RB-16
+     read-timeout).
+   - **RB-38** decide the stance on unmoderated free-text metric content for a public audience
+     (likely accept; must not regress the textContent-only rendering or add a figure cap).
+   - **RB-39** a real screen-reader / keyboard-only accessibility pass (all prior a11y findings
+     were code-traced, never run — slot after RB-11/RB-13).
+   - **RB-40** a one-line privacy/cookie note (README-targeted; pairs with the RB-08 disclaimer).
 
 Accepted items get at most a documentation note (RB-06, RB-08, RB-23, and the optional
 AC-08 line); false positives get nothing. Nothing in this plan adds a database, an account

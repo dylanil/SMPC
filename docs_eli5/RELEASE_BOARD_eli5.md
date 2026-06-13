@@ -28,8 +28,9 @@ Nothing has been built or fixed yet — this is the plan of record.
 A small issue can be top priority if it's cheap and very visible (like a missing licence). A
 real bug can be low priority if it only happens in a setup this demo never uses.
 
-**The tally:** 4 must-fix · 8 should-fix · 22 nice-to-have · 13 accepted trade-offs · 4 false
-alarms.
+**The tally:** 4 must-fix · 9 should-fix · 27 nice-to-have · 13 accepted trade-offs · 4 false
+alarms. *(Includes a later "public-deployment" scan on 2026-06-13 — RB-35 to RB-40 — logged for
+the next planning round, not yet scheduled.)*
 
 ---
 
@@ -109,6 +110,13 @@ Some choices ("don't cap number size," etc.) are written down in the project doc
 next to the actual code they affect. The worry: a future developer (or AI agent) fixing
 something nearby might "helpfully" re-add a thing we deliberately left out. **Fix:** a one-line
 comment at each such spot in the code pointing to the reasoning.
+
+### RB-35 — No "share preview" when the demo link is posted
+When you paste the link into LinkedIn, X, Slack, or a text message, it shows up as a bare URL —
+no title, no description, no preview image. For something whose whole point is to be *shared*,
+that blank card is the first impression *before* anyone even clicks. **Fix:** add the standard
+"social preview" tags and one preview image (a screenshot of a finished round, which also doubles
+as the README screenshot from RB-10). Cheapest reach win for going public.
 
 ---
 
@@ -224,6 +232,36 @@ Build out a proper little test file covering: different group sizes, the "first 
 rejected expired/replayed security puzzles, rejected tampered tokens, and the reference example
 from RB-33. The worst bugs and the most important design claim all live in currently-untested
 areas. **Fix:** one self-contained test file, added to the safety gate.
+
+### RB-36 — Nobody gets told if the site goes down
+There's one always-on machine with a health-check address, but nothing actually watches it. If it
+falls over (a redeploy, a flood, a traffic spike), you'd only find out when someone hits a dead
+link. **Fix:** a free external "uptime monitor" that pings the health address and emails you. No
+app code — and deliberately kept lightweight, not a big monitoring platform.
+
+### RB-37 — We don't know how much traffic it can take
+No one has measured how many people can use it at once before the single machine struggles. A
+link that suddenly gets popular, or a bot, could overwhelm it. **Fix:** a quick load test to find
+the realistic ceiling and decide whether the simple timeout fix (RB-16) is enough.
+
+### RB-38 — The free-text label is unmoderated and shown to others
+The label the aggregator types appears on everyone's screen. It can't be used to inject malicious
+code (that's already prevented), but on a *public* site someone could type something offensive
+that others see — a decency/reputation issue, not a security one. **Note:** this is *not* about
+limiting numbers, and any fix must keep the safe text-only display. **Fix:** decide explicitly —
+probably accept it (it's a short, throwaway demo), or add a light bad-word filter.
+
+### RB-39 — Accessibility was reasoned about, never actually tested with a screen reader
+All the accessibility findings so far came from *reading the code*, not from running a real
+screen reader or navigating by keyboard. **Fix:** a 20-minute hands-on pass with a screen reader
+and keyboard-only, once the accessibility fixes (RB-11/RB-13) are in, to confirm they actually
+work and catch anything reading-the-code can't.
+
+### RB-40 — No privacy/cookie note for public users
+Once real members of the public use it, the site briefly handles their internet addresses (for
+rate-limiting) and sets one functional cookie. The footprint is tiny, but there's no short
+"here's what we do and don't store" note. **Fix:** a one-line privacy note in the README and/or
+page footer; pairs with the "this is a demo" disclaimer (RB-08).
 
 ---
 
