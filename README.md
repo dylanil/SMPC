@@ -214,3 +214,7 @@ This is an educational demo, not production-grade:
 - **No party-identity authentication beyond the token.** A legitimate holder of an invite token is still trusted to honestly submit *their own* figure — the protocol doesn't prevent a participant from entering whatever number they like as `x_i`.
 - **Fixed-point arithmetic** (×10⁶) is used so decimals work with BigInt on the client. Pick a scale that fits your expected range.
 - **Collusion.** As with any pairwise-masking scheme, two colluding participants (or a participant colluding with the aggregator) can reconstruct the third participant's input — this is inherent to 3-party additive secret sharing.
+
+## License
+
+This project is licensed under the MIT License — see [`LICENSE`](LICENSE).
