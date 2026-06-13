@@ -6,18 +6,18 @@ no-account demo. This document is the strategy wrapper; the per-finding triage l
 [`docs/review/RELEASE_BOARD.md`](review/RELEASE_BOARD.md), which is the single source of
 truth for what to fix and in what order.
 
-**Status: planning only — no application code has been changed.** Remediation is a separate,
-approved step that follows this plan.
+**Status: remediation started (2026-06-13).** The §8.1 P0 batch — **RB-01, RB-02, RB-03, RB-04** —
+plus **RB-05** and **RB-11** have been implemented and pushed (marked ✅ DONE on the board). The
+remaining items are still pending and follow this plan.
 
 **Re-validated 2026-06-13.** A second multi-agent pass (8 isolated domain reviews + 8 isolated meta
 audits, archived under [`review/run-2026-06-13/`](review/run-2026-06-13/)) re-confirmed this plan and
-the board with **0 refutations and no re-prioritisation**. It also surfaced the operative fact:
-**no application code has been committed since the campaign began** — the §8 order of work is
-unchanged and still entirely pending. Manager recommendation (see
+the board with **0 refutations and no re-prioritisation**. At that point no application code had been
+committed since the campaign began. Manager recommendation (see
 [`review/run-2026-06-13/debate.md`](review/run-2026-06-13/debate.md)): execute the §8.1 P0 batch
 *before* surfacing the `docs/review/` apparatus as a portfolio feature — "found **and fixed**" is a
-far stronger signal than "found," and shipping the rigour story while the headline-breaking RB-01
-DoS is still live invites the skeptic to hit the unfixed bug.
+far stronger signal than "found." **That batch has now been done** (the six items above); the review
+apparatus can be surfaced next on solid ground.
 
 ---
 
@@ -140,7 +140,7 @@ public-deployment dimension scan, RB-35…RB-40 — see step 5 below.)*
 Each step is its own commit (or small commit series) and must clear the §6 gate. Re-run
 `verify_round.py` after every server-side change.
 
-1. **P0 batch — correctness & blockers.**
+1. **P0 batch — correctness & blockers. ✅ DONE 2026-06-13** (RB-01 `f753341`, RB-02/RB-03 `6a5cd6c`, RB-04 `0b4c176`, RB-05 `0f11cfa`).
    1. **RB-01** harden share validation (ASCII-only at `/api/share` write time + guard the
       result-time sum) — *and ship the RB-19 error-path test in the same change*, since it's
       the regression guard for exactly this bug.
@@ -150,7 +150,7 @@ Each step is its own commit (or small commit series) and must clear the §6 gate
       one-line-per-file change and trivially low-risk.
 2. **P1 batch — credibility & surface.** RB-08 disclaimer + RB-07 claim hedge (do them
    together so UI and README agree); RB-06 README threat-model section; RB-09 solo-demo
-   signpost; RB-11 `:focus-visible`; then RB-10 (README screenshot/GIF + surface the
+   signpost; ~~RB-11 `:focus-visible`~~ ✅ DONE (`0f11cfa`); then RB-10 (README screenshot/GIF + surface the
    `docs/review/` folder) once the above are in so the captured screenshots show the
    improved UI.
 3. **P2 batch — polish, hardening, visual craft.** Quick wins first (RB-16 read timeout,

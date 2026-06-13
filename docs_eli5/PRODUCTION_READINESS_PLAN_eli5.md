@@ -22,11 +22,15 @@ to-do list and the reasoning behind it. The actual fixing is a separate, approve
 
 **Re-checked on 2026-06-13.** We ran the whole review process a second time — many independent
 reviewers, each working alone, plus a second opinion on each. The verdict: the plan still holds,
-nothing was overturned, and the to-do list and its order didn't change. The re-check also made one
-thing plain: **the code still hasn't been touched** — everything here is still waiting to be done.
-The clear recommendation is to actually do the cheap, important fixes first, *then* point to all
-these reviews as a selling point — "we found problems **and fixed them**" is far more impressive than
-"we found problems." (The new run is saved under `docs/review/run-2026-06-13/`.)
+nothing was overturned, and the to-do list and its order didn't change. (The new run is saved under
+`docs/review/run-2026-06-13/`.)
+
+**Then we started fixing — 2026-06-13.** Acting on the recommendation to do the cheap, important
+fixes first, the whole "must-fix" batch plus two quick wins are now **DONE**: the weird-character
+crash, the forever-frozen waiting screen, the ugly error pop-ups, the missing licence, the phone
+layout, and the keyboard-focus outline (items RB-01, RB-02, RB-03, RB-04, RB-05, RB-11). They're
+struck through and marked ✅ on the release board. Now the reviews can be shown off as "we found
+problems **and fixed them**," which is far more impressive than just "we found problems."
 
 ## How the thing is built (the 30-second version)
 
@@ -122,13 +126,13 @@ accepted trade-offs, and four false alarms.**
 
 ## The order we'll do it in
 
-1. **First batch — correctness and blockers.** Stop the bad-entry crash, stop the
-   forever-frozen screen, replace the ugly error pop-ups with friendly inline messages, add
-   the licence, and add the one-line mobile fix.
+1. **First batch — correctness and blockers. ✅ DONE (2026-06-13).** Stopped the bad-entry crash,
+   stopped the forever-frozen screen, replaced the ugly error pop-ups with friendly inline messages,
+   added the licence, and added the one-line mobile fix.
 2. **Second batch — credibility and first impressions.** Add the "this is a demo" note and
    tidy the over-strong wording, add a plain "what this is / isn't" section to the README, add
-   a signpost so solo visitors can see it work, fix keyboard-focus visibility, and then add a
-   screenshot to the README (last, so the screenshot shows the improved version).
+   a signpost so solo visitors can see it work, ~~fix keyboard-focus visibility~~ ✅ DONE, and then
+   add a screenshot to the README (last, so the screenshot shows the improved version).
 3. **Third batch — polish, hardening, and the visual-design overhaul.** Quick wins first, then
    the bigger, more subjective visual redesign as its own careful series of small steps.
 4. **Re-deploy** once the must-fixes are in and the safety gate is green, then re-test against

@@ -13,16 +13,18 @@ This board is the **single combined to-do list** — every issue, deduplicated, 
 a plain note on what to do about it. Where a second reviewer corrected the first, the corrected
 version is what's recorded here.
 
-Nothing has been built or fixed yet — this is the plan of record.
+**Update — 2026-06-13: the first fixes are now DONE.** All four must-fix (P0) items plus two
+quick should-fix items have been built and shipped: ✅ **RB-01, RB-02, RB-03, RB-04, RB-05, RB-11**.
+They're struck through and marked ✅ DONE below. Everything else is still on the to-do list.
 
-**Checked again on 2026-06-13.** We re-ran the whole thing — eight reviews and eight second
-opinions, each working alone — to see if the list still held up. It did: **nothing was overturned,
-no priorities changed, nothing new was added to the ranking.** The double-check also confirmed the
-uncomfortable truth that **none of the code has actually been fixed yet** — these are still all
-to-do. A few small fix *details* got sharper (e.g. RB-01: more kinds of odd characters cause the
-problem than first listed, and it can also break the solo-demo screen; RB-26: flag ~4 spots in the
-code, not just one). The full new run lives in `docs/review/run-2026-06-13/`. Recommended order:
-**fix the cheap, important bugs first, then show off the reviews** — "found and fixed" beats "found."
+**Checked again on 2026-06-13 (before the fixes).** We first re-ran the whole thing — eight reviews
+and eight second opinions, each working alone — to see if the list still held up. It did: **nothing
+was overturned, no priorities changed, nothing new was added to the ranking.** A few small fix
+*details* got sharper (e.g. RB-01: more kinds of odd characters cause the problem than first listed,
+and it can also break the solo-demo screen; RB-26: flag ~4 spots in the code, not just one). The full
+run lives in `docs/review/run-2026-06-13/`. We then acted on the recommended order — **fix the cheap,
+important bugs first, then show off the reviews** ("found and fixed" beats "found") — which is the
+batch now marked DONE above.
 
 **Four ground rules** the whole list respects (the owner's fixed decisions):
 - **No limits on how big a number someone can enter.** (Why: the demo should work for any
@@ -43,9 +45,10 @@ the next planning round, not yet scheduled.)*
 
 ---
 
-## P0 — must fix before showing this to anyone
+## P0 — must fix before showing this to anyone  ✅ ALL DONE (2026-06-13)
 
-### RB-01 — A weird-character number can crash or quietly break a round
+### ~~RB-01 — A weird-character number can crash or quietly break a round~~ ✅ DONE
+**✅ DONE 2026-06-13.** The app now only accepts plain digits and rejects odd characters the moment they're submitted, with a safety net so the totalling step can never crash.
 One participant can type a number using non-standard digit characters (like superscript "²" or
 Arabic-Indic numerals) that **look** valid but aren't normal digits. Two bad outcomes: in one
 case the round **crashes** every time anyone refreshes, and stays dead for 30 minutes; in the
@@ -54,19 +57,22 @@ destroys the demo's whole "verify it yourself" promise. **Fix:** only accept pla
 reject the bad value the moment it's submitted (plus a safety net so the totalling step can
 never crash).
 
-### RB-02 — A participant's screen waits forever, with no "something went wrong"
+### ~~RB-02 — A participant's screen waits forever, with no "something went wrong"~~ ✅ DONE
+**✅ DONE 2026-06-13.** The participant page now detects when the session is gone and shows live progress ("3 of 5 in — waiting on B and D") instead of a frozen "waiting…".
 The most common real-world hiccup — someone doesn't show up, or the session expires — currently
 shows a falsely reassuring "Waiting for all shares…" message **forever**. Three separate
 reviewers called this the single biggest credibility-killer. **Fix:** detect that the session is
 gone and show live progress like "3 of 5 in — waiting on B and D."
 
-### RB-03 — Errors show up as an ugly raw pop-up full of code
+### ~~RB-03 — Errors show up as an ugly raw pop-up full of code~~ ✅ DONE
+**✅ DONE 2026-06-13.** Predictable errors after joining now show as friendly inline messages, not an ugly native pop-up full of technical gibberish.
 When a predictable error happens after joining, the polished step-by-step screen collapses into
 an ugly native browser pop-up showing raw technical gibberish — at exactly the moments the
 design was built to handle gracefully. **Fix:** show friendly inline messages instead, reusing
 the nice error handling that one part of the page already has.
 
-### RB-04 — There's no licence file
+### ~~RB-04 — There's no licence file~~ ✅ DONE
+**✅ DONE 2026-06-13.** Added a standard MIT licence file at the repo root and a one-line License note in the README, so others may legally reuse and build on the code.
 With no licence, the law's default is "all rights reserved" — meaning nobody is actually allowed
 to reuse or build on the code, which is the opposite of what a public portfolio wants. It's the
 cheapest possible fix with a big payoff. **Fix:** add a standard MIT licence file (the exact
@@ -76,7 +82,8 @@ text is already drafted).
 
 ## P1 — should fix before sharing widely
 
-### RB-05 — The pages don't render properly on phones
+### ~~RB-05 — The pages don't render properly on phones~~ ✅ DONE
+**✅ DONE 2026-06-13.** Added the one missing line to all three pages so phones now render the proper mobile layout instead of a shrunk-down desktop.
 A single missing line means phones show the desktop layout shrunk down and zoomed out, so all
 the mobile-friendly design that already exists never actually kicks in. For a demo people open
 from a phone link, this is the biggest mobile problem — and it's a one-line-per-page fix.
@@ -109,7 +116,8 @@ For a CV piece, the GitHub page is the first thing people see — yet the strong
 are all out of sight. **Fix:** put a screenshot at the top of the README and point clearly to
 the reviews folder and the verify-it-yourself story.
 
-### RB-11 — Keyboard users can't see what they've selected
+### ~~RB-11 — Keyboard users can't see what they've selected~~ ✅ DONE
+**✅ DONE 2026-06-13.** Added a shared rule that shows a clear focus outline on every control when navigating by keyboard (mouse clicks stay outline-free).
 The buttons and links don't show a visible "you're here" outline when navigating by keyboard,
 and one input actively removes it. That's an accessibility failure across every control. **Fix:**
 one shared rule that restores a clear focus outline everywhere.
