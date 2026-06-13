@@ -161,6 +161,11 @@ RATE_LIMITS = {
     "/api/reset":         (30, 60),  # 30/min — caps reset spam
     "/api/pow-challenge": (60, 60),  # 60/min — generous, each session/join needs one
 }
+# Read endpoints (/api/state, /api/result, /api/pubkeys, /healthz) are deliberately NOT
+# rate-limited: they're polled sub-second by the pages and do no expensive per-request work.
+# A future agent may be tempted to add a cap "for safety" — but the trade-off (session-code
+# enumeration leaks round metadata, never raw figures) is accepted and tracked as RB-32/AC,
+# not an oversight. See CLAUDE.md *Rate limiting*.
 
 # Proof-of-work tuning. Each session/join request must include a successfully
 # mined challenge + nonce. Difficulty 14 ≈ 16K SHA-256 hashes ≈ 30–80ms on a
@@ -797,6 +802,10 @@ class Handler(http.server.BaseHTTPRequestHandler):
                     return self._reject()
                 parties = list(sess["parties"])
                 submitted = sorted(sess["shares"].keys())
+                # Readiness is keyed on share COUNT, not pubkey-completeness. This is a
+                # deliberate decision (AC-11): a party that can submit a wrong share can
+                # already steer the result, so enforcing pubkey-before-share buys nothing
+                # cryptographically. Do not "fix" it into a fail-closed gate without cause.
                 if len(submitted) < len(parties):
                     payload = {
                         "ready": False,
