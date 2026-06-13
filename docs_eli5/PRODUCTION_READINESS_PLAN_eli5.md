@@ -20,6 +20,14 @@ doesn't need enterprise plumbing (no logins, no database, no big infrastructure)
 Important: at the time this plan was written, **nothing had been fixed yet.** This is the
 to-do list and the reasoning behind it. The actual fixing is a separate, approved step.
 
+**Re-checked on 2026-06-13.** We ran the whole review process a second time — many independent
+reviewers, each working alone, plus a second opinion on each. The verdict: the plan still holds,
+nothing was overturned, and the to-do list and its order didn't change. The re-check also made one
+thing plain: **the code still hasn't been touched** — everything here is still waiting to be done.
+The clear recommendation is to actually do the cheap, important fixes first, *then* point to all
+these reviews as a selling point — "we found problems **and fixed them**" is far more impressive than
+"we found problems." (The new run is saved under `docs/review/run-2026-06-13/`.)
+
 ## How the thing is built (the 30-second version)
 
 - **One small Python program** runs the whole back end. It's deliberately simple — one file,

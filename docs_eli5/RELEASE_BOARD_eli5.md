@@ -15,6 +15,15 @@ version is what's recorded here.
 
 Nothing has been built or fixed yet — this is the plan of record.
 
+**Checked again on 2026-06-13.** We re-ran the whole thing — eight reviews and eight second
+opinions, each working alone — to see if the list still held up. It did: **nothing was overturned,
+no priorities changed, nothing new was added to the ranking.** The double-check also confirmed the
+uncomfortable truth that **none of the code has actually been fixed yet** — these are still all
+to-do. A few small fix *details* got sharper (e.g. RB-01: more kinds of odd characters cause the
+problem than first listed, and it can also break the solo-demo screen; RB-26: flag ~4 spots in the
+code, not just one). The full new run lives in `docs/review/run-2026-06-13/`. Recommended order:
+**fix the cheap, important bugs first, then show off the reviews** — "found and fixed" beats "found."
+
 **Four ground rules** the whole list respects (the owner's fixed decisions):
 - **No limits on how big a number someone can enter.** (Why: the demo should work for any
   scale, from pennies to millions.)

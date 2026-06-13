@@ -9,6 +9,16 @@ truth for what to fix and in what order.
 **Status: planning only — no application code has been changed.** Remediation is a separate,
 approved step that follows this plan.
 
+**Re-validated 2026-06-13.** A second multi-agent pass (8 isolated domain reviews + 8 isolated meta
+audits, archived under [`review/run-2026-06-13/`](review/run-2026-06-13/)) re-confirmed this plan and
+the board with **0 refutations and no re-prioritisation**. It also surfaced the operative fact:
+**no application code has been committed since the campaign began** — the §8 order of work is
+unchanged and still entirely pending. Manager recommendation (see
+[`review/run-2026-06-13/debate.md`](review/run-2026-06-13/debate.md)): execute the §8.1 P0 batch
+*before* surfacing the `docs/review/` apparatus as a portfolio feature — "found **and fixed**" is a
+far stronger signal than "found," and shipping the rigour story while the headline-breaking RB-01
+DoS is still live invites the skeptic to hit the unfixed bug.
+
 ---
 
 ## 1. Current architecture summary
