@@ -49,8 +49,10 @@ rounds are finished.
    down *why*.
 4. **The balanced action plan.** The manager takes the settled results and produces the final
    prioritised to-do list and plan — must-fix / should-fix / nice-to-have / accepted / false alarm —
-   plus a short section of **challenges to your own thinking**. It then updates the plain-English
-   versions and the README's "Known limitations" if anything important changed.
+   plus a short section of **challenges to your own thinking**. **Before it changes any of the main
+   documents, it shows you the proposed plan and waits for your go-ahead** — only then does it
+   update the to-do list, the plan, the plain-English versions, and the README's "Known
+   limitations."
 
 **How the "debate" actually works:** the helper agents can't talk to each other directly — they do
 their bit and finish. So the manager acts as a go-between: it carries the checker's criticism back
@@ -87,6 +89,16 @@ already-settled decision only once, as a fresh lens); and stay within the projec
 
 ## How to start it
 
-In a fresh session, say something like *"read `docs/REVIEW_ORCHESTRATION.md` and execute it,"*
-confirm the run-mode choice and today's date for the run folder, and let the manager take it from
-there.
+In a fresh session, say something like *"read `docs/REVIEW_ORCHESTRATION.md` and execute it."* The
+original brief now opens with a **kickoff checklist** so a cold session knows exactly what to do.
+In plain terms, it will:
+
+1. **Ask you three quick things first** (it won't guess): refresh-and-reconcile vs. a fresh
+   independent set; today's date for the run folder; and whether the final plan should update the
+   main documents or sit in the run folder until you approve.
+2. **Bring in the manager** to run the four phases.
+3. **Pause and show you the plan** before changing any of the main documents — nothing canonical
+   gets rewritten until you say yes.
+4. **Commit and push** once you've approved.
+
+So you can kick it off with one sentence and it'll walk you through the rest.
