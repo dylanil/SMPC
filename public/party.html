@@ -73,7 +73,7 @@
   .log .ok { color:var(--ok); }
   .log .warn { color:var(--muted); }
   .log .bad { color:var(--danger); }
-  .mono { font-family:Consolas,monospace; font-size:12.5px; word-break:break-all; }
+  .mono { font-family:Consolas,monospace; font-size:12.5px; overflow-wrap:anywhere; }
   .secret { color:var(--danger); }
   .masked { color:var(--ok); }
   .kv { display:grid; grid-template-columns:max-content 1fr; gap:8px 14px; font-size:13px; }
@@ -116,7 +116,7 @@
     <div class="metric-note" id="metricNote" hidden></div>
     <div class="field-row">
       <label>Private figure <span class="pill">stays local</span></label>
-      <input type="number" id="numInput" step="any" placeholder="e.g. 42">
+      <input type="number" id="numInput" step="any" inputmode="decimal" placeholder="e.g. 42">
     </div>
     <button class="go" id="startBtn">Start Protocol</button>
     <div class="err" id="inputErr"></div>
@@ -162,6 +162,17 @@
     generateECDHKeypair, exportEcdhPubB64, derivePairwiseMask,
     generateSigningKeypair, exportVkB64, signMessage, verifyMessage,
   } = window.SMPCCore;
+
+  // RB-28: the protocol needs WebCrypto (crypto.subtle), which only exists in a
+  // secure context — HTTPS or http://localhost. A plain-HTTP LAN URL like
+  // http://192.168.x.x:8765 is NOT a secure context, so the first generateKey()
+  // would otherwise throw an unexplained error mid-flow. Detect it up front and
+  // fail with a clear, actionable message instead.
+  if (!window.isSecureContext || !(window.crypto && window.crypto.subtle) || typeof BigInt === 'undefined') {
+    const btn = document.getElementById('startBtn');
+    if (btn) btn.disabled = true;
+    showInputErr('This page needs a secure context for in-browser cryptography (WebCrypto). Open the HTTPS link, or use http://localhost — a plain http://<LAN-IP> address is not a secure context, so the protocol can\'t run here.');
+  }
 
   const MAX_PARTIES = 'ABCDEFGHIJ'.split('');
 
@@ -243,11 +254,14 @@
   function showMetric(metric) {
     ROUND_METRIC = metric || '';
     const note = document.getElementById('metricNote');
+    const numInput = document.getElementById('numInput');
     if (ROUND_METRIC) {
       note.textContent = `This round benchmarks: ${ROUND_METRIC}`;
       note.hidden = false;
+      numInput.placeholder = `e.g. 42 — ${ROUND_METRIC}`;  // RB-15: surface the metric on the figure input itself
     } else {
       note.hidden = true;
+      numInput.placeholder = 'e.g. 42';
     }
   }
   let metricFetchedFor = '';
@@ -353,6 +367,9 @@
     document.getElementById('startBtn').disabled = true;
     document.getElementById('numInput').disabled = true;
     document.getElementById('inviteInput').disabled = true;
+    // RB-24/RB-27: once joined, this slot is locked to this key for the round.
+    // Reloading re-keys and gets a 409 — recovery is a fresh invite, not a reload.
+    logLine('joinLog', 'Inputs locked for this round — to start over, ask the aggregator for a fresh invite (reloading won\'t recover this slot).', 'warn');
 
     // === Step 3: ECDH key exchange + local mask derivation ===
     document.getElementById('exchangeCard').classList.remove('muted');
@@ -498,7 +515,7 @@
                 <div class="k" id="avgRowLabel">Average:</div><div class="mono ${allSigsOk && sumOk ? 'masked' : 'secret'}">${avgStr}</div>
               </div>
               <div style="margin-top:10px; font-size:12px; color:var(--muted); font-style:italic;">
-                Each share is signed by its party's sk; the server stores both the sig and the vk that arrived at /api/join. ECDSA verification here uses the vk the server returned — so a tampered share, or a vk substitution, would surface as ✗ INVALID. Without all ${PARTIES.length} sigs valid, you should not trust the average.
+                Each share is signed by its party's sk; the server stores both the sig and the vk that arrived at /api/join. ECDSA verification here uses the vk the server returned — so a share signed by a key other than the one registered at join surfaces as ✗ INVALID. (It does <em>not</em> detect an interceptor who registered their own key at join in the first place — see the impersonation limitation in the README.) Without all ${PARTIES.length} sigs valid, you should not trust the average.
               </div>
             `;
             // Metric is aggregator-typed text: inject via textContent, never

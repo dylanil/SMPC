@@ -568,6 +568,17 @@
 
   document.getElementById('demoBtn').addEventListener('click', runDemo);
 
+  // RB-28: the in-tab demo needs WebCrypto (secure context — HTTPS or localhost).
+  // Creating a session and watching a real round don't, so only the demo is
+  // gated here, with a clear reason, on a non-secure origin (e.g. plain-HTTP LAN).
+  if (!window.isSecureContext || !(window.crypto && window.crypto.subtle)) {
+    const db = document.getElementById('demoBtn');
+    if (db) {
+      db.disabled = true;
+      db.title = 'The demo needs a secure context (HTTPS or http://localhost) for in-browser cryptography';
+    }
+  }
+
   document.getElementById('createBtn').addEventListener('click', async () => {
     const n = parseInt(document.getElementById('nInput').value, 10);
     if (!Number.isInteger(n) || n < 3 || n > 10) {
