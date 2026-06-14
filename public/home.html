@@ -69,17 +69,19 @@
   .solo-cta { margin-top:12px; padding:10px 14px; background:var(--panel-2);
     border:1px solid var(--border); border-radius:8px; font-size:13.5px; }
   .solo-cta a { color:var(--agg); }
-  /* Home-only "How honest is this demo?" disclosure — not part of the shared :root token contract. */
-  details.honesty { background:var(--panel); border:1px solid var(--border);
-    border-radius:10px; padding:0 20px; margin-bottom:24px; }
-  details.honesty summary { cursor:pointer; padding:18px 0; font-size:14px;
-    letter-spacing:.05em; text-transform:uppercase; color:var(--muted);
-    font-weight:600; list-style:none; }
-  details.honesty summary::-webkit-details-marker { display:none; }
-  details.honesty summary::before { content:"\25B8\00a0"; color:var(--agg); }
-  details.honesty[open] summary::before { content:"\25BE\00a0"; }
-  details.honesty p { margin:0 0 16px; font-size:14.5px; line-height:1.65; color:var(--muted); }
-  details.honesty a { color:var(--agg); }
+  /* Shared honesty callout — keep this rule block AND its copy in sync across
+     home/party/aggregator (no shared stylesheet/build; see CLAUDE.md Styling). */
+  .honesty { background:var(--panel); border:1px solid var(--border);
+    border-radius:10px; padding:18px 20px; margin-bottom:24px; }
+  .honesty-title { margin:0 0 12px; font-size:15px; }
+  .honesty-cols { display:flex; gap:24px; flex-wrap:wrap; }
+  .honesty-cols > div { flex:1; min-width:240px; }
+  .honesty-h { font-size:12px; text-transform:uppercase; letter-spacing:.06em;
+    color:var(--muted); font-weight:600; margin-bottom:6px; }
+  .honesty ul { margin:0; padding-left:18px; }
+  .honesty li { font-size:13.5px; line-height:1.6; color:var(--muted); margin:4px 0; }
+  .honesty p { font-size:13.5px; line-height:1.6; color:var(--muted); margin:10px 0 0; }
+  .honesty a { color:var(--agg); }
 </style>
 </head>
 <body>
@@ -101,11 +103,28 @@
     <p>3. The aggregator sums all <code>N</code> masked shares. Every mask appears once with <code>+</code> and once with <code>−</code>, so the masks cancel and the sum reveals <code>Σ x_i</code>, from which the average follows.</p>
   </div>
 
-  <details class="honesty">
-    <summary>How honest is this demo?</summary>
-    <p>This is an educational proof-of-concept, not an audited or production service — it shows how the cryptographic <em>plumbing</em> of secure multi-party computation works. The maths is real: raw figures never leave your browser, and every result is independently verifiable on each page.</p>
-    <p>It also has deliberate, documented limits — it assumes everyone is honest about their own figure, needs all participants online at once, and doesn't defend against an impostor who registers before the real participant. The full threat model, the accepted trade-offs, and the open security review are on GitHub: <a href="https://github.com/dylanil/SMPC#readme" target="_blank" rel="noopener">README</a>, <a href="https://github.com/dylanil/SMPC/blob/main/SECURITY.md" target="_blank" rel="noopener">SECURITY</a>, and the <a href="https://github.com/dylanil/SMPC/tree/main/docs/review" target="_blank" rel="noopener">review board</a>.</p>
-  </details>
+  <section class="honesty">
+    <h2 class="honesty-title">What this demonstrates — and what it deliberately doesn't</h2>
+    <div class="honesty-cols">
+      <div>
+        <div class="honesty-h">What it demonstrates</div>
+        <ul>
+          <li>Real cryptography — ECDH + HKDF pairwise masks and ECDSA-signed shares; your raw figure never leaves your browser.</li>
+          <li>Independently verifiable — every participant recomputes and re-checks the result, so nothing is taken on trust.</li>
+          <li>Reviewed in the open — full threat model, accepted trade-offs, and a security review board on GitHub.</li>
+        </ul>
+      </div>
+      <div>
+        <div class="honesty-h">What it deliberately doesn't</div>
+        <ul>
+          <li>It assumes each participant is honest about their own figure — there are no range proofs (out of scope for a demo).</li>
+          <li>It needs all participants online together for one synchronous round.</li>
+          <li>It has no long-term identity anchor, so it can't stop an impostor who registers before the real participant.</li>
+        </ul>
+      </div>
+    </div>
+    <p>An educational proof-of-concept — the cryptographic plumbing, faithfully built and openly documented. <a href="https://github.com/dylanil/SMPC#readme" target="_blank" rel="noopener">README</a> · <a href="https://github.com/dylanil/SMPC/blob/main/SECURITY.md" target="_blank" rel="noopener">SECURITY</a> · <a href="https://github.com/dylanil/SMPC/tree/main/docs/review" target="_blank" rel="noopener">review board</a></p>
+  </section>
 
   <a class="card" href="/aggregator" target="_blank">
     <div class="role">Coordinator</div>
@@ -123,7 +142,7 @@
     Here alone? The aggregator page can simulate all the participants in one tab, so you can watch a complete round — real protocol traffic included — without rounding up friends.
   </div>
 
-  <p style="font-size:12px; color:var(--muted); margin-top:18px;">Educational demonstration only — not a production or commercial service, provided as-is with no warranty. Please don't enter real or sensitive figures.</p>
+  <p style="font-size:12px; color:var(--muted); margin-top:18px;">Educational demonstration only — a proof-of-concept, not a production, commercial, or professional service. Provided as is, with no warranty and no guarantee of correctness, security, or availability; do not rely on it for any real, confidential, regulated, or production purpose, and do not enter real or sensitive figures.</p>
 </div>
 </body>
 </html>

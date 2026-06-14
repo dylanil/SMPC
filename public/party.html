@@ -103,6 +103,19 @@
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { transition: none !important; animation: none !important; }
   }
+  /* Shared honesty callout — keep this rule block AND its copy in sync across
+     home/party/aggregator (no shared stylesheet/build; see CLAUDE.md Styling). */
+  .honesty { background:var(--panel); border:1px solid var(--border);
+    border-radius:10px; padding:18px 20px; margin-bottom:24px; }
+  .honesty-title { margin:0 0 12px; font-size:15px; }
+  .honesty-cols { display:flex; gap:24px; flex-wrap:wrap; }
+  .honesty-cols > div { flex:1; min-width:240px; }
+  .honesty-h { font-size:12px; text-transform:uppercase; letter-spacing:.06em;
+    color:var(--muted); font-weight:600; margin-bottom:6px; }
+  .honesty ul { margin:0; padding-left:18px; }
+  .honesty li { font-size:13.5px; line-height:1.6; color:var(--muted); margin:4px 0; }
+  .honesty p { font-size:13.5px; line-height:1.6; color:var(--muted); margin:10px 0 0; }
+  .honesty a { color:var(--agg); }
 </style>
 </head>
 <body>
@@ -155,7 +168,12 @@
     <div id="verifyBody"></div>
   </div>
 
-  <p style="font-size:12px; color:var(--muted); margin-top:18px;">Educational demonstration only — not a production or commercial service, provided as-is with no warranty. Please don't enter real or sensitive figures.</p>
+  <section class="honesty">
+    <div class="honesty-h">About this demo</div>
+    <p>An educational proof-of-concept, not an audited or production service — it shows how the cryptographic plumbing of secure multi-party computation works. The maths is real (your raw figure never leaves your browser; every result is independently verifiable), but it has deliberate, documented limits: it assumes everyone is honest about their own figure, needs all participants online at once, and can't stop an impostor who registers before the real participant. Full threat model and open review on GitHub: <a href="https://github.com/dylanil/SMPC#readme" target="_blank" rel="noopener">README</a> · <a href="https://github.com/dylanil/SMPC/blob/main/SECURITY.md" target="_blank" rel="noopener">SECURITY</a> · <a href="https://github.com/dylanil/SMPC/tree/main/docs/review" target="_blank" rel="noopener">review board</a>.</p>
+  </section>
+
+  <p style="font-size:12px; color:var(--muted); margin-top:18px;">Educational demonstration only — a proof-of-concept, not a production, commercial, or professional service. Provided as is, with no warranty and no guarantee of correctness, security, or availability; do not rely on it for any real, confidential, regulated, or production purpose, and do not enter real or sensitive figures.</p>
   <a href="/">← back to home</a>
 </div>
 
