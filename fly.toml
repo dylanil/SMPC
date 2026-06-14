@@ -12,8 +12,13 @@ primary_region = "lhr"
   force_https = true
   # Single-instance pin: protocol state lives in process memory, so
   # scale-to-zero or multiple machines will break in-flight rounds.
+  # Floor AND ceiling are pinned to 1 so an accidental `fly scale count >1`
+  # (or a rolling-deploy overlap) can't split a session across machines with
+  # disjoint state. Trade-off: a rolling deploy briefly stops the old machine
+  # before the new one serves (a few seconds of downtime) - fine for this demo.
   auto_stop_machines = false
   min_machines_running = 1
+  max_machines_running = 1
 
   [[http_service.checks]]
     grace_period = "5s"
