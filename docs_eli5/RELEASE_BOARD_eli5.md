@@ -215,6 +215,12 @@ Optionally show a soft, **non-blocking** hint if a typed figure looks out of the
 **Important:** this is *not* a cap — it must never reject the value (that's a fixed owner
 decision). A hint at most.
 
+**Reframe (2026-06-13):** there isn't really an "expected range" — the demo is built on purpose to
+work at any scale (pennies to millions) — so **don't build a made-up range warning**; it would
+contradict the app's own design. If anything is built, only warn when a number is so huge (~9 billion
+or more) that it starts to lose decimal precision in the maths — and even then it must never block
+submitting. Most likely just skip this one.
+
 ### RB-27 — A stuck participant has no way to recover
 If a participant's page glitches, reloading actually makes it **worse** — they get permanently
 locked out of their slot until the session expires. The only real recovery is a brand-new
