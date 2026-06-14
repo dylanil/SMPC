@@ -11,21 +11,21 @@
 <meta property="og:image" content="https://fl-wg-smpc.fly.dev/static/og-preview.png">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:image" content="https://fl-wg-smpc.fly.dev/static/og-preview.png">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230b0f17'/%3E%3Cpath d='M23 8H9l8 8-8 8h14' fill='none' stroke='%23c79bff' stroke-width='2.5' stroke-linejoin='round' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230b0f17'/%3E%3Cpath d='M23 8H9l8 8-8 8h14' fill='none' stroke='%23ff7a18' stroke-width='2.5' stroke-linejoin='round' stroke-linecap='round'/%3E%3C/svg%3E">
 <meta name="theme-color" content="#0b0f17">
 <title>SMPC Aggregator</title>
 <style>
   :root {
-    --bg:#0b0f17; --panel:#141a24; --panel-2:#1b2230; --border:#283141;
-    --text:#e6edf3; --muted:#8a97a8;
-    --a:#6ea8ff; --b:#ffb26e; --c:#8af0a5; --d:#ff7eb6; --e:#ffec71;
-    --f:#b88fff; --g:#6ee7e0; --h:#ff9d6c; --i:#c8ff6e; --j:#ffa3a3;
-    --agg:#c79bff; --ok:#69d58a;
+    --bg:#0c0c0d; --panel:#161618; --panel-2:#1e1e20; --border:#2c2c30;
+    --text:#ededee; --muted:#98989e;
+    --a:#f2c64b; --b:#cf8ad9; --c:#5fcf80; --d:#ef6f9a; --e:#cfd152;
+    --f:#e0625c; --g:#4fc7bd; --h:#b08968; --i:#8fb53f; --j:#d99ab0;
+    --agg:#ff7a18; --ok:#69d58a;
     /* RB-18 shared tokens — keep byte-identical across home/party/aggregator (see CLAUDE.md Styling). */
-    --grad:linear-gradient(135deg,#1b2230,#2a1e3d); --shadow:0 1px 2px rgba(0,0,0,.3);
+    --grad:linear-gradient(135deg,#1a1410,#241a10); --shadow:0 1px 0 rgba(255,255,255,.04) inset, 0 2px 6px rgba(0,0,0,.55);
   }
   * { box-sizing:border-box; }
-  body { margin:0; padding:28px; font-family:'Segoe UI',-apple-system,sans-serif;
+  body { margin:0; padding:28px; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans",Helvetica,Arial,sans-serif;
          background:var(--bg); color:var(--text); line-height:1.5; }
   .wrap { max-width:900px; margin:0 auto; }
 
@@ -37,7 +37,7 @@
   }
   h1 { margin:0; font-size:22px; }
   .accent { color:var(--agg); }
-  .sub { color:var(--muted); font-size:13px; margin-bottom:22px; }
+  .sub { color:var(--muted); font-size:14.5px; line-height:1.6; margin-bottom:22px; }
 
   .card {
     background:var(--panel); border:1px solid var(--border); border-radius:10px;
@@ -56,7 +56,7 @@
   .chip.ready { border-color:var(--role-color, var(--ok)); color:var(--role-color, var(--ok)); }
   .chip .check { margin-right:4px; }
 
-  .mono { font-family:Consolas,monospace; font-size:13px; word-break:break-all; }
+  .mono { font-family:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace; font-size:13px; word-break:break-all; }
   .share-grid {
     display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));
     gap:10px; margin-top:10px;
@@ -69,7 +69,7 @@
 
   .compute {
     background:var(--panel-2); padding:14px; border-radius:6px;
-    font-family:Consolas,monospace; font-size:13px; margin-top:10px;
+    font-family:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace; font-size:13px; margin-top:10px;
   }
   .compute .line { margin:3px 0; }
   .compute .sum { color:var(--ok); font-weight:600; }
@@ -87,14 +87,14 @@
   .hidden { display:none; }
 
   label { font-size:12px; color:var(--muted); display:block; margin-bottom:6px; }
-  label code { background:var(--panel-2); padding:1px 5px; border-radius:3px;
-               font-family:Consolas,monospace; font-size:11px; }
+  label code { background:rgba(255,255,255,.08); padding:.15em .4em; border-radius:6px;
+               font-family:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace; font-size:.88em; }
   .n-row { display:flex; align-items:flex-end; gap:14px; flex-wrap:wrap; }
   .n-row > div { flex:0 0 auto; }
   input[type=number].n {
     width:80px; padding:10px 12px; background:var(--panel-2);
     border:1px solid var(--border); border-radius:6px; color:var(--text);
-    font-size:18px; font-family:Consolas,monospace; text-align:center;
+    font-size:18px; font-family:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace; text-align:center;
   }
   input[type=number].n:focus { border-color:var(--agg); }
   input[type=number].n:focus:not(:focus-visible) { outline:none; }
@@ -124,7 +124,7 @@
     letter-spacing:.08em; color:var(--role-color, var(--muted)); font-weight:600;
   }
   .invite-code {
-    flex:1; font-family:Consolas,monospace; font-size:18px; font-weight:700;
+    flex:1; font-family:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace; font-size:18px; font-weight:700;
     letter-spacing:.12em; color:var(--text); word-break:break-all;
   }
   .copy {
@@ -143,22 +143,22 @@
     cursor:pointer; font-family:inherit;
   }
   button.demo:disabled { opacity:.4; cursor:not-allowed; }
-  .demo-log { font-family:Consolas,monospace; font-size:12.5px; margin-top:10px; }
+  .demo-log { font-family:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace; font-size:12.5px; margin-top:10px; }
   .demo-log .line { padding:2px 0; color:var(--muted); }
   .demo-log .ok { color:var(--ok); }
   .demo-log .bad { color:#ff7a8a; }
   .demo-banner {
-    margin-bottom:12px; padding:12px 14px; background:rgba(255,178,110,.08);
-    border:1px solid rgba(255,178,110,.45); border-radius:6px;
-    color:#ffb26e; font-size:13px;
+    margin-bottom:12px; padding:12px 14px; background:rgba(255,207,122,.08);
+    border:1px solid rgba(255,207,122,.45); border-radius:6px;
+    color:#ffcf7a; font-size:13px;
   }
   .reveal-check {
     margin-top:12px; padding:10px 14px; background:var(--panel-2);
-    border-radius:6px; font-family:Consolas,monospace; font-size:13px; color:var(--ok);
+    border-radius:6px; font-family:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace; font-size:13px; color:var(--ok);
   }
   /* RB-11: visible keyboard-focus ring on every interactive control (WCAG 2.4.7).
      The :not(:focus-visible) guards above keep mouse-focus on the inputs ring-free. */
-  :focus-visible { outline:2px solid var(--agg, #c79bff); outline-offset:2px; }
+  :focus-visible { outline:2px solid var(--agg, #ff7a18); outline-offset:2px; }
   /* RB-20: honour the OS "reduce motion" setting. */
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { transition: none !important; animation: none !important; }
