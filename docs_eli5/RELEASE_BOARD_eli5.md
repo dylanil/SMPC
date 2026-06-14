@@ -13,13 +13,16 @@ This board is the **single combined to-do list** — every issue, deduplicated, 
 a plain note on what to do about it. Where a second reviewer corrected the first, the corrected
 version is what's recorded here.
 
-**Update — 2026-06-13: all the must-fixes and most of the should-fixes are now DONE.** Built and
-shipped: ✅ **RB-01 through RB-11, plus RB-26 and RB-35** — the crash fix, the frozen-screen fix, the
-friendly errors, the licence, the phone layout, the keyboard-focus outline, the "this is a demo"
-disclaimers, the softened wording, the solo-demo signpost, the README screenshots + pointer to the
-reviews (RB-10), inline code-comment markers, and the social/share-preview cards (RB-35) — the last
-two finished now that the screenshots and the public web address are in hand. They're struck through
-and marked ✅ below. Everything else is still on the to-do list.
+**Update — 2026-06-13: nearly the whole list is now DONE.** Built and shipped: ✅ **31 of the 40
+items** — every must-fix and should-fix, plus most of the nice-to-haves (the crash fix, frozen-screen
+fix, friendly errors, licence, phone layout, keyboard focus, "this is a demo" disclaimers, softened
+wording, solo-demo signpost, README screenshots + share-preview cards, the slow-request timeout and
+extra protective header, the colour-blind-safe status, clipboard fallback, the metric on the figure
+box, the secure-connection guard, the pinned dependency, the security-contact file, the privacy note,
+and a proper test suite). Two are **partly done** (RB-24's last bits and RB-37's load test fold into
+the visual pass / a deploy-time check); a few are **deliberately skipped or accepted** (RB-20, RB-25,
+RB-32, RB-36, RB-38, RB-39). **The one big thing left is RB-18**, the "make it not look vibe-coded"
+visual pass — that's going through the review-council first. Done items are struck through below.
 
 **Checked again on 2026-06-13 (before the fixes).** We first re-ran the whole thing — eight reviews
 and eight second opinions, each working alone — to see if the list still held up. It did: **nothing
@@ -150,29 +153,29 @@ as the README screenshot from RB-10). Cheapest reach win for going public.
 
 ## P2 — nice to have
 
-### RB-12 — The demo button stays stuck after a failure
+### ~~RB-12 — The demo button stays stuck after a failure~~ ✅ DONE
 If the solo demo fails, the button stays greyed out even though the message says "try again" —
 the only way back is a full reload, which throws away the session. **Fix:** re-enable the button
 when it fails.
 
-### RB-13 — Status is shown by colour alone
+### ~~RB-13 — Status is shown by colour alone~~ ✅ DONE
 The little status dots change colour (and a faint symbol) but no text, so colour-blind users
 can't tell them apart. **Fix:** add a word like "submitted" / "waiting" and/or a clearer tick.
 
-### RB-14 — "Copy to clipboard" can fail silently
+### ~~RB-14 — "Copy to clipboard" can fail silently~~ ✅ DONE
 If copying doesn't work (common in certain setups), nothing tells the user. **Fix:** on failure,
 switch the label to "select & copy" or auto-select the text.
 
-### RB-15 — The participant doesn't see what they're being asked to measure until late
+### ~~RB-15 — The participant doesn't see what they're being asked to measure until late~~ ✅ DONE
 The "what is this number?" label only appears after a valid invite is entered; before that the
 box just says "e.g. 42." **Fix:** show the metric in the input label as soon as it's known.
 
-### RB-16 — A slow, half-finished request can tie up the server
+### ~~RB-16 — A slow, half-finished request can tie up the server~~ ✅ DONE
 There's no time limit on how long the server waits for an incoming request, so a deliberately
 slow connection can hog resources. Low risk on our current hosting, but a cheap robustness win.
 **Fix:** set a request timeout (one line).
 
-### RB-17 — Add one more protective header
+### ~~RB-17 — Add one more protective header~~ ✅ DONE
 The server sends one security header today; adding a second cheap one ("don't guess file types")
 is easy defence-in-depth. **Fix:** one extra header line.
 
@@ -184,7 +187,7 @@ corner-roundness values. **Fix:** a focused series of small design improvements 
 sizing/spacing, a proper icon and favicon, a tidied colour scheme, a real font, unified shadows
 and motion. All cheap, no new build tooling needed.
 
-### RB-19 — The automated test only checks the happy path
+### ~~RB-19 — The automated test only checks the happy path~~ ✅ DONE
 The current test only confirms a clean, successful round. It never checks what happens when
 things go wrong — which is exactly where the two worst bugs live. **Fix:** add tests for the
 error cases, including "a bad number is rejected and the totalling step never crashes."
@@ -193,19 +196,20 @@ error cases, including "a bad number is rejected and the totalling step never cr
 Some people get motion sickness from animation; the OS has a "reduce motion" setting we don't
 honour. **Fix:** one rule that turns off the animations for those users.
 
-### RB-21 — No security-contact file
+### ~~RB-21 — No security-contact file~~ ✅ DONE
 For a security-flavoured project, there's no short note saying "this is a demo; here's how (or
 whether) to report issues." **Fix:** a brief SECURITY file.
 
-### RB-22 — "Negative zero" can show up
+### ~~RB-22 — "Negative zero" can show up~~ ✅ DONE
 A tiny rounding quirk can display "-0" instead of "0." Purely cosmetic. **Fix:** treat -0 as 0.
 
-### RB-23 — Note that rate-limiting depends on the hosting setup
+### ~~RB-23 — Note that rate-limiting depends on the hosting setup~~ ✅ DONE (already in the README)
 Our defences against request-flooding rely on a feature of our specific host. If someone ran the
 app exposed directly, that protection would quietly stop working. The risk itself is accepted for
 our setup — this item is just **documenting** the caveat in the README.
 
-### RB-24 — A bundle of small UX tidy-ups
+### RB-24 — A bundle of small UX tidy-ups  ✅ MOSTLY DONE
+**✅ MOSTLY DONE 2026-06-13.** Better text-wrapping, a phone-friendly numeric keypad, and a "locked — get a fresh invite" hint after joining are in. Two visual bits (bigger wrapping tap-targets, tidier step headings) fold into the RB-18 look-and-feel pass.
 A handful of minor fixes grouped together: better text-wrapping for long codes, bigger tap
 targets that wrap nicely on small screens, a "locked — reload to restart" hint, tidier step
 headings, and a phone-friendly numeric keypad for the figure input.
@@ -221,7 +225,7 @@ contradict the app's own design. If anything is built, only warn when a number i
 or more) that it starts to lose decimal precision in the maths — and even then it must never block
 submitting. Most likely just skip this one.
 
-### RB-27 — A stuck participant has no way to recover
+### ~~RB-27 — A stuck participant has no way to recover~~ ✅ DONE (Tier-1)
 If a participant's page glitches, reloading actually makes it **worse** — they get permanently
 locked out of their slot until the session expires. The only real recovery is a brand-new
 invite. **Fix:** remember the participant's identity across a reload so re-joining just works,
@@ -232,13 +236,13 @@ error clearly say "if you reloaded, just ask the aggregator for a fresh invite,"
 the session might be compromised. We are **not** building the more complex "remember you across a
 reload" version — it's more effort than it's worth for a demo.
 
-### RB-28 — The app silently needs a secure (HTTPS) connection
+### ~~RB-28 — The app silently needs a secure (HTTPS) connection~~ ✅ DONE
 The cryptography only works over a secure connection (HTTPS, or on your own machine). If someone
 tries to demo it across phones on a local network using a plain address, **every** page dies with
 an unexplained error. **Fix:** detect this on load and show a friendly "use the HTTPS link"
 message, plus a README note.
 
-### RB-29 — Numbers with a comma decimal can be misread
+### ~~RB-29 — Numbers with a comma decimal can be misread~~ ✅ DONE
 In countries that write decimals with a comma ("42,5"), the figure input can silently chop it to
 42 or reject it — on the one number the whole round depends on. **Fix:** use a decimal keypad and
 validate/normalise commas.
@@ -251,30 +255,31 @@ maybe a tiny "use a period, e.g. 42.5" hint. **What we won't do:** auto-strip co
 ambiguous (is it one thousand, or one-point-zero?), so "fixing" it could create the very wrong-number
 bug it's meant to avoid. In short: mostly handled by RB-24; the rest is optional.
 
-### RB-30 — The one dependency isn't pinned to a version
+### ~~RB-30 — The one dependency isn't pinned to a version~~ ✅ DONE
 The app's single external library isn't locked to a tested version, so a future redeploy could
 pull a newer, possibly-incompatible version and break with no code change from us. **Fix:** pin a
 known-good version range.
 
-### RB-31 — Step-6 wording could be read as "signatures catch impersonation"
+### ~~RB-31 — Step-6 wording could be read as "signatures catch impersonation"~~ ✅ DONE
 A sentence in the verification step can be over-read as claiming the signatures detect an
 impersonator — which they don't, in the one impersonation scenario the docs admit to. **Fix:**
 reword to be precise, and add an explicit "this does not catch someone who registered first."
 
-### RB-32 — Anyone with a session code can read the whole round's metadata
+### ~~RB-32 — Anyone with a session code can read the whole round's metadata~~ — ACCEPTED
+**Decision (2026-06-13): accepted — reads stay unlimited.** Guessing a code is impractical at real speeds, and even then only round metadata leaks, never the raw figures. Adding a cap would contradict the deliberate "reads are unlimited" design, so we're leaving it.
 The read-only pages aren't rate-limited, so in theory someone could guess session codes and read
 a round's label, who's in it, the scrambled values, and the final average. **Crucially, the raw
 individual figures stay safe** — but "whoever has the code can see the round" should be stated
 plainly. (Guessing a code is impractical at real speeds, which keeps this low priority.) **Fix:**
 a generous rate limit on reads, and/or document that the code is effectively a read-pass.
 
-### RB-33 — The protocol rules are written out in three places at once
+### ~~RB-33 — The protocol rules are written out in three places at once~~ ✅ DONE
 The exact format the maths depends on is hand-copied into the server, the browser, and the test —
 in two different languages. If someone changes one and not the others, it breaks silently, caught
 only if someone remembers to run the test. **Fix:** add a fixed "known-good" reference example that
 both sides check against, so any mismatch fails loudly.
 
-### RB-34 — Add more tests beyond the happy path
+### ~~RB-34 — Add more tests beyond the happy path~~ ✅ DONE
 Build out a proper little test file covering: different group sizes, the "first answer wins" rule,
 rejected expired/replayed security puzzles, rejected tampered tokens, and the reference example
 from RB-33. The worst bugs and the most important design claim all live in currently-untested
@@ -292,14 +297,14 @@ the odd bit of downtime hurts nobody. (To note: Claude can't do the watching its
 program that runs in the background; this would be a separate free service you'd sign up for. We've
 decided to skip it.) Easy to add later if the demo ever gets real traffic.
 
-### RB-37 — We don't know how much traffic it can take
+### RB-37 — We don't know how much traffic it can take  ⏳ PARTIAL
 No one has measured how many people can use it at once before the single machine struggles. A
 link that suddenly gets popular, or a bot, could overwhelm it. **Fix:** a quick load test to find
 the realistic ceiling and decide whether the simple timeout fix (RB-16) is enough.
 
-**Decision (2026-06-13): keep, but do later.** Unlike the monitoring/screen-reader items we dropped
-as overkill, we *do* want this — but bundled into the proper fix-up pass alongside the request
-timeout (RB-16), which is the real protection. Not scheduled yet.
+**Update (2026-06-13): partly done.** The real protection — the request timeout (RB-16) — is now in,
+which stops a slow/stalled connection from tying the server up. The remaining bit, actually measuring
+how much traffic it can take, needs the live site, so it waits for a deploy-time check.
 
 ### ~~RB-38 — The free-text label is unmoderated and shown to others~~ — ACCEPTED (won't filter)
 The label the aggregator types appears on everyone's screen. It can't be used to inject malicious
