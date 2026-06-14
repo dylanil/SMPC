@@ -6,9 +6,11 @@ no-account demo. This document is the strategy wrapper; the per-finding triage l
 [`docs/review/RELEASE_BOARD.md`](review/RELEASE_BOARD.md), which is the single source of
 truth for what to fix and in what order.
 
-**Status: remediation in progress (2026-06-13).** Done and pushed: the §8.1 P0 batch (RB-01–RB-04)
-plus P1 items **RB-05, RB-06, RB-07, RB-08, RB-09, RB-10, RB-11, RB-26, RB-35** (marked ✅ DONE on the
-board). The remaining items follow this plan.
+**Status: remediation largely complete (2026-06-13).** Done and pushed: **all P0** (RB-01–04), **all
+P1** (RB-05–11, RB-26, RB-35, RB-40), and the **P2 batch** (RB-12–17, RB-19, RB-21–23, RB-27 Tier-1,
+RB-28–31, RB-33, RB-34) — **31 of 40** items, all marked ✅ DONE on the board. RB-24/RB-37 are partial, RB-32/36/38/39
+accepted or won't-do, RB-20/RB-25 deferred/skipped. **The one substantive item left is RB-18** (the
+visual-craft pass), going through `/review-council` before implementation.
 
 **Re-validated 2026-06-13.** A second multi-agent pass (8 isolated domain reviews + 8 isolated meta
 audits, archived under [`review/run-2026-06-13/`](review/run-2026-06-13/)) re-confirmed this plan and
@@ -156,11 +158,13 @@ Each step is its own commit (or small commit series) and must clear the §6 gate
    `:focus-visible`~~ ✅ (`0f11cfa`); ~~RB-10 (README screenshot/GIF + surface the `docs/review/`
    folder)~~ ✅ (`a6ae549`, `9b9dceb`): `docs/review/` pointer + verify-it-yourself story + a
    completed-round hero screenshot (and two contextual shots).
-3. **P2 batch — polish, hardening, visual craft.** Quick wins first (RB-16 read timeout,
-   RB-17 nosniff, RB-12/RB-22/RB-24 small UI fixes, RB-13/RB-14/RB-15, RB-20, RB-21, RB-23,
-   RB-25-as-hint-only); then the **RB-18 visual-craft pass** as its own focused series
-   (tokens → favicon/identity → OKLCH colours → mono → depth/motion/icons), each a small
-   commit, since it's the largest and most subjective bucket.
+3. **P2 batch — polish, hardening, tests. ✅ DONE 2026-06-13** (everything except RB-18). Shipped:
+   ~~RB-16 read timeout, RB-17 nosniff, RB-12/RB-13/RB-14/RB-15/RB-22, RB-24 (most), RB-19/RB-33/RB-34
+   tests, RB-21 SECURITY.md, RB-23, RB-27 Tier-1, RB-28/RB-29/RB-30/RB-31~~. RB-32 accepted (reads
+   stay unlimited), RB-20/RB-25 deferred/skipped, RB-24-L2/L5 + RB-37 load-test folded onward. Then
+   the **RB-18 visual-craft pass** — its own focused series (tokens → favicon/identity → OKLCH colours
+   → mono → depth/motion/icons) — **going through `/review-council` first** (owner decision); not yet
+   implemented.
 4. **Re-deploy** (`fly deploy`) once P0 (and ideally P1) are merged and the gate is green;
    re-run the click-through against production.
 5. **Public-deployment dimension — logged 2026-06-13, not yet scheduled.** Surfaced when

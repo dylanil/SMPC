@@ -139,8 +139,11 @@ accepted trade-offs, and four false alarms.**
    "this is a demo" note and tidied the over-strong wording~~ ✅; the "what this is / isn't" content
    was already covered ✅; ~~added a signpost so solo visitors can see it work~~ ✅; ~~fixed
    keyboard-focus visibility~~ ✅; ~~added screenshots to the README~~ ✅. (This whole batch is done.)
-3. **Third batch — polish, hardening, and the visual-design overhaul.** Quick wins first, then
-   the bigger, more subjective visual redesign as its own careful series of small steps.
+3. **Third batch — polish, hardening, and tests. ✅ DONE (2026-06-13), except the visual redesign.**
+   All the quick wins shipped (the slow-request timeout, the extra protective header, the small UI
+   fixes, the secure-connection guard, the pinned dependency, the security-contact file, and a proper
+   test suite). The one piece left is the bigger **"make it not look vibe-coded" visual redesign
+   (RB-18)** — that's going through the review-council first before any code is written.
 4. **Re-deploy** once the must-fixes are in and the safety gate is green, then re-test against
    the live site.
 5. **"Going public" extras — written down on 2026-06-13, not scheduled yet.** These came up when
