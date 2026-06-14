@@ -280,11 +280,17 @@ rejected expired/replayed security puzzles, rejected tampered tokens, and the re
 from RB-33. The worst bugs and the most important design claim all live in currently-untested
 areas. **Fix:** one self-contained test file, added to the safety gate.
 
-### RB-36 — Nobody gets told if the site goes down
+### ~~RB-36 — Nobody gets told if the site goes down~~ — WON'T DO (accepted)
 There's one always-on machine with a health-check address, but nothing actually watches it. If it
 falls over (a redeploy, a flood, a traffic spike), you'd only find out when someone hits a dead
 link. **Fix:** a free external "uptime monitor" that pings the health address and emails you. No
 app code — and deliberately kept lightweight, not a big monitoring platform.
+
+**Decision (2026-06-13): we're not doing this — it's overkill for a portfolio demo.** This is the
+kind of thing you'd set up for a real service with users; for a CV showpiece on one free machine,
+the odd bit of downtime hurts nobody. (To note: Claude can't do the watching itself — it's not a
+program that runs in the background; this would be a separate free service you'd sign up for. We've
+decided to skip it.) Easy to add later if the demo ever gets real traffic.
 
 ### RB-37 — We don't know how much traffic it can take
 No one has measured how many people can use it at once before the single machine struggles. A
