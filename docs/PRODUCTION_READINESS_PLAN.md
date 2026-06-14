@@ -105,7 +105,9 @@ FP-01/FP-02). Do not re-derive findings here — cite the board ID.
 Every remediation change must pass this gate before it's considered done:
 
 1. **`python verify_round.py` and `python verify_round.py 10`** both PASS (masks cancel
-   exactly) — the wire-contract regression guard.
+   exactly) — the wire-contract regression guard. **`python tests.py`** PASSes too (contract
+   vector + error-path matrix + N-sweep, RB-19/33/34) — run it against a freshly-started server
+   so the per-IP rate limits don't trip mid-suite.
 2. **New error-path assertion** (ships with RB-01): a malformed/non-ASCII-digit share is
    rejected at `/api/share`, and `/api/result` never crashes (RB-19).
 3. **Manual click-through** of the three flows on a local `python server.py`: a full real
