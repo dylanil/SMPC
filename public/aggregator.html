@@ -280,12 +280,28 @@
         const text = mode === 'link'
           ? inviteUrl(p, code, tokens[p])
           : document.getElementById('invite' + p).textContent;
+        const prev = btn.textContent;
         try {
           await navigator.clipboard.writeText(text);
-          const prev = btn.textContent;
           btn.textContent = 'Copied';
           setTimeout(() => { btn.textContent = prev; }, 1200);
-        } catch (_) { /* clipboard may be blocked; user can select manually */ }
+        } catch (_) {
+          // RB-14: navigator.clipboard is absent outside a secure context (the
+          // documented local-HTTP mode). Don't fail silently — select the code
+          // so the user can copy it manually, and say so.
+          const el = mode === 'link' ? null : document.getElementById('invite' + p);
+          if (el && window.getSelection && document.createRange) {
+            const range = document.createRange();
+            range.selectNodeContents(el);
+            const sel = window.getSelection();
+            sel.removeAllRanges();
+            sel.addRange(range);
+            btn.textContent = 'Selected — press Ctrl/Cmd+C';
+          } else {
+            btn.textContent = 'Copy the link manually';
+          }
+          setTimeout(() => { btn.textContent = prev; }, 2000);
+        }
       });
     });
   }
@@ -294,7 +310,7 @@
     const el = document.getElementById('statusRow');
     el.innerHTML = PARTIES.map(p => `
       <div class="chip waiting" id="chip${p}" style="--role-color: ${colorVar(p)}">
-        <span class="check">○</span>Participant ${p}
+        <span class="check">○</span>Participant ${p}<span class="chip-state"> · waiting</span>
       </div>
     `).join('');
   }
@@ -302,14 +318,18 @@
   function setChip(party, submitted) {
     const chip = document.getElementById('chip' + party);
     if (!chip) return;
+    // RB-13: convey state with a glyph AND a text label, not colour alone, so it
+    // doesn't collapse for colour-blind users (WCAG 1.4.1).
     if (submitted) {
       chip.classList.remove('waiting');
       chip.classList.add('ready');
-      chip.querySelector('.check').textContent = '●';
+      chip.querySelector('.check').textContent = '✓';
+      chip.querySelector('.chip-state').textContent = ' · submitted';
     } else {
       chip.classList.remove('ready');
       chip.classList.add('waiting');
       chip.querySelector('.check').textContent = '○';
+      chip.querySelector('.chip-state').textContent = ' · waiting';
     }
   }
 
@@ -346,7 +366,7 @@
     document.getElementById('resultLabel').textContent = METRIC
       ? `${METRIC} — average of ${n} private figures`
       : `Average of the ${n} private figures`;
-    const pretty = avg.toFixed(6).replace(/\.?0+$/, '');
+    const pretty = avg.toFixed(6).replace(/\.?0+$/, '').replace(/^-0$/, '0');  // RB-22: never render -0
     document.getElementById('avgValue').textContent = pretty;
     document.getElementById('statusNote').textContent = `All ${n} participants submitted. Average computed from masked shares.`;
 
@@ -368,7 +388,7 @@
     const match = figuresSumFixed === sumFixed;
     const avg = fromFixed(figuresSumFixed) / PARTIES.length;
     document.getElementById('revealCheck').textContent =
-      `(${PARTIES.map(p => DEMO_FIGURES[p]).join(' + ')}) / ${PARTIES.length} = ${avg.toFixed(6).replace(/\.?0+$/, '')} ` +
+      `(${PARTIES.map(p => DEMO_FIGURES[p]).join(' + ')}) / ${PARTIES.length} = ${avg.toFixed(6).replace(/\.?0+$/, '').replace(/^-0$/, '0')} ` +
       (match ? '✓ matches the average computed from masked shares'
              : '✗ DOES NOT match the masked-share average — this is a bug');
   }
@@ -539,6 +559,10 @@
       demoLine(`All ${PARTIES.length} simulated participants done — waiting for the result to land…`, 'ok');
     } catch (e) {
       demoLine(e.message, 'bad');
+      // RB-12: re-enable so the user can retry (or run the demo again after
+      // creating a fresh session, as the error copy advises) instead of being
+      // forced to reload — which would abandon the session.
+      btn.disabled = false;
     }
   }
 

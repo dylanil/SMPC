@@ -482,7 +482,7 @@
             const serverSum = BigInt(data.sum);
             const sumOk = localSum === serverSum;
             const avgNum = Number(localSum) / Number(SCALE) / PARTIES.length;
-            const avgStr = avgNum.toFixed(6).replace(/\.?0+$/, '');
+            const avgStr = avgNum.toFixed(6).replace(/\.?0+$/, '').replace(/^-0$/, '0');  // RB-22: never render -0
 
             const sigRows = PARTIES.map(p => `
               <div class="k">sig<sub>${p}</sub> verifies under vk<sub>${p}</sub>:</div>
