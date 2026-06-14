@@ -210,10 +210,11 @@ in [`docs_eli5/`](docs_eli5/)).
   read capability.
 - **Abuse controls depend on the hosting topology.** Per-IP rate limiting relies on the
   platform's trusted client-IP header; on a direct/forwarding exposure it can be bypassed.
-- **Operational gaps for a wider public deployment** (logged, not yet addressed): no availability
-  monitoring, an unmeasured concurrency ceiling, no moderation of the free-text metric label
-  shown to others, accessibility not yet tested with real assistive technology, and no
-  user-facing privacy/cookie note. See RB-35…RB-40 on the release board.
+- **Operational choices for a wider public deployment** (consciously scoped — see RB-35…RB-40 on the
+  release board): no availability monitoring, no load-tested concurrency ceiling, and no moderation of
+  the free-text metric label — all accepted as out of proportion for a single-instance portfolio demo
+  (a concurrency reality-check is the one kept for later). The data-protection footprint is documented
+  in *Privacy* below.
 - **Author self-review only** — the `docs/review/` audits are rigorous self-cross-examination,
   not an independent third-party security or cryptographic certification.
 
@@ -239,6 +240,15 @@ This is an educational demo, not production-grade:
 - **No party-identity authentication beyond the token.** A legitimate holder of an invite token is still trusted to honestly submit *their own* figure — the protocol doesn't prevent a participant from entering whatever number they like as `x_i`.
 - **Fixed-point arithmetic** (×10⁶) is used so decimals work with BigInt on the client. Pick a scale that fits your expected range.
 - **Collusion.** As with any pairwise-masking scheme, two colluding participants (or a participant colluding with the aggregator) can reconstruct the third participant's input — this is inherent to 3-party additive secret sharing.
+
+## Privacy
+
+This is a demonstration that deliberately keeps as little as possible, all in memory:
+
+- **No accounts, no analytics, no third-party trackers.** Nothing is persisted to disk — all session state lives in memory and is wiped on restart or after the ~30-minute session TTL.
+- **IP addresses** are held briefly in memory for per-IP rate limiting, and may appear in the server's minimal stdout access log (one line per POST — time, IP, method, path, status; never request bodies, tokens, or query strings). These are ephemeral platform logs, not a database.
+- **One functional cookie** (`agg`) is set only on the aggregator page, and only when an aggregator password is configured, to carry that login across to the API endpoints. It is `HttpOnly`, `SameSite=Strict`, and expires on its own; the home and participant pages set no cookies.
+- **Your figure never leaves your browser** — see the protocol above.
 
 ## License
 

@@ -297,6 +297,10 @@ No one has measured how many people can use it at once before the single machine
 link that suddenly gets popular, or a bot, could overwhelm it. **Fix:** a quick load test to find
 the realistic ceiling and decide whether the simple timeout fix (RB-16) is enough.
 
+**Decision (2026-06-13): keep, but do later.** Unlike the monitoring/screen-reader items we dropped
+as overkill, we *do* want this — but bundled into the proper fix-up pass alongside the request
+timeout (RB-16), which is the real protection. Not scheduled yet.
+
 ### ~~RB-38 — The free-text label is unmoderated and shown to others~~ — ACCEPTED (won't filter)
 The label the aggregator types appears on everyone's screen. It can't be used to inject malicious
 code (that's already prevented), but on a *public* site someone could type something offensive
@@ -321,7 +325,12 @@ with real users, not a small CV demo. It doesn't hold back the actual accessibil
 visible keyboard-focus outline is already done, and adding a word like "submitted"/"waiting" to the
 status dots (RB-13) is still a nice tiny fix we can do anytime — it doesn't need this audit.
 
-### RB-40 — No privacy/cookie note for public users
+### ~~RB-40 — No privacy/cookie note for public users~~ ✅ DONE
+**✅ DONE 2026-06-13.** Added a short *Privacy* section to the README: no accounts, analytics, or
+saved data; internet addresses are used only briefly for rate-limiting (and appear in basic server
+logs, never your typed figures); one functional cookie, only on the aggregator page when a password
+is set; and your figure never leaves your browser.
+
 Once real members of the public use it, the site briefly handles their internet addresses (for
 rate-limiting) and sets one functional cookie. The footprint is tiny, but there's no short
 "here's what we do and don't store" note. **Fix:** a one-line privacy note in the README and/or
