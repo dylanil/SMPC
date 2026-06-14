@@ -428,7 +428,14 @@
     for (const other of OTHERS) {
       const lo = ROLE < other ? ROLE : other;
       const hi = ROLE < other ? other : ROLE;
-      masks[other] = await derivePairwiseMask(ecdhKp.privateKey, othersPub[other], lo, hi);
+      try {
+        // RB-50: a peer's pubkey is accepted by the server on shape alone (curve
+        // validation is left to the browser), so an off-curve key throws here in
+        // WebCrypto. Surface which peer to chase rather than a generic error.
+        masks[other] = await derivePairwiseMask(ecdhKp.privateKey, othersPub[other], lo, hi);
+      } catch (_) {
+        throw new Error(`Participant ${other} published an unusable public key, so the shared mask could not be derived. Ask the aggregator to start a fresh round.`);
+      }
       const op = ROLE < other ? 'add' : 'subtract';
       logLine('exchangeLog', `Pair ${lo}${hi}: ECDH + HKDF → r<sub>${lo}${hi}</sub> = <span class="mono">${masks[other]}</span> &nbsp;<span class="warn">(I ${op} it; server cannot derive this)</span>`);
     }

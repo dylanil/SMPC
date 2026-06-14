@@ -573,7 +573,14 @@ def verify_share_signature(vk_b64, sig_b64, msg_bytes):
 
 def canonical_message(action, session_code, party, content):
     """Bytes both sides must agree on for a signed POST. Includes the action
-    so a pubkey signature can't be replayed as a share signature."""
+    so a pubkey signature can't be replayed as a share signature.
+
+    Delimiter safety (RB-55/CR-04): this `|`-joined format is unambiguous only
+    because none of the four fields can contain a literal `|` - action is
+    server-chosen ({pubkey,share}), session/party are restricted alphabets, and
+    content is base64 (is_pubkey_b64) or an ASCII decimal (is_decimal_string).
+    If any of those validators is ever loosened, revisit this so a crafted field
+    can't shift the delimiters into a different (action, session, party)."""
     return f"{action}|{session_code}|{party}|{content}".encode("utf-8")
 
 
@@ -922,6 +929,11 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 # deliberate decision (AC-11): a party that can submit a wrong share can
                 # already steer the result, so enforcing pubkey-before-share buys nothing
                 # cryptographically. Do not "fix" it into a fail-closed gate without cause.
+                # Related asymmetry (AD-01): /api/share does not require a prior
+                # /api/pubkey, so a share can land with no pubkey published; readiness
+                # can then flip True while honest peers are still blocked in their
+                # /api/pubkeys wait loop for a key that never arrives (their masks won't
+                # cancel). Reachable only off the honest-client path - documented, not gated.
                 if len(submitted) < len(parties):
                     payload = {
                         "ready": False,
@@ -983,7 +995,9 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 except Exception:
                     return self._send_json(400, {"error": "bad json"})
                 raw_n = body.get("n", DEFAULT_N)
-                if not isinstance(raw_n, int):
+                # bool is an int subclass in Python (True == 1), so reject it
+                # explicitly - currently saved only by the range check (RB-55).
+                if not isinstance(raw_n, int) or isinstance(raw_n, bool):
                     return self._send_json(400, {"error": f"n must be an integer in [{MIN_N},{MAX_N}]"})
                 n = raw_n
                 metric = str(body.get("metric", "")).strip()
@@ -1022,7 +1036,11 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 return self._send_json(401, {"error": "invalid or missing proof-of-work"})
             with state_lock:
                 sess = sessions.get(session_code)
-                if sess is None or sess["tokens"].get(party) != invite_token:
+                # Constant-time invite-token compare (RB-55): the only secret
+                # compare that wasn't using hmac.compare_digest. compare_digest on
+                # a missing slot ("") is still a real comparison, so no early-out
+                # leaks whether the slot exists.
+                if sess is None or not hmac.compare_digest(sess["tokens"].get(party, ""), invite_token):
                     return self._reject()
                 existing_vk = sess["vks"].get(party)
                 if existing_vk is not None and existing_vk != vk:
