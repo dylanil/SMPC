@@ -243,6 +243,14 @@ In countries that write decimals with a comma ("42,5"), the figure input can sil
 42 or reject it — on the one number the whole round depends on. **Fix:** use a decimal keypad and
 validate/normalise commas.
 
+**Reframe + decision (2026-06-13):** the "silently chops it" worry was overstated — the box is a
+proper number field, so a confusing entry comes back **empty** (and the page already says "please
+enter a figure"), rather than quietly sending the wrong number. So this is a small annoyance, not a
+correctness bug. **What we'll actually do:** the better mobile keypad (already covered by RB-24), and
+maybe a tiny "use a period, e.g. 42.5" hint. **What we won't do:** auto-strip commas — "1,000" is
+ambiguous (is it one thousand, or one-point-zero?), so "fixing" it could create the very wrong-number
+bug it's meant to avoid. In short: mostly handled by RB-24; the rest is optional.
+
 ### RB-30 — The one dependency isn't pinned to a version
 The app's single external library isn't locked to a tested version, so a future redeploy could
 pull a newer, possibly-incompatible version and break with no code change from us. **Fix:** pin a
