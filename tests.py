@@ -26,6 +26,13 @@ from cryptography.hazmat.primitives.asymmetric import ec
 
 from verify_round import (BASE, SCALE, api, api_status, mine_pow, b64, raw_pub,
                           sign_raw, canonical, derive_mask)
+from server import _leading_zero_bits  # the real server bit-count rule (RB-48)
+
+# A >64-byte input so SHA-256 spans multiple blocks - pow.js' hand-rolled
+# sha256Hex must reproduce this digest (the single-block vector above can't
+# catch a multi-block padding bug). See RB-48.
+MULTIBLOCK = ("SMPC-contract-vector multiblock v1: this string is deliberately "
+              "longer than sixty-four bytes so SHA-256 spans multiple blocks.")
 
 _passed = 0
 
@@ -64,6 +71,15 @@ def test_contract_vector():
     check("SHA-256 digest (must match pow.js sha256Hex)",
           hashlib.sha256(b"SMPC-contract-vector v1").hexdigest()
           == "8daf9b4afa1031808e15d1756a5b611089f9866f96890ec45e0d08ca5b081529")
+
+    # RB-48: pin a MULTI-BLOCK digest (pow.js' multi-block padding loop must
+    # reproduce it) and the leading-zero-bit rule itself (server-side function),
+    # so a drift in the hand-rolled SHA-256 or the difficulty metric fails here.
+    check("multi-block SHA-256 digest (must match pow.js sha256Hex)",
+          hashlib.sha256(MULTIBLOCK.encode()).hexdigest()
+          == "8fb355047678afde0e3f4844bb2688f740b077c897585343fc73b54c0af7111b")
+    check("leading-zero-bit count rule (0x000f… -> 12)",
+          _leading_zero_bits(bytes.fromhex("000f" + "ff" * 30)) == 12)
 
     k1 = ec.derive_private_key(0x1111111111111111111111111111111111111111111111111111111111111111, ec.SECP256R1())
     k2 = ec.derive_private_key(0x2222222222222222222222222222222222222222222222222222222222222222, ec.SECP256R1())
@@ -183,6 +199,60 @@ def test_body_and_json():
     check("bad JSON rejected (400)", raw_post("/api/join", b"{not json") == 400)
 
 
+def test_signature_reject():
+    """RB-49: the headline integrity branch - a validly-formatted but wrongly-
+    signed share/pubkey must be rejected (the old probes used sig="" and
+    short-circuited on the format check before signature verification)."""
+    sess = api("/api/session/new", {"n": 3, **mine_pow()})
+    code, tokens, parties = sess["code"], sess["tokens"], sess["parties"]
+    a = parties[0]
+    sk = ec.generate_private_key(ec.SECP256R1())
+    j = api("/api/join", {"session": code, "party": a, "token": tokens[a],
+                          "vk": b64(raw_pub(sk)), **mine_pow()})
+    bearer = j["server_token"]
+    wrong = ec.generate_private_key(ec.SECP256R1())  # not the vk registered at join
+
+    share = "5000000"  # valid decimal, so it passes the format check and reaches verify
+    st, _ = api_status("/api/share", {"server_token": bearer, "share": share,
+                                      "sig": sign_raw(wrong, canonical("share", code, a, share))})
+    check("share signed by a non-registered key rejected (403)", st == 403)
+
+    pub = b64(raw_pub(ec.generate_private_key(ec.SECP256R1())))
+    st, _ = api_status("/api/pubkey", {"server_token": bearer, "pubkey": pub,
+                                       "sig": sign_raw(wrong, canonical("pubkey", code, a, pub))})
+    check("pubkey signed by a non-registered key rejected (403)", st == 403)
+
+    st, _ = api_status("/api/pubkey", {"server_token": bearer, "pubkey": "not-base64!!", "sig": ""})
+    check("malformed pubkey rejected at write time (400)", st == 400)
+
+
+def _signed_share_round(share_ints):
+    """Lean round: join len(share_ints) parties and submit the given (already
+    chosen) signed share integers, skipping the pubkey/mask step - the server
+    sums share strings directly, so this exercises its arithmetic for any total.
+    Returns /api/result."""
+    n = len(share_ints)
+    sess = api("/api/session/new", {"n": n, **mine_pow()})
+    code, tokens, parties = sess["code"], sess["tokens"], sess["parties"]
+    for p, val in zip(parties, share_ints):
+        sk = ec.generate_private_key(ec.SECP256R1())
+        j = api("/api/join", {"session": code, "party": p, "token": tokens[p],
+                              "vk": b64(raw_pub(sk)), **mine_pow()})
+        s = str(val)
+        api("/api/share", {"server_token": j["server_token"], "share": s,
+                           "sig": sign_raw(sk, canonical("share", code, p, s))})
+    return api(f"/api/result?session={code}")
+
+
+def test_sum_zero_and_negative():
+    """RB-49: the happy path only ever uses positive figures. One lean round with
+    a negative share AND a zero total exercises both the negative-value path and
+    the zero-average case (kept to a single round so the suite stays inside the
+    per-IP /api/share window - see RB-54)."""
+    r = _signed_share_round([10 * SCALE, 5 * SCALE, -15 * SCALE])  # negative share, total 0
+    check("round with a negative share and zero total: server sum == 0", int(r["sum"]) == 0)
+
+
 def main():
     test_contract_vector()
     test_n_sweep()
@@ -190,10 +260,23 @@ def main():
     test_first_write_wins(ctx)
     test_malformed_share(ctx)
     test_bearer_tamper(ctx)
+    test_signature_reject()
+    test_sum_zero_and_negative()
     test_pow()
     test_body_and_json()
     print(f"\nALL {_passed} CHECKS PASSED")
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except urllib.error.HTTPError as e:
+        # RB-54: the per-IP rate limits cap how many rounds fit in a window, and a
+        # fresh server does NOT reset them (only ~60s of quiet does). Turn the
+        # otherwise-opaque urllib traceback into an actionable hint.
+        if e.code == 429:
+            raise SystemExit(
+                "\nHIT RATE LIMIT (429). This suite must run against a freshly-"
+                "started server with a quiet per-IP window - wait ~60s and retry, "
+                "or restart the server, then run tests.py on its own.")
+        raise

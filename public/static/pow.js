@@ -22,8 +22,13 @@
   function rotr(x, n) { return ((x >>> n) | (x << (32 - n))) >>> 0; }
 
   // SHA-256 of an ASCII string. Returns lowercase hex (64 chars).
-  // Inputs in this app are short (challenge + ":" + nonce ~ 200 chars max),
-  // so we don't bother with multi-block streaming.
+  // Handles inputs of ANY length: padded to a 64-byte multiple and the
+  // compression loop below runs over every block (the real `challenge:nonce`
+  // preimage is ~200 chars and spans multiple blocks). NOTE: this hand-rolled
+  // SHA-256 and the leading-zero-bit rule below are mirrored in three other
+  // places - server.py (_leading_zero_bits / verify_pow), verify_round.py
+  // (mine_pow), and tests.py's pinned vectors. Change one, change all four, and
+  // re-check the tests.py contract vector (RB-33/RB-48).
   function sha256Hex(msg) {
     const bytes = new TextEncoder().encode(msg);
     const len = bytes.length;
