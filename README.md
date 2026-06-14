@@ -42,7 +42,7 @@ Detailed entries with the full rationale live under *Security notes* further dow
 
 ![How the pairwise masks cancel — a three-party example. Each pair shares a secret mask, derived independently by both sides and never sent; the lower-letter party adds it and the higher subtracts it, so every mask appears once as plus and once as minus. Only the masked shares reach the aggregator, which sums them; every mask cancels with its opposite, leaving only the total of the real figures, divided by N for the average.](public/static/masks.gif)
 
-*Each pair's mask is derived independently and **never transmitted** — only the masked shares are sent. The aggregator sums them; every `+`mask meets its `−`mask and cancels, revealing only Σ xᵢ (and hence the average). Privacy assumes honest, non-colluding parties — see [Known limitations](#known-limitations).*
+*Broadly how it works — not every detail. Each pair's mask is derived **locally** and **never transmitted**; only the masked shares are sent, and the aggregator sums them so every `+`mask meets its `−`mask and cancels, revealing only Σ xᵢ (and hence the average). There's no peer-to-peer link — parties exchange only **public keys via the server**, so the server and aggregator never see a raw figure or a mask. It also omits the integrity layer (each share is ECDSA-signed and server-verified). Privacy assumes honest, non-colluding parties — see [Known limitations](#known-limitations).*
 
 ![Masked shares received by the aggregator, each an apparently random integer, and the aggregation step summing them so the pairwise masks cancel.](docs/assets/screenshot2.png)
 
