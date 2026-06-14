@@ -4,7 +4,20 @@
 
 *A completed round on the [live deployment](https://fl-wg-smpc.fly.dev/): the secure average, plus the simulation-only reveal that re-derives (Σ x)/N from the raw figures and confirms it matches the result computed from masked shares alone.*
 
-A small demo of Secure Multi-Party Computation. Between 3 and 10 participants each enter one private number ("figure") from their own browser. A separate aggregator picks the participant count when creating the session, then computes the average **without any participant's raw figure ever crossing the wire**. Security comes from *pairwise one-time-pad masking*: every pair of participants shares a random mask that cancels out when all N masked shares are summed.
+**Compute a group average that nobody can de-anonymise - and check the result yourself.** Three to ten people each hold one private figure; together they learn only the average, and no participant's raw figure ever crosses the wire. Security comes from *pairwise one-time-pad masking*: every pair shares a random mask that cancels when all N masked shares are summed.
+
+*Built by **Dylan Liew** as a portfolio demonstration of applied secure multi-party computation - the cryptography, the threat modelling, and an honestly documented set of limits.*
+&nbsp; [**Try the live solo demo**](https://fl-wg-smpc.fly.dev/aggregator) (no friends needed - click **Demo**) · [How it works](#protocol) · [What it deliberately isn't](#known-limitations)
+
+**Privacy you don't have to take on trust.** Most "we do MPC" demos can't be checked by the viewer; this one can. Every result is independently verifiable:
+
+- each participant's page recomputes the sum and re-verifies *every* signature (Step 6);
+- [`verify_round.py`](verify_round.py) replays the whole wire protocol headless as a genuine second implementation;
+- the solo-demo **reveal card** (the image above) re-derives (Σ x)/N from the raw figures and shows it matches the result computed from masked shares alone.
+
+The repo is also reviewed adversarially in the open - see [`docs/review/`](docs/review/): eight domain reviews, eight independent second opinions, and a consolidated [release board](docs/review/RELEASE_BOARD.md).
+
+**Where it's useful.** Any group that wants a shared statistic but can't pool the raw inputs. Competing insurers, for example, want the market-average claim severity to price accurately - but none will hand a rival their book, and pooling raw data raises antitrust exposure; SMPC gives them the average and nothing else. The same shape fits salary benchmarking (a team learns its average pay without anyone revealing their own number) or any consortium comparing sensitive figures. The app stays deliberately generic - you name each round for whatever's being benchmarked, and insurance is only the pre-filled example.
 
 > **Demonstration project.** This is a portfolio proof-of-concept showing the mechanics of
 > privacy-preserving secure aggregation. It is **not** a production or commercial service, is
@@ -12,16 +25,10 @@ A small demo of Secure Multi-Party Computation. Between 3 and 10 participants ea
 > or support. Please don't enter real or sensitive data. The "insurance claim severity" wording is
 > only an illustrative example metric.
 
-**Reviewed in the open, and verifiable.** This repo is reviewed adversarially in the open - see
-[`docs/review/`](docs/review/): eight domain reviews, eight independent second opinions, and a
-consolidated [release board](docs/review/RELEASE_BOARD.md). And every result is independently
-checkable: each participant's page recomputes the sum and re-verifies every signature (Step 6), and
-[`verify_round.py`](verify_round.py) replays the entire wire protocol headless as a second
-implementation.
-
 ---
 
-## Recent updates
+<details>
+<summary><strong>Recent updates</strong> - hardening + UX changelog (click to expand)</summary>
 
 A round of hardening and UX fixes landed together. In simple terms:
 
@@ -35,6 +42,8 @@ A round of hardening and UX fixes landed together. In simple terms:
 - **Non-root container.** The Docker container creates a regular user (uid 1000) and switches to it before launching the server, so a hypothetical container-escape exploit doesn't start at admin privileges.
 
 Detailed entries with the full rationale live under *Security notes* further down.
+
+</details>
 
 ---
 
@@ -276,3 +285,7 @@ This is a demonstration that deliberately keeps as little as possible, all in me
 ## License
 
 This project is licensed under the MIT License - see [`LICENSE`](LICENSE).
+
+---
+
+Built by **Dylan Liew** as a portfolio project. Source and full open review history: [github.com/dylanil/SMPC](https://github.com/dylanil/SMPC).
