@@ -7,9 +7,8 @@ no-account demo. This document is the strategy wrapper; the per-finding triage l
 truth for what to fix and in what order.
 
 **Status: remediation in progress (2026-06-13).** Done and pushed: the §8.1 P0 batch (RB-01–RB-04)
-plus P1 items **RB-05, RB-06, RB-07, RB-08, RB-09, RB-11, RB-26** (marked ✅ DONE on the board).
-**RB-10** and **RB-35** are partially done (text/meta in; a completed-round screenshot / preview
-image + the canonical public URL are still pending). The remaining items follow this plan.
+plus P1 items **RB-05, RB-06, RB-07, RB-08, RB-09, RB-10, RB-11, RB-26, RB-35** (marked ✅ DONE on the
+board). The remaining items follow this plan.
 
 **Re-validated 2026-06-13.** A second multi-agent pass (8 isolated domain reviews + 8 isolated meta
 audits, archived under [`review/run-2026-06-13/`](review/run-2026-06-13/)) re-confirmed this plan and
@@ -152,9 +151,9 @@ Each step is its own commit (or small commit series) and must clear the §6 gate
 2. **P1 batch — credibility & surface. ✅ MOSTLY DONE 2026-06-13.** ~~RB-08 disclaimer + RB-07 claim
    hedge~~ ✅ (`bc39b32`); ~~RB-06 README threat-model section~~ ✅ (covered by the existing *Known
    limitations* + the RB-08 disclaimer); ~~RB-09 solo-demo signpost~~ ✅ (`0d4a152`); ~~RB-11
-   `:focus-visible`~~ ✅ (`0f11cfa`); RB-10 (README screenshot/GIF + surface the `docs/review/` folder)
-   — ⏳ **partial** (`a6ae549`): the `docs/review/` pointer + verify-it-yourself story are in; the
-   completed-round screenshot is still pending (needs a captured image).
+   `:focus-visible`~~ ✅ (`0f11cfa`); ~~RB-10 (README screenshot/GIF + surface the `docs/review/`
+   folder)~~ ✅ (`a6ae549`, `9b9dceb`): `docs/review/` pointer + verify-it-yourself story + a
+   completed-round hero screenshot (and two contextual shots).
 3. **P2 batch — polish, hardening, visual craft.** Quick wins first (RB-16 read timeout,
    RB-17 nosniff, RB-12/RB-22/RB-24 small UI fixes, RB-13/RB-14/RB-15, RB-20, RB-21, RB-23,
    RB-25-as-hint-only); then the **RB-18 visual-craft pass** as its own focused series
@@ -168,8 +167,9 @@ Each step is its own commit (or small commit series) and must clear the §6 gate
    pass, **not** actioned case-by-case:
    - **RB-35** Open Graph / `description` share-preview metadata + a preview image (the single
      cheapest reach win; the image doubles as RB-10's screenshot — slot near the P1 surface work).
-     ⏳ **PARTIAL** (`a6ae549`): `<meta name="description">` added to all three heads; the OG/Twitter
-     card tags + preview image are still pending (need a preview image and the canonical public URL).
+     ✅ **DONE** (`a6ae549`, `9b9dceb`): `<meta name="description">` + full OG/Twitter card tags on
+     all three heads with absolute `fl-wg-smpc.fly.dev` URLs; the `og:image` is served from
+     `/static/og-preview.png` (a completed-round screenshot, doubling as RB-10's hero).
    - **RB-36** a lightweight external uptime check on `/healthz` (ops; no app code).
    - **RB-37** a load/capacity reality-check on the single instance (pairs with the RB-16
      read-timeout).

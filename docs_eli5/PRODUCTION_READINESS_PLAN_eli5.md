@@ -34,9 +34,9 @@ problems **and fixed them**," which is far more impressive than just "we found p
 
 Since then, most of the **should-fix** list landed too (2026-06-13): the "this is a demo"
 disclaimers, the softened wording, the solo-visitor signpost, and the inline "don't change this"
-code comments (RB-06 through RB-09, and RB-26). Two "get it seen more widely" items (RB-10, RB-35)
-are only **partly done** — their wording is in, but they're waiting on a screenshot of a finished
-round and the site's public web address.
+code comments (RB-06 through RB-09, and RB-26). And the two "get it seen more widely" items (RB-10,
+RB-35) are now **done** too: the README shows screenshots of a finished round, and pasting the link
+unfurls into a proper preview card (title, description, and image) on LinkedIn/X/Slack/etc.
 
 ## How the thing is built (the 30-second version)
 
@@ -138,7 +138,7 @@ accepted trade-offs, and four false alarms.**
 2. **Second batch — credibility and first impressions. ✅ MOSTLY DONE (2026-06-13).** ~~Added the
    "this is a demo" note and tidied the over-strong wording~~ ✅; the "what this is / isn't" content
    was already covered ✅; ~~added a signpost so solo visitors can see it work~~ ✅; ~~fixed
-   keyboard-focus visibility~~ ✅. Still to do: add a screenshot to the README (needs a captured image).
+   keyboard-focus visibility~~ ✅; ~~added screenshots to the README~~ ✅. (This whole batch is done.)
 3. **Third batch — polish, hardening, and the visual-design overhaul.** Quick wins first, then
    the bigger, more subjective visual redesign as its own careful series of small steps.
 4. **Re-deploy** once the must-fixes are in and the safety gate is green, then re-test against
