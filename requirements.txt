@@ -1,1 +1,4 @@
-cryptography>=42.0
+# RB-30: pin an upper bound so a future `pip install` / `fly deploy` can't pull a
+# breaking major of cryptography (it ships compiled OpenSSL) with no rollback.
+# Only P-256 ECDSA verify + ECDH/HKDF are used — stable, widely-supported APIs.
+cryptography>=42.0,<49
