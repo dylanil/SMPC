@@ -105,6 +105,13 @@ PUBLIC_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "public")
 # and reset). Empty/unset disables the check, preserving the local-dev experience.
 # Read once at import time so per-request lookups are constant-time.
 AGGREGATOR_PASSWORD = os.environ.get("AGGREGATOR_PASSWORD", "").strip()
+# SITE_PASSWORD gates the ENTIRE site behind HTTP Basic Auth — a temporary
+# "private / coming soon" lock over every page, asset, and API except /healthz
+# (which fly's liveness probe needs). Distinct from AGGREGATOR_PASSWORD (which
+# only gates aggregator session creation/reset); set SITE_PASSWORD to make the
+# whole deployment invisible until you're ready to share it. Empty/unset = fully
+# public (so local dev and the normal demo are unaffected).
+SITE_PASSWORD = os.environ.get("SITE_PASSWORD", "").strip()
 # Set to a non-empty value only when Cloudflare fronts the deployment: rate
 # limiting then keys on CF-Connecting-IP (the real client) instead of
 # Fly-Client-IP (which would be a shared Cloudflare egress IP). Must stay off
@@ -138,6 +145,8 @@ SERVER_TOKEN_TTL_SECS = 30 * 60
 # don't pre-emptively attach Basic Auth creds to fetch() requests.
 AGGREGATOR_COOKIE_NAME = "agg"
 AGGREGATOR_COOKIE_TTL_SECS = 30 * 60
+SITE_COOKIE_NAME = "site"
+SITE_COOKIE_TTL_SECS = 12 * 60 * 60  # rides the page-load Basic-Auth across to fetch() calls
 # Session TTL: a background reaper deletes sessions older than this. Bounded
 # memory under sustained (rate-limited) session creation, and matches the
 # bearer-token TTL so an expiring bearer aligns with an expiring session.
@@ -475,6 +484,39 @@ def verify_aggregator_cookie(token):
     return payload.get("agg") is True and int(time.time()) <= int(payload.get("exp", 0))
 
 
+# --- Site-lock cookie (SITE_PASSWORD) — same pattern as the aggregator cookie,
+# keyed off SITE_PASSWORD so it survives restarts but dies on password rotation.
+_SITE_COOKIE_KEY = (
+    hashlib.sha256(b"smpc-site-cookie\x00" + SITE_PASSWORD.encode("utf-8")).digest()
+    if SITE_PASSWORD else SERVER_HMAC_KEY
+)
+
+
+def mint_site_cookie(ttl=SITE_COOKIE_TTL_SECS):
+    payload = {"site": True, "exp": int(time.time()) + ttl}
+    raw = json.dumps(payload, separators=(",", ":"), sort_keys=True).encode("utf-8")
+    sig = hmac.new(_SITE_COOKIE_KEY, raw, hashlib.sha256).digest()
+    return _b64url_encode(raw) + "." + _b64url_encode(sig)
+
+
+def verify_site_cookie(token):
+    if not isinstance(token, str) or "." not in token:
+        return False
+    try:
+        raw_b64, sig_b64 = token.split(".", 1)
+        raw = _b64url_decode(raw_b64)
+        sig = _b64url_decode(sig_b64)
+    except Exception:
+        return False
+    if not hmac.compare_digest(sig, hmac.new(_SITE_COOKIE_KEY, raw, hashlib.sha256).digest()):
+        return False
+    try:
+        payload = json.loads(raw.decode("utf-8"))
+    except Exception:
+        return False
+    return payload.get("site") is True and int(time.time()) <= int(payload.get("exp", 0))
+
+
 def verify_bearer_token(token):
     """Return the payload dict if the token's HMAC checks out and it hasn't
     expired, else None. Constant-time signature compare."""
@@ -705,6 +747,53 @@ class Handler(http.server.BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+    def _check_site_auth(self):
+        """True if the request may access the site at all. When SITE_PASSWORD is
+        set the WHOLE site is behind Basic Auth (a temporary private lock) —
+        gated everywhere except /healthz. Accepts `Authorization: Bearer/Basic`
+        == SITE_PASSWORD (username ignored) or a signed `site` cookie. Returns
+        True unconditionally when SITE_PASSWORD is unset."""
+        if not SITE_PASSWORD:
+            return True
+        header = self.headers.get("Authorization", "")
+        expected = SITE_PASSWORD.encode("utf-8")
+        if header.startswith("Bearer ") and hmac.compare_digest(header[len("Bearer "):].encode("utf-8"), expected):
+            return True
+        if header.startswith("Basic "):
+            try:
+                decoded = base64.b64decode(header[len("Basic "):], validate=True)
+            except Exception:
+                decoded = b""
+            if b":" in decoded and hmac.compare_digest(decoded.split(b":", 1)[1], expected):
+                return True
+        cookie = self._cookie(SITE_COOKIE_NAME)
+        return bool(cookie and verify_site_cookie(cookie))
+
+    def _send_site_auth_challenge(self):
+        body = b'{"error": "this site is private"}'
+        self.send_response(401)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(body)))
+        self.send_header("Cache-Control", "no-store")
+        self.send_header("WWW-Authenticate", 'Basic realm="SMPC (private)", charset="UTF-8"')
+        self._emit_security_headers()
+        self.end_headers()
+        self.wfile.write(body)
+
+    def _site_cookie_headers(self):
+        """Set-Cookie for the site lock, so the page-load Basic-Auth rides across
+        to subsequent fetch() calls (which don't carry Basic Auth). No-op when
+        SITE_PASSWORD is unset. Re-set on every page load (refreshes the TTL)."""
+        if not SITE_PASSWORD:
+            return []
+        attrs = [
+            f"{SITE_COOKIE_NAME}={mint_site_cookie()}",
+            "HttpOnly", "SameSite=Strict", "Path=/", f"Max-Age={SITE_COOKIE_TTL_SECS}",
+        ]
+        if self.headers.get("X-Forwarded-Proto", "") == "https":
+            attrs.append("Secure")
+        return [("Set-Cookie", "; ".join(attrs))]
+
     def _conflict(self, what):
         # FWW: a different value was already committed for this slot. Honest
         # network retries with byte-identical content succeed (200); rewrites
@@ -717,13 +806,18 @@ class Handler(http.server.BaseHTTPRequestHandler):
         path = parsed.path
         qs = parse_qs(parsed.query)
 
+        # Site-wide private lock (SITE_PASSWORD). Gates everything except
+        # /healthz (fly's liveness probe must stay reachable). No-op when unset.
+        if SITE_PASSWORD and path != "/healthz" and not self._check_site_auth():
+            return self._send_site_auth_challenge()
+
         # Static routes
         if path in ("/", "/index.html"):
-            return self._send_file(os.path.join(PUBLIC_DIR, "home.html"))
+            return self._send_file(os.path.join(PUBLIC_DIR, "home.html"), extra_headers=self._site_cookie_headers())
         if path == "/aggregator":
             if not self._check_aggregator_auth():
                 return self._send_basic_auth_challenge()
-            extra_headers = []
+            extra_headers = self._site_cookie_headers()
             if AGGREGATOR_PASSWORD:
                 # The browser caches Basic Auth credentials but refuses to
                 # attach them pre-emptively to fetch() requests. Hand back a
@@ -746,7 +840,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
             return self._send_file(os.path.join(PUBLIC_DIR, "aggregator.html"), extra_headers=extra_headers)
         parts = path.strip("/").split("/")
         if len(parts) == 2 and parts[0] == "party" and parts[1].upper() in MAX_PARTIES:
-            return self._send_file(os.path.join(PUBLIC_DIR, "party.html"))
+            return self._send_file(os.path.join(PUBLIC_DIR, "party.html"), extra_headers=self._site_cookie_headers())
 
         # Static assets shipped to the browser. Tightly scoped: only a flat
         # `.js` (PoW miner, protocol crypto) or `.png` (the og:image preview)
@@ -852,6 +946,10 @@ class Handler(http.server.BaseHTTPRequestHandler):
     def do_POST(self):
         parsed = urlparse(self.path)
         path = parsed.path
+
+        # Site-wide private lock (SITE_PASSWORD) — gate every POST. No-op when unset.
+        if SITE_PASSWORD and not self._check_site_auth():
+            return self._send_site_auth_challenge()
 
         # Body-size cap. Applies to any POST that has a body.
         length = int(self.headers.get("Content-Length", "0") or "0")
@@ -996,6 +1094,7 @@ def main():
     print(f"  Aggregator: http://{display_host}:{PORT}/aggregator")
     print(f"  Participant pages at /party/A through /party/{MAX_PARTIES[-1]} (session size {MIN_N}-{MAX_N})")
     print(f"  Session TTL: {SESSION_TTL_SECS}s; reaper interval: {SESSION_REAPER_INTERVAL_SECS}s")
+    print(f"  Site lock:           {'ON — entire site behind SITE_PASSWORD (only /healthz is open)' if SITE_PASSWORD else 'off — site is public'}")
     print(f"  Aggregator password: {'required (AGGREGATOR_PASSWORD set)' if AGGREGATOR_PASSWORD else 'not set — session creation is open'}")
     try:
         httpd.serve_forever()

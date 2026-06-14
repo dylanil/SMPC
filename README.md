@@ -108,6 +108,16 @@ After creating a session, the aggregator page offers **Demo: simulate all partic
 
 To abandon an in-flight round, reload the aggregator page and create a new one; old sessions live in memory until the server restarts.
 
+### Making the whole site private
+
+To take the **entire site offline behind a password** — every page, the demo, and the APIs, so nobody can see it until you're ready to share — set `SITE_PASSWORD`:
+
+```bash
+fly secrets set SITE_PASSWORD='something-only-you-know'   # then: fly deploy
+```
+
+The browser shows a native auth dialog on first visit; only `/healthz` stays open (so the platform's health check keeps the machine up). It's a single shared secret (no per-user accounts) — a "coming soon" curtain, not fine-grained access control. Lift it any time with `fly secrets unset SITE_PASSWORD` (then `fly deploy`). Leave it unset for normal public/dev operation. This is separate from the aggregator password below.
+
 ### Restricting who can create sessions
 
 Set `AGGREGATOR_PASSWORD` to a shared secret of your choice and restart the server:
