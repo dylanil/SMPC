@@ -44,7 +44,7 @@
     background:var(--panel); border:1px solid var(--border); border-radius:10px;
     padding:18px 20px; margin-bottom:14px;
   }
-  .card h3 { margin:0 0 10px; font-size:13px; color:var(--muted);
+  .card h2 { margin:0 0 10px; font-size:13px; color:var(--muted);
              text-transform:uppercase; letter-spacing:.05em; font-weight:600; }
   .card.muted { opacity:.45; }
 
@@ -97,6 +97,10 @@
   a { color:var(--muted); font-size:12px; }
   /* RB-11: visible keyboard-focus ring on every interactive control (WCAG 2.4.7). */
   :focus-visible { outline:2px solid var(--agg, #c79bff); outline-offset:2px; }
+  /* RB-20: honour the OS "reduce motion" setting. */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { transition: none !important; animation: none !important; }
+  }
 </style>
 </head>
 <body>
@@ -110,7 +114,7 @@
   </div>
 
   <div class="card" id="inputCard">
-    <h3>Step 1 — Enter invite code &amp; private figure</h3>
+    <h2>Step 1 — Enter invite code &amp; private figure</h2>
     <div class="field-row">
       <label>Invite code <span class="pill">from the aggregator</span></label>
       <input type="text" class="code" id="inviteInput" maxlength="13" placeholder="XXXXXX-YYYYYY" autocomplete="off" spellcheck="false" autofocus>
@@ -125,27 +129,27 @@
   </div>
 
   <div class="card muted" id="joinCard">
-    <h3>Step 2 — Register signing key &amp; receive bearer token</h3>
+    <h2>Step 2 — Register signing key &amp; receive bearer token</h2>
     <div id="joinLog" class="log"></div>
   </div>
 
   <div class="card muted" id="exchangeCard">
-    <h3>Step 3 — ECDH key exchange &amp; mask derivation</h3>
+    <h2>Step 3 — ECDH key exchange &amp; mask derivation</h2>
     <div id="exchangeLog" class="log"></div>
   </div>
 
   <div class="card muted" id="computeCard">
-    <h3>Step 4 — Compute Masked Share Locally</h3>
+    <h2>Step 4 — Compute masked share locally</h2>
     <div id="computeBody"></div>
   </div>
 
   <div class="card muted" id="submitCard">
-    <h3>Step 5 — Sign and Submit Masked Share</h3>
+    <h2>Step 5 — Sign and submit masked share</h2>
     <div id="submitBody"></div>
   </div>
 
   <div class="card muted" id="verifyCard">
-    <h3>Step 6 — Independently Verify Every Share's Signature and the Sum</h3>
+    <h2>Step 6 — Independently verify every share's signature and the sum</h2>
     <div id="verifyBody"></div>
   </div>
 
