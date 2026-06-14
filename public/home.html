@@ -3,9 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="A privacy-preserving secure multi-party computation demo — 3 to 10 participants compute an average without any raw figure leaving their browser.">
+<meta name="description" content="An educational demo of secure multi-party computation — 3 to 10 participants compute an average without any raw figure leaving their browser. Not production-secure.">
 <meta property="og:type" content="website">
-<meta property="og:title" content="Secure Multi-Party Average — privacy-preserving SMPC demo">
+<meta property="og:title" content="Secure Multi-Party Average — educational SMPC demo">
 <meta property="og:description" content="3 to 10 participants compute an average without any raw figure leaving their browser — pairwise masks cancel, and every result is independently verifiable.">
 <meta property="og:url" content="https://fl-wg-smpc.fly.dev/">
 <meta property="og:image" content="https://fl-wg-smpc.fly.dev/static/og-preview.png">
@@ -69,6 +69,17 @@
   .solo-cta { margin-top:12px; padding:10px 14px; background:var(--panel-2);
     border:1px solid var(--border); border-radius:8px; font-size:13.5px; }
   .solo-cta a { color:var(--agg); }
+  /* Home-only "How honest is this demo?" disclosure — not part of the shared :root token contract. */
+  details.honesty { background:var(--panel); border:1px solid var(--border);
+    border-radius:10px; padding:0 20px; margin-bottom:24px; }
+  details.honesty summary { cursor:pointer; padding:18px 0; font-size:14px;
+    letter-spacing:.05em; text-transform:uppercase; color:var(--muted);
+    font-weight:600; list-style:none; }
+  details.honesty summary::-webkit-details-marker { display:none; }
+  details.honesty summary::before { content:"\25B8\00a0"; color:var(--agg); }
+  details.honesty[open] summary::before { content:"\25BE\00a0"; }
+  details.honesty p { margin:0 0 16px; font-size:14.5px; line-height:1.65; color:var(--muted); }
+  details.honesty a { color:var(--agg); }
 </style>
 </head>
 <body>
@@ -90,6 +101,12 @@
     <p>3. The aggregator sums all <code>N</code> masked shares. Every mask appears once with <code>+</code> and once with <code>−</code>, so the masks cancel and the sum reveals <code>Σ x_i</code>, from which the average follows.</p>
   </div>
 
+  <details class="honesty">
+    <summary>How honest is this demo?</summary>
+    <p>This is an educational proof-of-concept, not an audited or production service — it shows how the cryptographic <em>plumbing</em> of secure multi-party computation works. The maths is real: raw figures never leave your browser, and every result is independently verifiable on each page.</p>
+    <p>It also has deliberate, documented limits — it assumes everyone is honest about their own figure, needs all participants online at once, and doesn't defend against an impostor who registers before the real participant. The full threat model, the accepted trade-offs, and the open security review are on GitHub: <a href="https://github.com/dylanil/SMPC#readme" target="_blank" rel="noopener">README</a>, <a href="https://github.com/dylanil/SMPC/blob/main/SECURITY.md" target="_blank" rel="noopener">SECURITY</a>, and the <a href="https://github.com/dylanil/SMPC/tree/main/docs/review" target="_blank" rel="noopener">review board</a>.</p>
+  </details>
+
   <a class="card" href="/aggregator" target="_blank">
     <div class="role">Coordinator</div>
     <div class="name"><span class="dot"></span>Aggregator</div>
@@ -106,7 +123,7 @@
     Here alone? The aggregator page can simulate all the participants in one tab, so you can watch a complete round — real protocol traffic included — without rounding up friends.
   </div>
 
-  <p style="font-size:12px; color:var(--muted); margin-top:18px;">Demonstration only — not a production or commercial service, provided as-is with no warranty. Please don't enter real or sensitive figures.</p>
+  <p style="font-size:12px; color:var(--muted); margin-top:18px;">Educational demonstration only — not a production or commercial service, provided as-is with no warranty. Please don't enter real or sensitive figures.</p>
 </div>
 </body>
 </html>
