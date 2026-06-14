@@ -218,10 +218,10 @@ planned improvements live in [`docs/review/RELEASE_BOARD.md`](docs/review/RELEAS
   from a partial set, as production secure-aggregation has.
 - **Not production-grade and not persistent.** A single in-memory instance: all state is lost on
   restart, sessions are auto-deleted after ~30 minutes, and it must run as exactly one always-on
-  instance (it can't be horizontally scaled). The single-instance pin should be enforced in config,
-  not just documented - `fly.toml` should cap `max_machines_running = 1` (not only the floor), so an
-  accidental scale-out or a rolling-restart overlap can't split a session across machines with
-  disjoint state (RB-44).
+  instance (it can't be horizontally scaled). The single-instance pin is enforced in config -
+  `fly.toml` caps both `min_machines_running` and `max_machines_running` at 1 - so an accidental
+  scale-out or a rolling-restart overlap can't split a session across machines with disjoint state
+  (a rolling deploy therefore has a few seconds of downtime, which is fine for this demo).
 - **No input-honesty guarantee and no figure caps.** A participant can submit any value
   (including a very large one) and skew the average; signatures prove *who* submitted and that it
   wasn't tampered with by others, not that the figure is truthful or reasonable. The absence of a
