@@ -13,7 +13,7 @@
 <meta name="twitter:image" content="https://fl-wg-smpc.fly.dev/static/og-preview.png">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230b0f17'/%3E%3Cpath d='M23 8H9l8 8-8 8h14' fill='none' stroke='%23ff7a18' stroke-width='2.5' stroke-linejoin='round' stroke-linecap='round'/%3E%3C/svg%3E">
 <meta name="theme-color" content="#0b0f17">
-<title>SMPC Aggregator</title>
+<title>SMPC Aggregator — demo</title>
 <style>
   :root {
     --bg:#0c0c0d; --panel:#161618; --panel-2:#1e1e20; --border:#2c2c30;
@@ -183,7 +183,7 @@
   <div class="header">
     <div class="badge">Σ</div>
     <div>
-      <h1><span class="accent">Aggregator</span></h1>
+      <h1><span class="accent">Aggregator</span> — demo</h1>
       <div class="sub">In a real round this page only ever receives masked shares — never a participant's raw figure or any pairwise mask. (The in-tab demo mode is the exception: it plays every role locally, so it necessarily knows the figures it generated.)</div>
     </div>
   </div>
@@ -196,6 +196,7 @@
         <input type="text" class="metric" id="metricInput" maxlength="80">
       </div>
       <label>How many participants will join this round?</label>
+      <div style="font-size:12px; color:var(--muted); margin:0 0 10px;">Demo only — don't run a round with real or sensitive figures. Provided as is, with no warranty; don't rely on the result.</div>
       <div class="n-row">
         <div>
           <input type="number" class="n" id="nInput" min="3" max="10" value="3">
