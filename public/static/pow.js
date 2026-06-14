@@ -109,7 +109,7 @@
   }
 
   // Mine a PoW and POST it to a gated endpoint, retrying once if the server
-  // rejects with 401 "invalid or missing proof-of-work" — the common cause
+  // rejects with 401 "invalid or missing proof-of-work" - the common cause
   // is a stale challenge (60s TTL) when the tab was backgrounded during
   // mining and timer-throttled, or a server restart that wiped the HMAC
   // secret between challenge issuance and submission. baseBody is merged
@@ -133,7 +133,7 @@
       if (response.status !== 401) break;
       const peek = await response.clone().text();
       if (!/proof-of-work/i.test(peek)) break;
-      // Stale or wrong challenge — fall through to one more attempt.
+      // Stale or wrong challenge - fall through to one more attempt.
     }
     return { response, pow };
   }

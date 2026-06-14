@@ -1,13 +1,13 @@
-"""RB-37 — concurrency / capacity load test for the live instance.
+"""RB-37 - concurrency / capacity load test for the live instance.
 
 The single in-memory `ThreadingHTTPServer` (server.py) spawns one thread per
 connection and has never been load-tested. RB-37 asks: at what concurrency does
-it degrade? This script answers it by hammering the **read path** — `/healthz` —
+it degrade? This script answers it by hammering the **read path** - `/healthz` -
 which is the right target because:
   - it's deliberately *unrate-limited* (RB-32/AC) and cheap (no crypto, no
     session state), so it's exactly what a traffic spike or bot sweep hits;
   - load on the POST endpoints would instead trip the per-IP rate limits and
-    burn PoW/sessions — not a capacity measurement. DO NOT point this at POSTs.
+    burn PoW/sessions - not a capacity measurement. DO NOT point this at POSTs.
 
 The actual slowloris mitigation (RB-16, `Handler.timeout`) is the local /
 direct-exposure guard and is already verified; behind fly, fly-proxy terminates

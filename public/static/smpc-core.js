@@ -1,10 +1,10 @@
 // Shared SMPC protocol crypto, loaded by both party.html and aggregator.html.
 //
-// Everything that must be byte-identical between the two parties of a pair —
+// Everything that must be byte-identical between the two parties of a pair -
 // the curve (P-256), the HKDF info string ("SMPC mask " + pair label), and
-// the signed 64-bit BigInt conversion — lives here so the two pages can never
+// the signed 64-bit BigInt conversion - lives here so the two pages can never
 // diverge. The canonical message format and the lower-letter-adds sign
-// convention must additionally match server.py (canonical_message) — keep
+// convention must additionally match server.py (canonical_message) - keep
 // them aligned if either side changes.
 
 (function () {

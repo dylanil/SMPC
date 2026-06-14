@@ -3,23 +3,23 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="An educational demo of secure multi-party computation — 3 to 10 participants compute an average without any raw figure leaving their browser. Not production-secure.">
+<meta name="description" content="An educational demo of secure multi-party computation - 3 to 10 participants compute an average without any raw figure leaving their browser. Not production-secure.">
 <meta property="og:type" content="website">
-<meta property="og:title" content="Secure Multi-Party Average — educational SMPC demo">
-<meta property="og:description" content="3 to 10 participants compute an average without any raw figure leaving their browser — pairwise masks cancel, and every result is independently verifiable.">
+<meta property="og:title" content="Secure Multi-Party Average - educational SMPC demo">
+<meta property="og:description" content="3 to 10 participants compute an average without any raw figure leaving their browser - pairwise masks cancel, and every result is independently verifiable.">
 <meta property="og:url" content="https://fl-wg-smpc.fly.dev/">
 <meta property="og:image" content="https://fl-wg-smpc.fly.dev/static/og-preview.png">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:image" content="https://fl-wg-smpc.fly.dev/static/og-preview.png">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230b0f17'/%3E%3Cpath d='M23 8H9l8 8-8 8h14' fill='none' stroke='%23ff7a18' stroke-width='2.5' stroke-linejoin='round' stroke-linecap='round'/%3E%3C/svg%3E">
 <meta name="theme-color" content="#0b0f17">
-<title>SMPC Average — Home</title>
+<title>SMPC Average - Home</title>
 <style>
   :root {
     --bg:#0c0c0d; --panel:#161618; --panel-2:#1e1e20; --border:#2c2c30;
     --text:#ededee; --muted:#98989e;
     --agg:#ff7a18;
-    /* RB-18 shared tokens — keep byte-identical across home/party/aggregator (see CLAUDE.md Styling). */
+    /* RB-18 shared tokens - keep byte-identical across home/party/aggregator (see CLAUDE.md Styling). */
     --grad:linear-gradient(135deg,#1a1410,#241a10); --shadow:0 1px 0 rgba(255,255,255,.04) inset, 0 2px 6px rgba(0,0,0,.55);
   }
   * { box-sizing: border-box; }
@@ -69,7 +69,7 @@
   .solo-cta { margin-top:12px; padding:10px 14px; background:var(--panel-2);
     border:1px solid var(--border); border-radius:8px; font-size:13.5px; }
   .solo-cta a { color:var(--agg); }
-  /* Shared honesty callout — keep this rule block AND its copy in sync across
+  /* Shared honesty callout - keep this rule block AND its copy in sync across
      home/party/aggregator (no shared stylesheet/build; see CLAUDE.md Styling). */
   .honesty { background:var(--panel); border:1px solid var(--border);
     border-radius:10px; padding:18px 20px; margin-bottom:24px; }
@@ -92,11 +92,11 @@
 <body>
 <div class="wrap">
   <h1>Secure Multi-Party Average</h1>
-  <div class="sub">Three to ten participants each privately enter one figure on their own page. A separate aggregator computes the average from masked shares — raw figures are never transmitted. Rounds can be named for whatever's being benchmarked: e.g. competing insurers privately computing the market's average claim severity.</div>
+  <div class="sub">Three to ten participants each privately enter one figure on their own page. A separate aggregator computes the average from masked shares - raw figures are never transmitted. Rounds can be named for whatever's being benchmarked: e.g. competing insurers privately computing the market's average claim severity.</div>
 
   <div class="flow">
     <div class="label">How to start a round</div>
-    <p>1. The aggregator opens their page, picks how many participants will join (between 3 and 10), and clicks <b>Create session</b> — the server mints a unique 6-character session code plus one per-role invite token.</p>
+    <p>1. The aggregator opens their page, picks how many participants will join (between 3 and 10), and clicks <b>Create session</b> - the server mints a unique 6-character session code plus one per-role invite token.</p>
     <p>2. The aggregator shares each invite (formatted as <code>SESSION-TOKEN</code>) with its matching participant out-of-band (Slack, email, a phone call). Codes are role-bound: a participant given A's invite cannot claim slot B.</p>
     <p>3. Each participant opens their page (e.g. <code>/party/A</code>), enters the invite, and submits their figure. The aggregator sees the average once everyone has submitted; each participant page also independently re-verifies the result.</p>
   </div>
@@ -106,36 +106,36 @@
     <figure class="diagram">
       <picture>
         <source srcset="/static/masks-still.png" media="(prefers-reduced-motion: reduce)">
-        <img src="/static/masks.gif" width="920" height="560" alt="Three participants A, B and C. Each pair shares a secret mask — A and B share one, A and C another, B and C another — derived independently by both sides and never sent. In each pair the lower-letter participant adds the mask and the higher subtracts it, so every mask appears once as plus and once as minus. Only the masked shares are sent to the aggregator, which sums them; every mask cancels with its opposite, leaving only the total of the real figures, divided by N for the average.">
+        <img src="/static/masks.gif" width="920" height="560" alt="Three participants A, B and C. Each pair shares a secret mask - A and B share one, A and C another, B and C another - derived independently by both sides and never sent. In each pair the lower-letter participant adds the mask and the higher subtracts it, so every mask appears once as plus and once as minus. Only the masked shares are sent to the aggregator, which sums them; every mask cancels with its opposite, leaving only the total of the real figures, divided by N for the average.">
       </picture>
-      <figcaption>A three-party example — broadly how it works, not every detail. There's no direct peer-to-peer link: parties exchange only public keys via the server and derive each pairwise mask locally, so the mask itself is never sent, and the server (and aggregator) only ever see public keys, masked shares, and the final average — never a raw figure or a mask. It omits the integrity layer (each share is also ECDSA-signed and server-verified). Privacy assumes honest, non-colluding parties; see the limitations above.</figcaption>
+      <figcaption>A three-party example - broadly how it works, not every detail. There's no direct peer-to-peer link: parties exchange only public keys via the server and derive each pairwise mask locally, so the mask itself is never sent, and the server (and aggregator) only ever see public keys, masked shares, and the final average - never a raw figure or a mask. It omits the integrity layer (each share is also ECDSA-signed and server-verified). Privacy assumes honest, non-colluding parties; see the limitations above.</figcaption>
     </figure>
     <p>1. Each pair of participants <code>(i, j)</code> with <code>i &lt; j</code> derives a one-time-pad mask <code>r_ij</code> via ECDH + HKDF. Participant <code>i</code> adds it; participant <code>j</code> subtracts it.</p>
-    <p>2. Each participant submits only <code>s_i = x_i ± masks</code> — a single number indistinguishable from uniform random.</p>
-    <p>3. The aggregator sums all <code>N</code> masked shares. Every mask appears once with <code>+</code> and once with <code>−</code>, so the masks cancel and the sum reveals <code>Σ x_i</code>, from which the average follows.</p>
+    <p>2. Each participant submits only <code>s_i = x_i ± masks</code> - a single number indistinguishable from uniform random.</p>
+    <p>3. The aggregator sums all <code>N</code> masked shares. Every mask appears once with <code>+</code> and once with <code>-</code>, so the masks cancel and the sum reveals <code>Σ x_i</code>, from which the average follows.</p>
   </div>
 
   <section class="honesty">
-    <h2 class="honesty-title">What this demonstrates — and what it deliberately doesn't</h2>
+    <h2 class="honesty-title">What this demonstrates - and what it deliberately doesn't</h2>
     <div class="honesty-cols">
       <div>
         <div class="honesty-h">What it demonstrates</div>
         <ul>
-          <li>Real cryptography — ECDH + HKDF pairwise masks and ECDSA-signed shares; your raw figure never leaves your browser.</li>
-          <li>Independently verifiable — every participant recomputes and re-checks the result, so nothing is taken on trust.</li>
-          <li>Reviewed in the open — full threat model, accepted trade-offs, and a security review board on GitHub.</li>
+          <li>Real cryptography - ECDH + HKDF pairwise masks and ECDSA-signed shares; your raw figure never leaves your browser.</li>
+          <li>Independently verifiable - every participant recomputes and re-checks the result, so nothing is taken on trust.</li>
+          <li>Reviewed in the open - full threat model, accepted trade-offs, and a security review board on GitHub.</li>
         </ul>
       </div>
       <div>
         <div class="honesty-h">What it deliberately doesn't</div>
         <ul>
-          <li>It assumes each participant is honest about their own figure — there are no range proofs (out of scope for a demo).</li>
+          <li>It assumes each participant is honest about their own figure - there are no range proofs (out of scope for a demo).</li>
           <li>It needs all participants online together for one synchronous round.</li>
           <li>It has no long-term identity anchor, so it can't stop an impostor who registers before the real participant.</li>
         </ul>
       </div>
     </div>
-    <p>An educational proof-of-concept — the cryptographic plumbing, faithfully built and openly documented. <a href="https://github.com/dylanil/SMPC#readme" target="_blank" rel="noopener">README</a> · <a href="https://github.com/dylanil/SMPC/blob/main/SECURITY.md" target="_blank" rel="noopener">SECURITY</a> · <a href="https://github.com/dylanil/SMPC/tree/main/docs/review" target="_blank" rel="noopener">review board</a></p>
+    <p>An educational proof-of-concept - the cryptographic plumbing, faithfully built and openly documented. <a href="https://github.com/dylanil/SMPC#readme" target="_blank" rel="noopener">README</a> · <a href="https://github.com/dylanil/SMPC/blob/main/SECURITY.md" target="_blank" rel="noopener">SECURITY</a> · <a href="https://github.com/dylanil/SMPC/tree/main/docs/review" target="_blank" rel="noopener">review board</a></p>
   </section>
 
   <a class="card" href="/aggregator" target="_blank">
@@ -144,17 +144,17 @@
     <div class="desc">Pick how many participants will join, mint the session, and watch the average appear once every share lands.</div>
   </a>
 
-  <p class="solo-cta">Just exploring on your own? Open the <a href="/aggregator" target="_blank">Aggregator</a> and click <b>Demo</b> to watch a complete round simulated in one tab — no friends required.</p>
+  <p class="solo-cta">Just exploring on your own? Open the <a href="/aggregator" target="_blank">Aggregator</a> and click <b>Demo</b> to watch a complete round simulated in one tab - no friends required.</p>
 
   <div class="note">
-    Participant pages live at <code>/party/A</code> through <code>/party/J</code>. You don't need to open them from here — the aggregator's invite includes a clickable link that pre-fills the right code.
+    Participant pages live at <code>/party/A</code> through <code>/party/J</code>. You don't need to open them from here - the aggregator's invite includes a clickable link that pre-fills the right code.
   </div>
 
   <div class="note">
-    Here alone? The aggregator page can simulate all the participants in one tab, so you can watch a complete round — real protocol traffic included — without rounding up friends.
+    Here alone? The aggregator page can simulate all the participants in one tab, so you can watch a complete round - real protocol traffic included - without rounding up friends.
   </div>
 
-  <p style="font-size:12px; color:var(--muted); margin-top:18px;">Educational demonstration only — a proof-of-concept, not a production, commercial, or professional service. Provided as is, with no warranty and no guarantee of correctness, security, or availability; do not rely on it for any real, confidential, regulated, or production purpose, and do not enter real or sensitive figures.</p>
+  <p style="font-size:12px; color:var(--muted); margin-top:18px;">Educational demonstration only - a proof-of-concept, not a production, commercial, or professional service. Provided as is, with no warranty and no guarantee of correctness, security, or availability; do not rely on it for any real, confidential, regulated, or production purpose, and do not enter real or sensitive figures.</p>
 </div>
 </body>
 </html>

@@ -3,17 +3,17 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="An educational demo of secure multi-party computation — 3 to 10 participants compute an average without any raw figure leaving their browser. Not production-secure.">
+<meta name="description" content="An educational demo of secure multi-party computation - 3 to 10 participants compute an average without any raw figure leaving their browser. Not production-secure.">
 <meta property="og:type" content="website">
-<meta property="og:title" content="SMPC Participant — submit one private figure">
-<meta property="og:description" content="3 to 10 participants compute an average without any raw figure leaving their browser — pairwise masks cancel, and every result is independently verifiable.">
+<meta property="og:title" content="SMPC Participant - submit one private figure">
+<meta property="og:description" content="3 to 10 participants compute an average without any raw figure leaving their browser - pairwise masks cancel, and every result is independently verifiable.">
 <meta property="og:url" content="https://fl-wg-smpc.fly.dev/">
 <meta property="og:image" content="https://fl-wg-smpc.fly.dev/static/og-preview.png">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:image" content="https://fl-wg-smpc.fly.dev/static/og-preview.png">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230b0f17'/%3E%3Cpath d='M23 8H9l8 8-8 8h14' fill='none' stroke='%23ff7a18' stroke-width='2.5' stroke-linejoin='round' stroke-linecap='round'/%3E%3C/svg%3E">
 <meta name="theme-color" content="#0b0f17">
-<title>SMPC Participant — demo</title>
+<title>SMPC Participant - demo</title>
 <style>
   :root {
     --bg:#0c0c0d; --panel:#161618; --panel-2:#1e1e20; --border:#2c2c30;
@@ -21,7 +21,7 @@
     --a:#f2c64b; --b:#cf8ad9; --c:#5fcf80; --d:#ef6f9a; --e:#cfd152;
     --f:#e0625c; --g:#4fc7bd; --h:#b08968; --i:#8fb53f; --j:#d99ab0;
     --danger:#ff7a8a; --ok:#69d58a;
-    /* RB-18 shared tokens — keep byte-identical across home/party/aggregator (see CLAUDE.md Styling). */
+    /* RB-18 shared tokens - keep byte-identical across home/party/aggregator (see CLAUDE.md Styling). */
     --grad:linear-gradient(135deg,#1a1410,#241a10); --shadow:0 1px 0 rgba(255,255,255,.04) inset, 0 2px 6px rgba(0,0,0,.55);
   }
   * { box-sizing:border-box; }
@@ -103,7 +103,7 @@
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { transition: none !important; animation: none !important; }
   }
-  /* Shared honesty callout — keep this rule block AND its copy in sync across
+  /* Shared honesty callout - keep this rule block AND its copy in sync across
      home/party/aggregator (no shared stylesheet/build; see CLAUDE.md Styling). */
   .honesty { background:var(--panel); border:1px solid var(--border);
     border-radius:10px; padding:18px 20px; margin-bottom:24px; }
@@ -123,19 +123,19 @@
   <div class="header">
     <div class="badge" id="badge">?</div>
     <div>
-      <h1>Participant <span id="roleName" class="accent">?</span> — demo</h1>
+      <h1>Participant <span id="roleName" class="accent">?</span> - demo</h1>
       <div class="sub">Your figure never leaves this browser. Two keypairs are generated locally: one for ECDH mask derivation, one for ECDSA signing of every submission. Private halves stay in this tab.</div>
     </div>
   </div>
 
   <div class="card" id="inputCard">
-    <h2>Step 1 — Enter invite code &amp; private figure</h2>
+    <h2>Step 1 - Enter invite code &amp; private figure</h2>
     <div class="field-row">
       <label>Invite code <span class="pill">from the aggregator</span></label>
       <input type="text" class="code" id="inviteInput" maxlength="13" placeholder="XXXXXX-YYYYYY" autocomplete="off" spellcheck="false" autofocus>
     </div>
     <div class="metric-note" id="metricNote" hidden></div>
-    <div style="font-size:12px; color:var(--muted); margin:0 0 10px;">Demo only — please don't enter a real or sensitive figure. Provided as is, with no warranty; don't rely on the result.</div>
+    <div style="font-size:12px; color:var(--muted); margin:0 0 10px;">Demo only - please don't enter a real or sensitive figure. Provided as is, with no warranty; don't rely on the result.</div>
     <div class="field-row">
       <label>Private figure <span class="pill">stays local</span></label>
       <input type="number" id="numInput" step="any" inputmode="decimal" placeholder="e.g. 42">
@@ -145,36 +145,36 @@
   </div>
 
   <div class="card muted" id="joinCard">
-    <h2>Step 2 — Register signing key &amp; receive bearer token</h2>
+    <h2>Step 2 - Register signing key &amp; receive bearer token</h2>
     <div id="joinLog" class="log"></div>
   </div>
 
   <div class="card muted" id="exchangeCard">
-    <h2>Step 3 — ECDH key exchange &amp; mask derivation</h2>
+    <h2>Step 3 - ECDH key exchange &amp; mask derivation</h2>
     <div id="exchangeLog" class="log"></div>
   </div>
 
   <div class="card muted" id="computeCard">
-    <h2>Step 4 — Compute masked share locally</h2>
+    <h2>Step 4 - Compute masked share locally</h2>
     <div id="computeBody"></div>
   </div>
 
   <div class="card muted" id="submitCard">
-    <h2>Step 5 — Sign and submit masked share</h2>
+    <h2>Step 5 - Sign and submit masked share</h2>
     <div id="submitBody"></div>
   </div>
 
   <div class="card muted" id="verifyCard">
-    <h2>Step 6 — Independently verify every share's signature and the sum</h2>
+    <h2>Step 6 - Independently verify every share's signature and the sum</h2>
     <div id="verifyBody"></div>
   </div>
 
   <section class="honesty">
     <div class="honesty-h">About this demo</div>
-    <p>An educational proof-of-concept, not an audited or production service — it shows how the cryptographic plumbing of secure multi-party computation works. The maths is real (your raw figure never leaves your browser; every result is independently verifiable), but it has deliberate, documented limits: it assumes everyone is honest about their own figure, needs all participants online at once, and can't stop an impostor who registers before the real participant. Full threat model and open review on GitHub: <a href="https://github.com/dylanil/SMPC#readme" target="_blank" rel="noopener">README</a> · <a href="https://github.com/dylanil/SMPC/blob/main/SECURITY.md" target="_blank" rel="noopener">SECURITY</a> · <a href="https://github.com/dylanil/SMPC/tree/main/docs/review" target="_blank" rel="noopener">review board</a>.</p>
+    <p>An educational proof-of-concept, not an audited or production service - it shows how the cryptographic plumbing of secure multi-party computation works. The maths is real (your raw figure never leaves your browser; every result is independently verifiable), but it has deliberate, documented limits: it assumes everyone is honest about their own figure, needs all participants online at once, and can't stop an impostor who registers before the real participant. Full threat model and open review on GitHub: <a href="https://github.com/dylanil/SMPC#readme" target="_blank" rel="noopener">README</a> · <a href="https://github.com/dylanil/SMPC/blob/main/SECURITY.md" target="_blank" rel="noopener">SECURITY</a> · <a href="https://github.com/dylanil/SMPC/tree/main/docs/review" target="_blank" rel="noopener">review board</a>.</p>
   </section>
 
-  <p style="font-size:12px; color:var(--muted); margin-top:18px;">Educational demonstration only — a proof-of-concept, not a production, commercial, or professional service. Provided as is, with no warranty and no guarantee of correctness, security, or availability; do not rely on it for any real, confidential, regulated, or production purpose, and do not enter real or sensitive figures.</p>
+  <p style="font-size:12px; color:var(--muted); margin-top:18px;">Educational demonstration only - a proof-of-concept, not a production, commercial, or professional service. Provided as is, with no warranty and no guarantee of correctness, security, or availability; do not rely on it for any real, confidential, regulated, or production purpose, and do not enter real or sensitive figures.</p>
   <a href="/">← back to home</a>
 </div>
 
@@ -183,7 +183,7 @@
 <script>
   // Protocol crypto (curve, HKDF info string, signed-BigInt conversion,
   // canonical message format, sign convention) is shared with the
-  // aggregator's demo mode via smpc-core.js — see CLAUDE.md.
+  // aggregator's demo mode via smpc-core.js - see CLAUDE.md.
   const {
     SCALE, toFixed, canonicalMessage, maskSign,
     generateECDHKeypair, exportEcdhPubB64, derivePairwiseMask,
@@ -191,14 +191,14 @@
   } = window.SMPCCore;
 
   // RB-28: the protocol needs WebCrypto (crypto.subtle), which only exists in a
-  // secure context — HTTPS or http://localhost. A plain-HTTP LAN URL like
+  // secure context - HTTPS or http://localhost. A plain-HTTP LAN URL like
   // http://192.168.x.x:8765 is NOT a secure context, so the first generateKey()
   // would otherwise throw an unexplained error mid-flow. Detect it up front and
   // fail with a clear, actionable message instead.
   if (!window.isSecureContext || !(window.crypto && window.crypto.subtle) || typeof BigInt === 'undefined') {
     const btn = document.getElementById('startBtn');
     if (btn) btn.disabled = true;
-    showInputErr('This page needs a secure context for in-browser cryptography (WebCrypto). Open the HTTPS link, or use http://localhost — a plain http://<LAN-IP> address is not a secure context, so the protocol can\'t run here.');
+    showInputErr('This page needs a secure context for in-browser cryptography (WebCrypto). Open the HTTPS link, or use http://localhost - a plain http://<LAN-IP> address is not a secure context, so the protocol can\'t run here.');
   }
 
   const MAX_PARTIES = 'ABCDEFGHIJ'.split('');
@@ -211,9 +211,9 @@
   document.body.style.setProperty('--role-color', `var(--${ROLE.toLowerCase()})`);
   document.getElementById('badge').textContent = ROLE;
   document.getElementById('roleName').textContent = ROLE;
-  document.title = `Participant ${ROLE} — SMPC`;
+  document.title = `Participant ${ROLE} - SMPC`;
 
-  // PARTIES is filled in after /api/join — we don't know the session size up
+  // PARTIES is filled in after /api/join - we don't know the session size up
   // front from the URL alone.
   let PARTIES = [];
   let OTHERS = [];
@@ -233,9 +233,9 @@
   // failed, e.g. "publish your key".
   function statusMessage(status, detail, action) {
     if (status === 403) return `Could not ${action}: ${detail || 'session, token, or signature rejected'} (403). The session may have expired (sessions last ~30 min) or the server may have restarted. Ask the aggregator to start a fresh round.`;
-    if (status === 409) return `Could not ${action}: ${detail || 'a different value was already committed'} (409). This slot is locked to its first value — recovery needs a fresh invite, not a reload.`;
+    if (status === 409) return `Could not ${action}: ${detail || 'a different value was already committed'} (409). This slot is locked to its first value - recovery needs a fresh invite, not a reload.`;
     if (status === 429) return `Rate limited (429). Wait a minute and try again.`;
-    if (status === 401) return `Could not ${action}: ${detail || 'authentication failed'} (401). The session may have expired — ask for a fresh invite.`;
+    if (status === 401) return `Could not ${action}: ${detail || 'authentication failed'} (401). The session may have expired - ask for a fresh invite.`;
     if (status === 400) return `Browser-side error: ${detail || 'bad request'} (400).`;
     return `Could not ${action}: ${detail || ('HTTP ' + status)}.`;
   }
@@ -267,7 +267,7 @@
   const INVITE_RE = /^([A-Z0-9]{6})-([A-Z0-9]{6})$/;
 
   // Prefill from URL hash so the aggregator can share a clickable link,
-  // e.g. /party/a#ABC123-DEF456 — the token stays out of server access logs.
+  // e.g. /party/a#ABC123-DEF456 - the token stays out of server access logs.
   if (location.hash) {
     const h = location.hash.slice(1).toUpperCase();
     if (INVITE_RE.test(h)) document.getElementById('inviteInput').value = h;
@@ -276,7 +276,7 @@
   // The round may carry a "what's being benchmarked" label. The participant
   // types their figure before joining, so as soon as the invite parses we
   // fetch the label from /api/state (session-code-gated read) and show it
-  // above the figure input. textContent only — the label is text typed by
+  // above the figure input. textContent only - the label is text typed by
   // the aggregator, rendered here on someone else's screen.
   function showMetric(metric) {
     ROUND_METRIC = metric || '';
@@ -285,7 +285,7 @@
     if (ROUND_METRIC) {
       note.textContent = `This round benchmarks: ${ROUND_METRIC}`;
       note.hidden = false;
-      numInput.placeholder = `e.g. 42 — ${ROUND_METRIC}`;  // RB-15: surface the metric on the figure input itself
+      numInput.placeholder = `e.g. 42 - ${ROUND_METRIC}`;  // RB-15: surface the metric on the figure input itself
     } else {
       note.hidden = true;
       numInput.placeholder = 'e.g. 42';
@@ -329,7 +329,7 @@
 
     // === Step 2: generate signing key, mine PoW, and join ===
     document.getElementById('joinCard').classList.remove('muted');
-    logLine('joinLog', `Generating ECDSA P-256 signing keypair locally — sk<sub>${ROLE}</sub> never leaves this browser.`, 'warn');
+    logLine('joinLog', `Generating ECDSA P-256 signing keypair locally - sk<sub>${ROLE}</sub> never leaves this browser.`, 'warn');
     SIGN_KP = await generateSigningKeypair();
     const myVkB64 = await exportVkB64(SIGN_KP);
 
@@ -360,7 +360,7 @@
         if (status === 403) {
           msg = `Could not join: ${detail || 'session, token, or party rejected'} (403). The session may have expired or restarted on the server, or the invite may be for a different participant. Ask the aggregator to mint a fresh invite.`;
         } else if (status === 409) {
-          msg = `Could not join: ${detail || 'slot already taken'} (409). Participant ${ROLE}'s slot is already registered — most often because this page was reloaded, which can't recover an in-progress slot. Ask the aggregator for a fresh invite. (If you never joined, someone else may have claimed the slot.)`;
+          msg = `Could not join: ${detail || 'slot already taken'} (409). Participant ${ROLE}'s slot is already registered - most often because this page was reloaded, which can't recover an in-progress slot. Ask the aggregator for a fresh invite. (If you never joined, someone else may have claimed the slot.)`;
         } else if (status === 429) {
           msg = `Rate limited (429). Wait a minute and try again.`;
         } else if (status === 401) {
@@ -384,7 +384,7 @@
     OTHERS = PARTIES.filter(p => p !== ROLE);
     showMetric(joinResp.metric); // authoritative, replaces the pre-join fetch
     if (!PARTIES.includes(ROLE)) {
-      showInputErr(`This session is for participants ${PARTIES.join(', ')} — not ${ROLE}. Open the right /party/<letter> URL.`);
+      showInputErr(`This session is for participants ${PARTIES.join(', ')} - not ${ROLE}. Open the right /party/<letter> URL.`);
       return;
     }
     logLine('joinLog', `← Received server-signed bearer token. Session has ${PARTIES.length} participants: ${PARTIES.join(', ')}.`, 'ok');
@@ -395,12 +395,12 @@
     document.getElementById('numInput').disabled = true;
     document.getElementById('inviteInput').disabled = true;
     // RB-24/RB-27: once joined, this slot is locked to this key for the round.
-    // Reloading re-keys and gets a 409 — recovery is a fresh invite, not a reload.
-    logLine('joinLog', 'Inputs locked for this round — to start over, ask the aggregator for a fresh invite (reloading won\'t recover this slot).', 'warn');
+    // Reloading re-keys and gets a 409 - recovery is a fresh invite, not a reload.
+    logLine('joinLog', 'Inputs locked for this round - to start over, ask the aggregator for a fresh invite (reloading won\'t recover this slot).', 'warn');
 
     // === Step 3: ECDH key exchange + local mask derivation ===
     document.getElementById('exchangeCard').classList.remove('muted');
-    logLine('exchangeLog', `Generating ECDH P-256 keypair locally (separate from the signing key) — priv never leaves this browser.`, 'warn');
+    logLine('exchangeLog', `Generating ECDH P-256 keypair locally (separate from the signing key) - priv never leaves this browser.`, 'warn');
 
     const ecdhKp = await generateECDHKeypair();
     const myEcdhPubB64 = await exportEcdhPubB64(ecdhKp);
@@ -441,20 +441,20 @@
       const lo = ROLE < other ? ROLE : other;
       const hi = ROLE < other ? other : ROLE;
       share += maskSign(ROLE, other) * masks[other];
-      parts.push(`${maskSign(ROLE, other) === 1n ? '+' : '−'} r<sub>${lo}${hi}</sub>`);
+      parts.push(`${maskSign(ROLE, other) === 1n ? '+' : '-'} r<sub>${lo}${hi}</sub>`);
     }
 
     document.getElementById('computeBody').innerHTML = `
       <div class="kv">
         <div class="k">Your figure x<sub>${ROLE}</sub>:</div>
-        <div class="mono secret">kept local — never transmitted</div>
+        <div class="mono secret">kept local - never transmitted</div>
         <div class="k">Formula:</div>
         <div class="mono">s<sub>${ROLE}</sub> = ${parts.join(' ')}</div>
         <div class="k">Masked share s<sub>${ROLE}</sub>:</div>
         <div class="mono masked">${share.toString()}</div>
       </div>
       <div style="margin-top:10px; font-size:12px; color:var(--muted); font-style:italic;">
-        This number is indistinguishable from random. The coordinator can't undo the masks because it never saw any private key — only public keys flowed through it.
+        This number is indistinguishable from random. The coordinator can't undo the masks because it never saw any private key - only public keys flowed through it.
       </div>
     `;
 
@@ -473,7 +473,7 @@
         <div class="line ok">→ Submitted {server_token, share, sig} to the aggregator.</div>
       </div>
       <div class="done-banner">
-        Submitted. Step 6 below recomputes the sum locally — and verifies every share's signature against the registered vk for that party — once all ${PARTIES.length} are in.
+        Submitted. Step 6 below recomputes the sum locally - and verifies every share's signature against the registered vk for that party - once all ${PARTIES.length} are in.
       </div>
     `;
 
@@ -485,10 +485,10 @@
     // Session-lost detection, ported from the aggregator: only declare the
     // session dead after at least one successful poll AND ~3.5s of sustained
     // 403s, so a transient blip (or a poll landing before a write is visible)
-    // doesn't false-positive. The common real failure — a participant never
-    // submits, or the session is reaped/restarted — otherwise shows a falsely
+    // doesn't false-positive. The common real failure - a participant never
+    // submits, or the session is reaped/restarted - otherwise shows a falsely
     // reassuring "waiting…" forever (RB-02). On the happy path we also show
-    // live progress ("3 of 5 in — waiting on B, D") from /api/result's
+    // live progress ("3 of 5 in - waiting on B, D") from /api/result's
     // shares_submitted, so the wait is legible instead of opaque.
     let everSeenAlive = false, consecutiveLost = 0;
     const LOST_THRESHOLD = 5; // 5 polls × 700ms ≈ 3.5s of sustained 403s
@@ -499,7 +499,7 @@
           consecutiveLost++;
           if (everSeenAlive && consecutiveLost >= LOST_THRESHOLD) {
             verifyProgress.style.color = '#ff7a8a';
-            verifyProgress.textContent = 'Session lost — the server appears to have restarted, or this session expired (sessions are in-memory and last ~30 min), so the round can\'t complete. Ask the aggregator to start a fresh round and reissue invites.';
+            verifyProgress.textContent = 'Session lost - the server appears to have restarted, or this session expired (sessions are in-memory and last ~30 min), so the round can\'t complete. Ask the aggregator to start a fresh round and reissue invites.';
             break;
           }
         } else if (r.ok) {
@@ -508,7 +508,7 @@
           if (!data.ready) {
             const submitted = data.shares_submitted || [];
             const missing = PARTIES.filter(p => !submitted.includes(p));
-            verifyProgress.textContent = `Waiting for shares — ${submitted.length} of ${PARTIES.length} in${missing.length ? '; still waiting on ' + missing.join(', ') : ''}…`;
+            verifyProgress.textContent = `Waiting for shares - ${submitted.length} of ${PARTIES.length} in${missing.length ? '; still waiting on ' + missing.join(', ') : ''}…`;
           }
           if (data.ready) {
             // Verify each party's signature against their registered vk.
@@ -542,13 +542,13 @@
                 <div class="k" id="avgRowLabel">Average:</div><div class="mono ${allSigsOk && sumOk ? 'masked' : 'secret'}">${avgStr}</div>
               </div>
               <div style="margin-top:10px; font-size:12px; color:var(--muted); font-style:italic;">
-                Each share is signed by its party's sk; the server stores both the sig and the vk that arrived at /api/join. ECDSA verification here uses the vk the server returned — so a share signed by a key other than the one registered at join surfaces as ✗ INVALID. (It does <em>not</em> detect an interceptor who registered their own key at join in the first place — see the impersonation limitation in the README.) Without all ${PARTIES.length} sigs valid, you should not trust the average.
+                Each share is signed by its party's sk; the server stores both the sig and the vk that arrived at /api/join. ECDSA verification here uses the vk the server returned - so a share signed by a key other than the one registered at join surfaces as ✗ INVALID. (It does <em>not</em> detect an interceptor who registered their own key at join in the first place - see the impersonation limitation in the README.) Without all ${PARTIES.length} sigs valid, you should not trust the average.
               </div>
             `;
             // Metric is aggregator-typed text: inject via textContent, never
             // into the innerHTML template above.
             if (ROUND_METRIC) {
-              document.getElementById('avgRowLabel').textContent = `Average — ${ROUND_METRIC}:`;
+              document.getElementById('avgRowLabel').textContent = `Average - ${ROUND_METRIC}:`;
             }
             break;
           }
@@ -561,7 +561,7 @@
   document.getElementById('startBtn').addEventListener('click', () => {
     start().catch(err => {
       // apiPostInline errors already rendered themselves inline; anything else
-      // is an unexpected JS/network failure — surface it inline too, never a
+      // is an unexpected JS/network failure - surface it inline too, never a
       // raw alert(). Inputs are deliberately NOT re-enabled mid-round: a second
       // start() re-keys the signing key and 409s (RB-27), so recovery is a
       // fresh invite, which the inline messages say.

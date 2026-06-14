@@ -3,7 +3,7 @@
 Goes beyond verify_round.py's single happy-path round:
   - a pinned protocol **contract vector** (canonical message, signed-64-bit
     conversion, ECDH+HKDF mask, and a full SHA-256 digest) so a drift on either
-    side fails loudly — the digest is the one a JS harness (pow.js' hand-rolled
+    side fails loudly - the digest is the one a JS harness (pow.js' hand-rolled
     SHA-256) must also reproduce (RB-33);
   - the **error-path matrix** the happy path never exercises: first-write-wins
     (200/200/409), malformed share rejected at write time, PoW replay/garbage
@@ -11,8 +11,8 @@ Goes beyond verify_round.py's single happy-path round:
   - an **N=3..10 sweep** of full rounds.
 
 The contract-critical crypto (canonical message, HKDF derivation, sign convention,
-signed-64 conversion) is imported from verify_round.py — the independent second
-implementation — so it stays single-sourced. Run with the server up:
+signed-64 conversion) is imported from verify_round.py - the independent second
+implementation - so it stays single-sourced. Run with the server up:
 
     python server.py            # in one shell
     python tests.py             # in another

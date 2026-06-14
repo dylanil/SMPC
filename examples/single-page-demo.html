@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>SMPC Average — Pairwise OTP Masking</title>
+<title>SMPC Average - Pairwise OTP Masking</title>
 <style>
   :root {
     --bg: #0b0f17;
@@ -224,7 +224,7 @@
 <body>
 <div class="container">
   <h1>Secure Multi-Party Average (3 Parties)</h1>
-  <div class="subtitle">Computes the average of three private numbers using pairwise one-time-pad masks. Raw inputs never leave their party — only masked shares are aggregated.</div>
+  <div class="subtitle">Computes the average of three private numbers using pairwise one-time-pad masks. Raw inputs never leave their party - only masked shares are aggregated.</div>
 
   <div class="parties">
     <div class="party a">
@@ -250,7 +250,7 @@
   </div>
 
   <div class="step" id="step1">
-    <h3>Step 1 — Pairwise Mask Exchange</h3>
+    <h3>Step 1 - Pairwise Mask Exchange</h3>
     <div class="body">
       For every pair of parties, a random one-time-pad mask is jointly generated and exchanged over a secure channel. Each mask is known only to the two parties in that pair.
       <div class="mask-grid" id="maskGrid"></div>
@@ -259,7 +259,7 @@
   </div>
 
   <div class="step" id="step2">
-    <h3>Step 2 — Local Masking (each party, in isolation)</h3>
+    <h3>Step 2 - Local Masking (each party, in isolation)</h3>
     <div class="body">
       Each party computes a masked share by adding the masks from pairs where it is the lower-indexed party, and subtracting the masks from pairs where it is the higher-indexed party. The raw input <span class="secret">x</span> is never transmitted.
       <div class="share-grid" id="shareGrid"></div>
@@ -267,19 +267,19 @@
   </div>
 
   <div class="step" id="step3">
-    <h3>Step 3 — Aggregation of Masked Shares</h3>
+    <h3>Step 3 - Aggregation of Masked Shares</h3>
     <div class="body">
-      The three masked shares are sent to an aggregator (or broadcast). Only these masked values are combined — the raw inputs are never seen. Because every mask appears once with a <code>+</code> and once with a <code>-</code>, all masks cancel in the sum.
+      The three masked shares are sent to an aggregator (or broadcast). Only these masked values are combined - the raw inputs are never seen. Because every mask appears once with a <code>+</code> and once with a <code>-</code>, all masks cancel in the sum.
       <div class="aggregate" id="aggregate"></div>
     </div>
   </div>
 
   <div class="step" id="step4">
-    <h3>Step 4 — Reveal Average</h3>
+    <h3>Step 4 - Reveal Average</h3>
     <div class="body">
       <div class="result">
         <div class="avg-label">Computed Average</div>
-        <div class="avg-value" id="avgValue">—</div>
+        <div class="avg-value" id="avgValue">-</div>
       </div>
     </div>
   </div>
@@ -342,15 +342,15 @@
 
     document.getElementById('maskGrid').innerHTML = `
       <div class="mask-card">
-        <div class="pair">r<sub>AB</sub> — shared between A and B</div>
+        <div class="pair">r<sub>AB</sub> - shared between A and B</div>
         <div class="value">${fmtMask(rAB)}</div>
       </div>
       <div class="mask-card">
-        <div class="pair">r<sub>AC</sub> — shared between A and C</div>
+        <div class="pair">r<sub>AC</sub> - shared between A and C</div>
         <div class="value">${fmtMask(rAC)}</div>
       </div>
       <div class="mask-card">
-        <div class="pair">r<sub>BC</sub> — shared between B and C</div>
+        <div class="pair">r<sub>BC</sub> - shared between B and C</div>
         <div class="value">${fmtMask(rBC)}</div>
       </div>
     `;
@@ -382,17 +382,17 @@
       </div>
       <div class="share-card b">
         <div class="label">Party B's masked share</div>
-        <div class="formula">s<sub>B</sub> = x<sub>B</sub> − r<sub>AB</sub> + r<sub>BC</sub></div>
+        <div class="formula">s<sub>B</sub> = x<sub>B</sub> - r<sub>AB</sub> + r<sub>BC</sub></div>
         <div class="value">
-          <span class="secret">[hidden x<sub>B</sub>]</span> − r<sub>AB</sub> + r<sub>BC</sub><br>
+          <span class="secret">[hidden x<sub>B</sub>]</span> - r<sub>AB</sub> + r<sub>BC</sub><br>
           = <span class="masked">${sB.toString()}</span>
         </div>
       </div>
       <div class="share-card c">
         <div class="label">Party C's masked share</div>
-        <div class="formula">s<sub>C</sub> = x<sub>C</sub> − r<sub>AC</sub> − r<sub>BC</sub></div>
+        <div class="formula">s<sub>C</sub> = x<sub>C</sub> - r<sub>AC</sub> - r<sub>BC</sub></div>
         <div class="value">
-          <span class="secret">[hidden x<sub>C</sub>]</span> − r<sub>AC</sub> − r<sub>BC</sub><br>
+          <span class="secret">[hidden x<sub>C</sub>]</span> - r<sub>AC</sub> - r<sub>BC</sub><br>
           = <span class="masked">${sC.toString()}</span>
         </div>
       </div>
@@ -411,7 +411,7 @@
       <div class="line">  s<sub>C</sub> = <span class="masked">${sC.toString()}</span></div>
       <div class="line">&nbsp;</div>
       <div class="line">Sum = s<sub>A</sub> + s<sub>B</sub> + s<sub>C</sub></div>
-      <div class="line">    = (x<sub>A</sub> + r<sub>AB</sub> + r<sub>AC</sub>) + (x<sub>B</sub> − r<sub>AB</sub> + r<sub>BC</sub>) + (x<sub>C</sub> − r<sub>AC</sub> − r<sub>BC</sub>)</div>
+      <div class="line">    = (x<sub>A</sub> + r<sub>AB</sub> + r<sub>AC</sub>) + (x<sub>B</sub> - r<sub>AB</sub> + r<sub>BC</sub>) + (x<sub>C</sub> - r<sub>AC</sub> - r<sub>BC</sub>)</div>
       <div class="line">    = x<sub>A</sub> + x<sub>B</sub> + x<sub>C</sub>   <span style="color:var(--muted)">(all masks cancel)</span></div>
       <div class="line sum">    = ${fromFixed(sum)}</div>
     `;
@@ -431,7 +431,7 @@
     document.getElementById('maskGrid').innerHTML = '';
     document.getElementById('shareGrid').innerHTML = '';
     document.getElementById('aggregate').innerHTML = '';
-    document.getElementById('avgValue').textContent = '—';
+    document.getElementById('avgValue').textContent = '-';
     for (const id of ['step1', 'step2', 'step3', 'step4']) {
       document.getElementById(id).classList.remove('active', 'done');
     }

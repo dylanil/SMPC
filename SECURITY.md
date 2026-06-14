@@ -1,7 +1,7 @@
 # Security Policy
 
 This is an educational **demonstration project**, not a production or commercial service. It runs
-as a single in-memory instance and has known, documented limitations — see *Security notes* and
+as a single in-memory instance and has known, documented limitations - see *Security notes* and
 *Known limitations* in [`README.md`](README.md), and the self-review in [`docs/review/`](docs/review/).
 
 ## Reporting
@@ -17,9 +17,9 @@ The cryptographic plumbing (pairwise ECDH + HKDF masking, ECDSA-signed shares) i
 the mechanics; it is **not** a hardened product. Two limits in particular are accepted and documented,
 not bugs to report:
 
-- **Impersonation race** — identities are generated per session in the browser, so there is no
+- **Impersonation race** - identities are generated per session in the browser, so there is no
   long-term trust anchor; an interceptor who claims an invite first can pose as that participant.
-- **Collusion bound** — enough colluding participants (or one plus the aggregator) can reconstruct an
+- **Collusion bound** - enough colluding participants (or one plus the aggregator) can reconstruct an
   honest participant's input, inherent to pairwise masking.
 
 See the README for the full list.

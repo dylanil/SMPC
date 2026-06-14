@@ -52,14 +52,14 @@ Identity / integrity stack (atop the existing pairwise-mask protocol):
      a fresh server-signed challenge plus a nonce that makes
      SHA-256(challenge:nonce) clear a configurable difficulty bar. Caps the
      per-request cost an attacker pays for memory-DoS via session creation
-     and brute-force invite-token guessing — orthogonal to per-IP rate
+     and brute-force invite-token guessing - orthogonal to per-IP rate
      limits, since PoW costs the attacker compute regardless of source IP.
 
   IMPORTANT: this stack does NOT solve session-time impersonation while vks
   are session-ephemeral. A token-interceptor who races the legitimate
   participant to /api/join publishes their own vk, and signatures verify
   cleanly under it. Closing that gap requires a long-term per-participant
-  key registry (or two-channel delivery, or an IdP) — out of scope here.
+  key registry (or two-channel delivery, or an IdP) - out of scope here.
 
 Wire-level state held by this server:
   - sessions: dict keyed by 6-char session code. Each session holds:
@@ -105,7 +105,7 @@ PUBLIC_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "public")
 # and reset). Empty/unset disables the check, preserving the local-dev experience.
 # Read once at import time so per-request lookups are constant-time.
 AGGREGATOR_PASSWORD = os.environ.get("AGGREGATOR_PASSWORD", "").strip()
-# SITE_PASSWORD gates the ENTIRE site behind HTTP Basic Auth — a temporary
+# SITE_PASSWORD gates the ENTIRE site behind HTTP Basic Auth - a temporary
 # "private / coming soon" lock over every page, asset, and API except /healthz
 # (which fly's liveness probe needs). Distinct from AGGREGATOR_PASSWORD (which
 # only gates aggregator session creation/reset); set SITE_PASSWORD to make the
@@ -115,7 +115,7 @@ SITE_PASSWORD = os.environ.get("SITE_PASSWORD", "").strip()
 # Set to a non-empty value only when Cloudflare fronts the deployment: rate
 # limiting then keys on CF-Connecting-IP (the real client) instead of
 # Fly-Client-IP (which would be a shared Cloudflare egress IP). Must stay off
-# otherwise — fly's edge passes unknown client headers through, so trusting
+# otherwise - fly's edge passes unknown client headers through, so trusting
 # CF-Connecting-IP unconditionally would let clients spoof their rate-limit
 # identity, the exact bug this knob's plumbing replaced.
 TRUST_CF_CONNECTING_IP = bool(os.environ.get("TRUST_CF_CONNECTING_IP", "").strip())
@@ -129,7 +129,7 @@ SESSION_LEN = 6
 # Generous ceiling for any legitimate POST. Pubkey + sig + token ~ 500 bytes.
 MAX_BODY_BYTES = 16 * 1024
 # Optional per-session "what's being benchmarked" label, set by the aggregator
-# at session creation and shown on participant pages. Display metadata only —
+# at session creation and shown on participant pages. Display metadata only -
 # never part of the signed canonical message. Length-capped because it's
 # aggregator-supplied text rendered on other people's screens (clients must
 # additionally render it with textContent, never innerHTML).
@@ -141,7 +141,7 @@ PUBKEY_B64_LEN = 88
 SERVER_TOKEN_TTL_SECS = 30 * 60
 # How long the `agg` cookie minted on a successful Basic-Auth page load
 # stays valid. Subsequent same-origin POSTs to gated endpoints can present
-# this cookie instead of an Authorization header — needed because browsers
+# this cookie instead of an Authorization header - needed because browsers
 # don't pre-emptively attach Basic Auth creds to fetch() requests.
 AGGREGATOR_COOKIE_NAME = "agg"
 AGGREGATOR_COOKIE_TTL_SECS = 30 * 60
@@ -154,7 +154,7 @@ SESSION_TTL_SECS = 30 * 60
 SESSION_REAPER_INTERVAL_SECS = 60
 
 # Per-process HMAC secret for server-signed bearer tokens. Regenerated on
-# every restart, which invalidates any in-flight tokens — fine because the
+# every restart, which invalidates any in-flight tokens - fine because the
 # in-memory session state also doesn't survive restart.
 SERVER_HMAC_KEY = secrets.token_bytes(32)
 
@@ -163,26 +163,26 @@ SERVER_HMAC_KEY = secrets.token_bytes(32)
 # ~1 join + 1 pubkey + 1 share per round) but tight enough to make brute-force
 # token guessing and memory-DoS via session creation impractical.
 RATE_LIMITS = {
-    "/api/session/new":   (10, 60),  # 10/min — caps memory growth
-    "/api/join":          (30, 60),  # 30/min — caps brute-force + race-bot speed
-    "/api/pubkey":        (30, 60),  # 30/min — caps signature-verify CPU
-    "/api/share":         (30, 60),  # 30/min — caps signature-verify CPU
-    "/api/reset":         (30, 60),  # 30/min — caps reset spam
-    "/api/pow-challenge": (60, 60),  # 60/min — generous, each session/join needs one
+    "/api/session/new":   (10, 60),  # 10/min - caps memory growth
+    "/api/join":          (30, 60),  # 30/min - caps brute-force + race-bot speed
+    "/api/pubkey":        (30, 60),  # 30/min - caps signature-verify CPU
+    "/api/share":         (30, 60),  # 30/min - caps signature-verify CPU
+    "/api/reset":         (30, 60),  # 30/min - caps reset spam
+    "/api/pow-challenge": (60, 60),  # 60/min - generous, each session/join needs one
 }
 # Read endpoints (/api/state, /api/result, /api/pubkeys, /healthz) are deliberately NOT
 # rate-limited: they're polled sub-second by the pages and do no expensive per-request work.
-# A future agent may be tempted to add a cap "for safety" — but the trade-off (session-code
+# A future agent may be tempted to add a cap "for safety" - but the trade-off (session-code
 # enumeration leaks round metadata, never raw figures) is accepted and tracked as RB-32/AC,
 # not an oversight. See CLAUDE.md *Rate limiting*.
 
 # Proof-of-work tuning. Each session/join request must include a successfully
-# mined challenge + nonce. Difficulty 14 ≈ 16K SHA-256 hashes ≈ 30–80ms on a
-# typical browser using the pure-JS miner in /static/pow.js — fast enough to
+# mined challenge + nonce. Difficulty 14 ≈ 16K SHA-256 hashes ≈ 30-80ms on a
+# typical browser using the pure-JS miner in /static/pow.js - fast enough to
 # feel instant in a demo while still being real per-request CPU work. Bump
-# toward 18–22 if you start seeing botnet abuse.
+# toward 18-22 if you start seeing botnet abuse.
 POW_DIFFICULTY = 14
-POW_CHALLENGE_TTL = 60  # seconds — long enough for a slow phone, short enough to limit pre-mining
+POW_CHALLENGE_TTL = 60  # seconds - long enough for a slow phone, short enough to limit pre-mining
 
 rate_lock = threading.Lock()
 # (path, ip) -> deque of monotonic timestamps within the active window.
@@ -391,9 +391,9 @@ def start_session_reaper():
 def is_decimal_string(s):
     # ASCII-only: str.isdigit() is True for non-ASCII digits ('²', Arabic-Indic '١٠',
     # Devanagari '५', fullwidth '３'…), which pass validation but then crash int() server-side
-    # or throw in the participants' BigInt() — silently desyncing a round (RB-01). The
+    # or throw in the participants' BigInt() - silently desyncing a round (RB-01). The
     # isascii() guard tightens the CHARSET only; there is deliberately NO value/magnitude cap
-    # here (AC-01 — any figure scale must work; the 16 KB body cap stands).
+    # here (AC-01 - any figure scale must work; the 16 KB body cap stands).
     if not isinstance(s, str) or not s or not s.isascii():
         return False
     return s.lstrip("-").isdigit() and not (s == "-" or s.startswith("--"))
@@ -401,7 +401,7 @@ def is_decimal_string(s):
 
 def is_pubkey_b64(s):
     """Lightweight shape check: base64 of a 65-byte uncompressed P-256 point.
-    The browser still has to import the bytes as a real curve point — we don't
+    The browser still has to import the bytes as a real curve point - we don't
     re-validate the curve here, just the format."""
     if not isinstance(s, str) or len(s) != PUBKEY_B64_LEN:
         return False
@@ -425,7 +425,7 @@ def _b64url_decode(s: str) -> bytes:
 
 def mint_bearer_token(session_code, party, vk_b64, ttl=SERVER_TOKEN_TTL_SECS):
     """Mint an HMAC-signed token committing to (session, party, vk) for ttl
-    seconds. Stateless — the server does not need to remember it."""
+    seconds. Stateless - the server does not need to remember it."""
     payload = {
         "session": session_code,
         "party": party,
@@ -442,7 +442,7 @@ def _cookie_hmac_key():
     so the cookie survives server restarts (fly redeploys, machine recycles)
     as long as the password itself is unchanged. Rotating the password
     invalidates every outstanding cookie, which is exactly what we want.
-    Falls back to SERVER_HMAC_KEY when no password is set — in that mode the
+    Falls back to SERVER_HMAC_KEY when no password is set - in that mode the
     cookie is unused anyway because _check_aggregator_auth short-circuits
     True before consulting it."""
     if not AGGREGATOR_PASSWORD:
@@ -455,7 +455,7 @@ _COOKIE_HMAC_KEY = _cookie_hmac_key()
 
 def mint_aggregator_cookie(ttl=AGGREGATOR_COOKIE_TTL_SECS):
     """Sign a small `{exp}` payload that proves the bearer cleared the
-    Basic-Auth gate at /aggregator. Stateless — verified by re-running the
+    Basic-Auth gate at /aggregator. Stateless - verified by re-running the
     HMAC. Used because browsers don't pre-emptively attach Basic Auth to
     fetch() requests, so a cookie is the cleanest way to ride the page-load
     auth across to subsequent API POSTs."""
@@ -484,7 +484,7 @@ def verify_aggregator_cookie(token):
     return payload.get("agg") is True and int(time.time()) <= int(payload.get("exp", 0))
 
 
-# --- Site-lock cookie (SITE_PASSWORD) — same pattern as the aggregator cookie,
+# --- Site-lock cookie (SITE_PASSWORD) - same pattern as the aggregator cookie,
 # keyed off SITE_PASSWORD so it survives restarts but dies on password rotation.
 _SITE_COOKIE_KEY = (
     hashlib.sha256(b"smpc-site-cookie\x00" + SITE_PASSWORD.encode("utf-8")).digest()
@@ -579,7 +579,7 @@ def canonical_message(action, session_code, party, content):
 
 # --- HTTP handler ----------------------------------------------------------
 
-# Paths excluded from the access log unconditionally — even errors. These are
+# Paths excluded from the access log unconditionally - even errors. These are
 # polled sub-second by the pages (party.html's Step 6 retries /api/result
 # every 700ms forever, including against reaped sessions), so logging them,
 # even at >= 400, floods stdout at ~85 lines/min per abandoned tab.
@@ -596,12 +596,12 @@ class Handler(http.server.BaseHTTPRequestHandler):
     timeout = 30
 
     def log_message(self, fmt, *args):
-        return  # quiet — log_request below is the only logger
+        return  # quiet - log_request below is the only logger
 
     def log_request(self, code="-", size="-"):
         # Minimal abuse-visibility log, readable via `fly logs`: POSTs and
         # error responses only, never the polled read endpoints. The line
-        # carries timestamp/IP/method/path/status — never bodies (tokens,
+        # carries timestamp/IP/method/path/status - never bodies (tokens,
         # shares) and never the query string (?session=CODE is a read
         # capability; invite tokens already ride in URL fragments, which
         # never reach the server).
@@ -620,7 +620,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
     # --- response helpers -------------------------------------------------
     def _emit_security_headers(self):
         """Defense-in-depth headers applied to every response. Currently
-        just X-Frame-Options to block clickjacking — an attacker would
+        just X-Frame-Options to block clickjacking - an attacker would
         otherwise be able to put the aggregator UI invisibly inside a
         bait page (e.g. 'Click to claim your prize') so a misclick fires
         the real Create-session button. There's no legitimate reason to
@@ -674,7 +674,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
         # request (the machine isn't reachable except through it, so a client
         # can't inject the header), making it safe to prefer without any
         # trusted-proxy CIDR machinery. Remaining spoof surface is other
-        # machines on our own fly private network — acceptable for a demo.
+        # machines on our own fly private network - acceptable for a demo.
         # CF-Connecting-IP is only honoured behind the explicit env knob; see
         # TRUST_CF_CONNECTING_IP above. Local dev has neither header and
         # falls back to the socket peer.
@@ -749,7 +749,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
 
     def _check_site_auth(self):
         """True if the request may access the site at all. When SITE_PASSWORD is
-        set the WHOLE site is behind Basic Auth (a temporary private lock) —
+        set the WHOLE site is behind Basic Auth (a temporary private lock) -
         gated everywhere except /healthz. Accepts `Authorization: Bearer/Basic`
         == SITE_PASSWORD (username ignored) or a signed `site` cookie. Returns
         True unconditionally when SITE_PASSWORD is unset."""
@@ -845,7 +845,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
         # Static assets shipped to the browser. Tightly scoped: only a flat
         # `.js` (PoW miner, protocol crypto), `.png` (og:image + diagram still), or
         # `.gif` (the animated protocol diagram). Flat filename out of public/static/
-        # — no subdirs, no dotfiles, no traversal.
+        # - no subdirs, no dotfiles, no traversal.
         if path.startswith("/static/"):
             name = path[len("/static/"):]
             if not name or "/" in name or name.startswith(".") or not (
@@ -933,7 +933,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
                     sigs = {p: sess["share_sigs"][p] for p in parties}
                     vks = {p: sess["vks"][p] for p in parties}
                     # Defence in depth for RB-01: shares are now ASCII-validated at /api/share
-                    # write time, so this should never raise — but guard anyway so a corrupt
+                    # write time, so this should never raise - but guard anyway so a corrupt
                     # stored share can never crash the request thread + flood stderr on every poll.
                     try:
                         total = sum(int(v) for v in shares.values())
@@ -956,7 +956,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
         parsed = urlparse(self.path)
         path = parsed.path
 
-        # Site-wide private lock (SITE_PASSWORD) — gate every POST. No-op when unset.
+        # Site-wide private lock (SITE_PASSWORD) - gate every POST. No-op when unset.
         if SITE_PASSWORD and not self._check_site_auth():
             return self._send_site_auth_challenge()
 
@@ -1103,8 +1103,8 @@ def main():
     print(f"  Aggregator: http://{display_host}:{PORT}/aggregator")
     print(f"  Participant pages at /party/A through /party/{MAX_PARTIES[-1]} (session size {MIN_N}-{MAX_N})")
     print(f"  Session TTL: {SESSION_TTL_SECS}s; reaper interval: {SESSION_REAPER_INTERVAL_SECS}s")
-    print(f"  Site lock:           {'ON — entire site behind SITE_PASSWORD (only /healthz is open)' if SITE_PASSWORD else 'off — site is public'}")
-    print(f"  Aggregator password: {'required (AGGREGATOR_PASSWORD set)' if AGGREGATOR_PASSWORD else 'not set — session creation is open'}")
+    print(f"  Site lock:           {'ON - entire site behind SITE_PASSWORD (only /healthz is open)' if SITE_PASSWORD else 'off - site is public'}")
+    print(f"  Aggregator password: {'required (AGGREGATOR_PASSWORD set)' if AGGREGATOR_PASSWORD else 'not set - session creation is open'}")
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:

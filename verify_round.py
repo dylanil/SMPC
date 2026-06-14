@@ -1,8 +1,8 @@
 """Headless 3-party protocol round against a running server.
 
 Re-implements the browser client (smpc-core.js) with `cryptography` to prove
-the wire contract — PoW, canonical messages, ECDH+HKDF mask derivation, raw
-r||s ECDSA signatures, sign convention — still matches end-to-end. Exits 0 and
+the wire contract - PoW, canonical messages, ECDH+HKDF mask derivation, raw
+r||s ECDSA signatures, sign convention - still matches end-to-end. Exits 0 and
 prints the average if every step verifies. Dev tool only; not shipped.
 """
 import base64

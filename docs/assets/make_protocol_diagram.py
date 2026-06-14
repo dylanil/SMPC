@@ -1,21 +1,21 @@
 #!/usr/bin/env python3
 """Generate the "how the masks cancel" protocol schematic.
 
-Single editable source of truth for two committed assets (no build step — run by
+Single editable source of truth for two committed assets (no build step - run by
 hand when the protocol notation changes):
 
-  public/static/masks.gif        — animated, used on the README and the website
-  public/static/masks-still.png  — final/resolved frame, the prefers-reduced-motion
+  public/static/masks.gif        - animated, used on the README and the website
+  public/static/masks-still.png  - final/resolved frame, the prefers-reduced-motion
                                    fallback on the website and a crisp still
 
 Requires Pillow (dev-only; NOT a server dependency):  pip install Pillow
 Run:  python docs/assets/make_protocol_diagram.py
 
 Crypto-accuracy invariants the council fixed (do not regress):
-  * masks are DERIVED INDEPENDENTLY and NEVER sent — mask links are dashed and
+  * masks are DERIVED INDEPENDENTLY and NEVER sent - mask links are dashed and
     labelled "derived, never sent"; only the masked shares travel (solid arrows).
   * the +/- sign convention is explicit and the masks visibly cancel.
-  * the aggregator only ever sees masked shares — raw figures stay in the nodes.
+  * the aggregator only ever sees masked shares - raw figures stay in the nodes.
 Honesty caveats (honest-but-curious, no input validation, no impersonation
 defence) live in the caption text next to the asset, not baked into the image.
 """
@@ -37,7 +37,7 @@ A_COL  = (242, 198, 75)     # --a
 B_COL  = (207, 138, 217)    # --b
 C_COL  = (95, 207, 128)     # --c
 AGG    = (255, 122, 24)     # --agg
-MASK   = (143, 163, 191)    # neutral slate — a shared secret, not a party
+MASK   = (143, 163, 191)    # neutral slate - a shared secret, not a party
 GOOD   = (95, 207, 128)
 
 # ---- illustrative numbers (small + concrete so the cancellation clicks) ----
@@ -52,8 +52,8 @@ AVG = TOTAL // N        # 17
 
 
 def sn(v):
-    """Signed int with a typographic minus (U+2212) to match the +/− mask labels."""
-    return str(v).replace("-", "−")
+    """Signed int with a typographic minus (U+2212) to match the +/- mask labels."""
+    return str(v).replace("-", "-")
 
 
 def _font(names, size):
@@ -97,13 +97,13 @@ def chip(d, center, s, font, fg, border):
 
 
 def legend(d):
-    """Persistent key — a fresh viewer doesn't know x / r / s."""
+    """Persistent key - a fresh viewer doesn't know x / r / s."""
     lx, ly, lw, lh = 622, 58, 276, 116
     bb = [_s((lx, ly))[0], _s((lx, ly))[1], _s((lx + lw, ly + lh))[0], _s((lx + lw, ly + lh))[1]]
     d.rounded_rectangle(bb, radius=10 * SS, fill=PANEL, outline=BORDER, width=1 * SS)
     text_c(d, (lx + 16, ly + 17), "KEY", UIB(12), MUTED, anchor="lm")
     rows = [("x", TEXT, "each party's private figure"),
-            ("r", MASK, "pairwise mask — never sent"),
+            ("r", MASK, "pairwise mask - never sent"),
             ("s", TEXT, "masked share  (x ± masks)")]
     yy = ly + 46
     for sym, col, desc in rows:
@@ -167,7 +167,7 @@ def node(d, ctr, col, letter, line2):
 def base():
     img = Image.new("RGB", (W * SS, H * SS), BG)
     d = ImageDraw.Draw(img)
-    text_c(d, (40, 34), "Secure average — how the pairwise masks cancel",
+    text_c(d, (40, 34), "Secure average - how the pairwise masks cancel",
            UIB(19), TEXT, anchor="lm")
     legend(d)
     return img, d
@@ -198,19 +198,19 @@ def render(stage, prog=1.0):
 
     # mask links
     if stage in ("masks", "compute"):
-        mask_edge(d, A, B, "+5", "−5", alpha=prog)
-        mask_edge(d, A, C, "+8", "−8", alpha=prog)
-        mask_edge(d, B, C, "+3", "−3", alpha=prog)
+        mask_edge(d, A, B, "+5", "-5", alpha=prog)
+        mask_edge(d, A, C, "+8", "-8", alpha=prog)
+        mask_edge(d, B, C, "+3", "-3", alpha=prog)
     elif stage in ("shares", "still"):
         a = 0.6 if stage == "still" else 0.4
-        mask_edge(d, A, B, "+5", "−5", alpha=a)
-        mask_edge(d, A, C, "+8", "−8", alpha=a)
-        mask_edge(d, B, C, "+3", "−3", alpha=a)
+        mask_edge(d, A, B, "+5", "-5", alpha=a)
+        mask_edge(d, A, C, "+8", "-8", alpha=a)
+        mask_edge(d, B, C, "+3", "-3", alpha=a)
 
     # aggregator box dimensions (widens for the worked-sum beat, then collapses)
     gw, gh = (344 if stage == "cancel" else 168), 64
 
-    # share arrows to the aggregator (only the masked shares travel) — clipped to the box edge
+    # share arrows to the aggregator (only the masked shares travel) - clipped to the box edge
     if stage in ("shares", "cancel", "average", "still"):
         p = prog if stage == "shares" else 1.0
         for ctr, col in ((A, A_COL), (B, B_COL), (C, C_COL)):
@@ -230,7 +230,7 @@ def render(stage, prog=1.0):
         text_c(d, (G[0], G[1] + 12), f"average = {AVG}", UIB(20), AGG)
     elif stage == "cancel":
         text_c(d, (G[0], G[1] - 11), f"Σ shares = {sA} + {sB} + ({sn(sC)}) = {TOTAL}", MONO(16), TEXT)
-        text_c(d, (G[0], G[1] + 13), "(+5−5) + (+8−8) + (+3−3) = 0", MONO(14), GOOD)
+        text_c(d, (G[0], G[1] + 13), "(+5-5) + (+8-8) + (+3-3) = 0", MONO(14), GOOD)
     else:
         text_c(d, G, "Aggregator", UI(17), AGG)
 
@@ -244,20 +244,20 @@ def render(stage, prog=1.0):
         node(d, B, B_COL, "B", f"s = {sn(sB)}")
         node(d, C, C_COL, "C", f"s = {sn(sC)}")
 
-    # beat 3 — each party turns its figure into a masked share: s = x ± its masks
+    # beat 3 - each party turns its figure into a masked share: s = x ± its masks
     if stage == "compute":
         chip(d, (460, 74),  f"s = {xA} + {rAB} + {rAC} = {sn(sA)}", MONO(15), TEXT, A_COL)
-        chip(d, (150, 414), f"s = {xB} − {rAB} + {rBC} = {sn(sB)}", MONO(15), TEXT, B_COL)
-        chip(d, (772, 414), f"s = {xC} − {rAC} − {rBC} = {sn(sC)}", MONO(15), TEXT, C_COL)
+        chip(d, (150, 414), f"s = {xB} - {rAB} + {rBC} = {sn(sB)}", MONO(15), TEXT, B_COL)
+        chip(d, (772, 414), f"s = {xC} - {rAC} - {rBC} = {sn(sC)}", MONO(15), TEXT, C_COL)
 
     cap = {
-        "figures": "1.  Every party has a private figure x — it never leaves their browser.",
-        "masks":   "2.  Each pair shares a secret mask r — derived by both, never sent. One adds it, the other subtracts.",
-        "compute": "3.  Each party adds its masks to its own figure — one sign per pair — to get its masked share s.",
+        "figures": "1.  Every party has a private figure x - it never leaves their browser.",
+        "masks":   "2.  Each pair shares a secret mask r - derived by both, never sent. One adds it, the other subtracts.",
+        "compute": "3.  Each party adds its masks to its own figure - one sign per pair - to get its masked share s.",
         "shares":  "4.  Each party sends only its masked share s. On its own, s looks like a random number.",
-        "cancel":  "5.  The aggregator adds the shares — every +mask meets its −mask and cancels to zero.",
+        "cancel":  "5.  The aggregator adds the shares - every +mask meets its -mask and cancels to zero.",
         "average": "6.  Only the true total is left; divide by the number of parties to get the average.",
-        "still":   "Masks are added by one side and subtracted by the other, so the shares sum to the true total — the average.",
+        "still":   "Masks are added by one side and subtracted by the other, so the shares sum to the true total - the average.",
     }[stage]
     caption(d, cap)
 
@@ -269,7 +269,7 @@ def main():
     out = os.path.normpath(os.path.join(here, "..", "..", "public", "static"))
     os.makedirs(out, exist_ok=True)
 
-    # (stage, hold_ms) — short partial frames give a sense of motion; long holds so a
+    # (stage, hold_ms) - short partial frames give a sense of motion; long holds so a
     # first-time viewer can actually read each step (owner feedback: slow it down).
     seq = [
         (render("figures"), 3000),
