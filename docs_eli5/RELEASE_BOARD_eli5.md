@@ -309,11 +309,17 @@ is easy to dodge and not worth it. Importantly, this changes nothing about safet
 shown as plain text only, so it can't be used to sneak in malicious code (that protection stays).
 We'd only revisit this if the demo were ever pushed to a wide public audience.
 
-### RB-39 — Accessibility was reasoned about, never actually tested with a screen reader
+### ~~RB-39 — Accessibility was reasoned about, never actually tested with a screen reader~~ — WON'T DO (accepted)
 All the accessibility findings so far came from *reading the code*, not from running a real
 screen reader or navigating by keyboard. **Fix:** a 20-minute hands-on pass with a screen reader
 and keyboard-only, once the accessibility fixes (RB-11/RB-13) are in, to confirm they actually
 work and catch anything reading-the-code can't.
+
+**Decision (2026-06-13): we're not doing this — it's overkill for the demo.** This is a *checking*
+step (formally testing with a screen reader), not a fix, and that level of testing is for a product
+with real users, not a small CV demo. It doesn't hold back the actual accessibility improvements: the
+visible keyboard-focus outline is already done, and adding a word like "submitted"/"waiting" to the
+status dots (RB-13) is still a nice tiny fix we can do anytime — it doesn't need this audit.
 
 ### RB-40 — No privacy/cookie note for public users
 Once real members of the public use it, the site briefly handles their internet addresses (for
