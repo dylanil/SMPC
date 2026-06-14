@@ -545,6 +545,14 @@ QUIET_LOG_PATHS = {"/api/state", "/api/result", "/api/pubkeys", "/healthz"}
 
 
 class Handler(http.server.BaseHTTPRequestHandler):
+    # RB-16: socket read timeout. Without it a client that sends headers (or a
+    # Content-Length) but then stalls mid-body ties up a handler thread forever
+    # (slowloris); ThreadingHTTPServer spawns one thread per connection, so this
+    # bypasses the body cap, PoW, and rate limiting. The timeout bounds every
+    # method (GET and POST), closing a stalled connection instead of leaking a
+    # thread. Generous enough for a slow phone on a real request.
+    timeout = 30
+
     def log_message(self, fmt, *args):
         return  # quiet — log_request below is the only logger
 
@@ -577,6 +585,9 @@ class Handler(http.server.BaseHTTPRequestHandler):
         iframe our own pages, so DENY has no downside. CSP/HSTS are a
         larger commitment (see CLAUDE.md) and not added here."""
         self.send_header("X-Frame-Options", "DENY")
+        # RB-17: stop browsers MIME-sniffing a response into a type we didn't
+        # declare (defence in depth; cheap, no downside). CSP/HSTS still omitted.
+        self.send_header("X-Content-Type-Options", "nosniff")
 
     def _send_json(self, code, payload):
         body = json.dumps(payload).encode("utf-8")
