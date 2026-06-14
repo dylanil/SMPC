@@ -227,6 +227,11 @@ locked out of their slot until the session expires. The only real recovery is a 
 invite. **Fix:** remember the participant's identity across a reload so re-joining just works,
 and/or tell them recovery needs a fresh invite.
 
+**Decision (2026-06-13):** when we fix this, we'll only do the **simple wording fix** — make the
+error clearly say "if you reloaded, just ask the aggregator for a fresh invite," instead of hinting
+the session might be compromised. We are **not** building the more complex "remember you across a
+reload" version — it's more effort than it's worth for a demo.
+
 ### RB-28 — The app silently needs a secure (HTTPS) connection
 The cryptography only works over a secure connection (HTTPS, or on your own machine). If someone
 tries to demo it across phones on a local network using a plain address, **every** page dies with
