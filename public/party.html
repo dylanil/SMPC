@@ -11,8 +11,8 @@
 <meta property="og:image" content="https://fl-wg-smpc.fly.dev/static/og-preview.png">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:image" content="https://fl-wg-smpc.fly.dev/static/og-preview.png">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230b0f17'/%3E%3Cpath d='M23 8H9l8 8-8 8h14' fill='none' stroke='%23ff7a18' stroke-width='2.5' stroke-linejoin='round' stroke-linecap='round'/%3E%3C/svg%3E">
-<meta name="theme-color" content="#0b0f17">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230c0c0d'/%3E%3Cpath d='M23 8H9l8 8-8 8h14' fill='none' stroke='%23ff7a18' stroke-width='2.5' stroke-linejoin='round' stroke-linecap='round'/%3E%3C/svg%3E">
+<meta name="theme-color" content="#0c0c0d">
 <title>SMPC Participant - demo</title>
 <style>
   :root {
@@ -20,7 +20,7 @@
     --text:#ededee; --muted:#98989e;
     --a:#f2c64b; --b:#cf8ad9; --c:#5fcf80; --d:#ef6f9a; --e:#cfd152;
     --f:#e0625c; --g:#4fc7bd; --h:#b08968; --i:#8fb53f; --j:#d99ab0;
-    --danger:#ff7a8a; --ok:#69d58a;
+    --agg:#ff7a18; --danger:#ff7a8a; --ok:#69d58a;
     /* RB-18 shared tokens - keep byte-identical across home/party/aggregator (see CLAUDE.md Styling). */
     --grad:linear-gradient(135deg,#1a1410,#241a10); --shadow:0 1px 0 rgba(255,255,255,.04) inset, 0 2px 6px rgba(0,0,0,.55);
   }
@@ -33,14 +33,14 @@
   .badge {
     width:44px; height:44px; border-radius:10px; display:flex;
     align-items:center; justify-content:center; font-size:22px; font-weight:700;
-    color:#0b0f17; background:var(--role-color, var(--muted));
+    color:#0c0c0d; background:var(--role-color, var(--muted));
   }
   .accent { color:var(--role-color, var(--text)); }
   input:focus { border-color:var(--role-color, var(--border)); }
   .go { background:var(--role-color, var(--muted)); }
 
   h1 { margin:0; font-size:22px; }
-  .sub { color:var(--muted); font-size:14.5px; line-height:1.6; margin-bottom:22px; }
+  .sub { color:var(--muted); font-size:15px; line-height:1.6; margin-bottom:22px; }
 
   .card {
     background:var(--panel); border:1px solid var(--border); border-radius:10px;
@@ -66,7 +66,7 @@
   .err.show { display:block; }
 
   .go {
-    padding:12px 22px; color:#0b0f17; border:none; border-radius:6px;
+    padding:12px 22px; color:#0c0c0d; border:none; border-radius:6px;
     font-weight:600; font-size:14px; cursor:pointer; font-family:inherit;
     margin-top:14px;
   }
@@ -119,7 +119,7 @@
 </style>
 </head>
 <body>
-<div class="wrap">
+<div class="wrap" role="main">
   <div class="header">
     <div class="badge" id="badge">?</div>
     <div>
@@ -298,8 +298,16 @@
     metricFetchedFor = m[1];
     try {
       const r = await fetch('/api/state?session=' + encodeURIComponent(m[1]));
-      if (r.ok) showMetric((await r.json()).metric);
-    } catch (_) { /* stale invite or network blip; join revalidates everything */ }
+      if (r.ok) {
+        showMetric((await r.json()).metric);
+      } else if (r.status === 404 || r.status === 403) {
+        // RB-51: a well-formed invite whose session isn't live (yet, or expired).
+        // Soft, advisory only - Start still revalidates everything on join.
+        const note = document.getElementById('metricNote');
+        note.textContent = "This code isn't an active session yet - check with the aggregator that the round has started and hasn't expired. You can still press Start to try.";
+        note.hidden = false;
+      }
+    } catch (_) { /* network blip; join revalidates everything */ }
   }
   document.getElementById('inviteInput').addEventListener('input', maybeFetchMetric);
   maybeFetchMetric(); // covers the hash-prefilled invite
@@ -487,7 +495,7 @@
     // === Step 6: independently verify every signature + the sum ===
     document.getElementById('verifyCard').classList.remove('muted');
     const verifyBody = document.getElementById('verifyBody');
-    verifyBody.innerHTML = `<div class="log"><div class="line warn" id="verifyProgress">Waiting for all ${PARTIES.length} shares to land, then verifying signatures locally…</div></div>`;
+    verifyBody.innerHTML = `<div class="log" aria-live="polite"><div class="line warn" id="verifyProgress">Waiting for all ${PARTIES.length} shares to land, then verifying signatures locally…</div></div>`;
     const verifyProgress = document.getElementById('verifyProgress');
     // Session-lost detection, ported from the aggregator: only declare the
     // session dead after at least one successful poll AND ~3.5s of sustained

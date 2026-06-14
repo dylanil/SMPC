@@ -11,8 +11,8 @@
 <meta property="og:image" content="https://fl-wg-smpc.fly.dev/static/og-preview.png">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:image" content="https://fl-wg-smpc.fly.dev/static/og-preview.png">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230b0f17'/%3E%3Cpath d='M23 8H9l8 8-8 8h14' fill='none' stroke='%23ff7a18' stroke-width='2.5' stroke-linejoin='round' stroke-linecap='round'/%3E%3C/svg%3E">
-<meta name="theme-color" content="#0b0f17">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230c0c0d'/%3E%3Cpath d='M23 8H9l8 8-8 8h14' fill='none' stroke='%23ff7a18' stroke-width='2.5' stroke-linejoin='round' stroke-linecap='round'/%3E%3C/svg%3E">
+<meta name="theme-color" content="#0c0c0d">
 <title>SMPC Aggregator - demo</title>
 <style>
   :root {
@@ -20,7 +20,7 @@
     --text:#ededee; --muted:#98989e;
     --a:#f2c64b; --b:#cf8ad9; --c:#5fcf80; --d:#ef6f9a; --e:#cfd152;
     --f:#e0625c; --g:#4fc7bd; --h:#b08968; --i:#8fb53f; --j:#d99ab0;
-    --agg:#ff7a18; --ok:#69d58a;
+    --agg:#ff7a18; --danger:#ff7a8a; --ok:#69d58a;
     /* RB-18 shared tokens - keep byte-identical across home/party/aggregator (see CLAUDE.md Styling). */
     --grad:linear-gradient(135deg,#1a1410,#241a10); --shadow:0 1px 0 rgba(255,255,255,.04) inset, 0 2px 6px rgba(0,0,0,.55);
   }
@@ -33,17 +33,17 @@
   .badge {
     width:44px; height:44px; border-radius:10px; display:flex;
     align-items:center; justify-content:center; font-size:22px; font-weight:700;
-    color:#0b0f17; background:var(--agg);
+    color:#0c0c0d; background:var(--agg);
   }
   h1 { margin:0; font-size:22px; }
   .accent { color:var(--agg); }
-  .sub { color:var(--muted); font-size:14.5px; line-height:1.6; margin-bottom:22px; }
+  .sub { color:var(--muted); font-size:15px; line-height:1.6; margin-bottom:22px; }
 
   .card {
     background:var(--panel); border:1px solid var(--border); border-radius:10px;
     padding:18px 20px; margin-bottom:14px; box-shadow:var(--shadow);
   }
-  .card h3 { margin:0 0 10px; font-size:13px; color:var(--muted);
+  .card h2 { margin:0 0 10px; font-size:13px; color:var(--muted);
              text-transform:uppercase; letter-spacing:.05em; font-weight:600; }
 
   .status-row { display:flex; gap:8px; margin-top:8px; flex-wrap:wrap; }
@@ -107,7 +107,7 @@
   input[type=text].metric:focus:not(:focus-visible) { outline:none; }
   .metric-row { margin-bottom:14px; }
   .create {
-    padding:12px 22px; background:var(--agg); color:#0b0f17; border:none;
+    padding:12px 22px; background:var(--agg); color:#0c0c0d; border:none;
     border-radius:6px; font-weight:600; font-size:14px; cursor:pointer;
     font-family:inherit;
   }
@@ -134,7 +134,7 @@
   }
   .copy:hover { color:var(--text); border-color:var(--agg); }
   .share-hint { font-size:13px; color:var(--muted); margin-top:10px; }
-  .err { margin-top:10px; color:#ff7a8a; font-size:13px; display:none; }
+  .err { margin-top:10px; color:var(--danger); font-size:13px; display:none; }
   .err.show { display:block; }
 
   button.demo {
@@ -179,7 +179,7 @@
 </style>
 </head>
 <body>
-<div class="wrap">
+<div class="wrap" role="main">
   <div class="header">
     <div class="badge">Σ</div>
     <div>
@@ -189,7 +189,7 @@
   </div>
 
   <div class="card" id="sessionCard">
-    <h3>Session</h3>
+    <h2>Session</h2>
     <div id="createRow">
       <div class="metric-row">
         <label>What's being benchmarked? (optional - shown to every participant)</label>
@@ -217,27 +217,27 @@
   </div>
 
   <div class="card hidden" id="statusCard">
-    <h3>Status</h3>
+    <h2>Status</h2>
     <div class="demo-banner hidden" id="demoBanner">
       <b>Simulated round.</b> All participants are running inside this one tab, so this tab necessarily knows every figure - privacy holds only when each participant runs on their own device. The protocol traffic below is real: every join, key exchange, and signed masked share went over the wire and was verified by the server exactly as in a live round.
     </div>
-    <div class="status-row" id="statusRow"></div>
-    <div class="note" id="statusNote">Waiting for participants to submit their masked shares…</div>
+    <div class="status-row" id="statusRow" aria-live="polite"></div>
+    <div class="note" id="statusNote" aria-live="polite">Waiting for participants to submit their masked shares…</div>
   </div>
 
   <div class="card hidden" id="sharesCard">
-    <h3>Masked Shares Received</h3>
+    <h2>Masked Shares Received</h2>
     <div class="share-grid" id="shareGrid"></div>
     <div class="note">Each share looks like a random integer to the aggregator. None of them individually reveals the underlying figure.</div>
   </div>
 
   <div class="card hidden" id="computeCard">
-    <h3>Aggregation (on masked values only)</h3>
+    <h2>Aggregation (on masked values only)</h2>
     <div class="compute" id="computeBody"></div>
   </div>
 
   <div class="card hidden" id="resultCard">
-    <h3>Result</h3>
+    <h2>Result</h2>
     <div class="result">
       <div class="label" id="resultLabel">Average of the private figures</div>
       <div class="value" id="avgValue">-</div>
@@ -246,7 +246,7 @@
   </div>
 
   <div class="card hidden" id="revealCard">
-    <h3>Reveal - simulation only</h3>
+    <h2>Reveal - simulation only</h2>
     <div class="share-grid" id="revealGrid"></div>
     <div class="reveal-check" id="revealCheck"></div>
     <div class="note">These figures come straight from this tab's JS memory - they were never transmitted. The server only ever saw the masked shares above. In a real round nobody, including the aggregator, can produce this card.</div>
@@ -298,6 +298,7 @@
         <div class="invite-code" id="invite${p}">${code}-${tokens[p]}</div>
         <button class="copy" data-mode="code" data-party="${p}">Copy code</button>
         <button class="copy" data-mode="link" data-party="${p}">Copy link</button>
+        <div class="invite-url" id="inviteurl${p}" hidden style="flex-basis:100%; font-size:12px; color:var(--muted); word-break:break-all; margin-top:4px;">${inviteUrl(p, code, tokens[p])}</div>
       </div>
     `).join('');
     el.querySelectorAll('.copy').forEach(btn => {
@@ -313,10 +314,15 @@
           btn.textContent = 'Copied';
           setTimeout(() => { btn.textContent = prev; }, 1200);
         } catch (_) {
-          // RB-14: navigator.clipboard is absent outside a secure context (the
-          // documented local-HTTP mode). Don't fail silently - select the code
-          // so the user can copy it manually, and say so.
-          const el = mode === 'link' ? null : document.getElementById('invite' + p);
+          // RB-14/RB-51: navigator.clipboard is absent outside a secure context
+          // (the documented local-HTTP mode). Don't fail silently - reveal and
+          // select the relevant on-screen text so the user can copy it manually.
+          // For link mode that's the (normally hidden) full invite URL, so the
+          // "copy manually" prompt actually has something to copy.
+          const el = mode === 'link'
+            ? document.getElementById('inviteurl' + p)
+            : document.getElementById('invite' + p);
+          if (el) el.hidden = false;
           if (el && window.getSelection && document.createRange) {
             const range = document.createRange();
             range.selectNodeContents(el);
@@ -325,7 +331,7 @@
             sel.addRange(range);
             btn.textContent = 'Selected - press Ctrl/Cmd+C';
           } else {
-            btn.textContent = 'Copy the link manually';
+            btn.textContent = 'Copy manually';
           }
           setTimeout(() => { btn.textContent = prev; }, 2000);
         }
@@ -337,7 +343,7 @@
     const el = document.getElementById('statusRow');
     el.innerHTML = PARTIES.map(p => `
       <div class="chip waiting" id="chip${p}" style="--role-color: ${colorVar(p)}">
-        <span class="check">○</span>Participant ${p}<span class="chip-state"> · waiting</span>
+        <span class="check" aria-hidden="true">○</span>Participant ${p}<span class="chip-state"> · waiting</span>
       </div>
     `).join('');
   }
@@ -465,6 +471,14 @@
         const state = await stateResp.json();
         const submitted = state.shares_submitted || [];
         for (const p of PARTIES) setChip(p, submitted.includes(p));
+        // RB-51: roll up who we're still waiting on - the aggregator is the one
+        // chasing people. Only while partially in; the empty and complete states
+        // own the note text (initial copy / renderResult).
+        const missing = PARTIES.filter(p => !submitted.includes(p));
+        if (submitted.length && missing.length) {
+          document.getElementById('statusNote').textContent =
+            `${submitted.length} of ${PARTIES.length} in - still waiting on ${missing.join(', ')}.`;
+        }
       }
 
       const resultResp = await fetch('/api/result' + qs);
