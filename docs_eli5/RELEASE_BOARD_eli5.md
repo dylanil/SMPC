@@ -297,12 +297,17 @@ No one has measured how many people can use it at once before the single machine
 link that suddenly gets popular, or a bot, could overwhelm it. **Fix:** a quick load test to find
 the realistic ceiling and decide whether the simple timeout fix (RB-16) is enough.
 
-### RB-38 — The free-text label is unmoderated and shown to others
+### ~~RB-38 — The free-text label is unmoderated and shown to others~~ — ACCEPTED (won't filter)
 The label the aggregator types appears on everyone's screen. It can't be used to inject malicious
 code (that's already prevented), but on a *public* site someone could type something offensive
 that others see — a decency/reputation issue, not a security one. **Note:** this is *not* about
 limiting numbers, and any fix must keep the safe text-only display. **Fix:** decide explicitly —
 probably accept it (it's a short, throwaway demo), or add a light bad-word filter.
+
+**Decision (2026-06-13): accepted — no bad-word filter.** For a short, throwaway demo label, a filter
+is easy to dodge and not worth it. Importantly, this changes nothing about safety: the label is still
+shown as plain text only, so it can't be used to sneak in malicious code (that protection stays).
+We'd only revisit this if the demo were ever pushed to a wide public audience.
 
 ### RB-39 — Accessibility was reasoned about, never actually tested with a screen reader
 All the accessibility findings so far came from *reading the code*, not from running a real
