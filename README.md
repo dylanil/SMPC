@@ -162,7 +162,8 @@ SMPC/
 │       └── smpc-core.js   # Shared protocol crypto (masks, signatures, canonical message)
 ├── Dockerfile             # python:3.11-slim, drops to non-root uid 1000
 ├── fly.toml               # Single pinned machine — in-memory state can't autoscale
-└── index.html             # Earlier single-page demo (kept as a reference)
+└── examples/
+    └── single-page-demo.html   # Earlier standalone single-page demo (kept as a reference)
 ```
 
 ### Server endpoints
@@ -187,8 +188,7 @@ This is a deliberately lightweight educational demo. The boundaries below are kn
 cases, intentional — listed here so they're explicit rather than discovered. Deeper rationale for
 the security-specific points is in *Security notes* immediately below; the full triage and
 planned improvements live in [`docs/review/RELEASE_BOARD.md`](docs/review/RELEASE_BOARD.md) and
-[`docs/PRODUCTION_READINESS_PLAN.md`](docs/PRODUCTION_READINESS_PLAN.md) (plain-English versions
-in [`docs_eli5/`](docs_eli5/)).
+[`docs/PRODUCTION_READINESS_PLAN.md`](docs/PRODUCTION_READINESS_PLAN.md).
 
 - **All participants must be online together; there is no dropout handling.** If any participant
   fails to submit, the round stalls — there's no threshold mask-sharing to recover the aggregate

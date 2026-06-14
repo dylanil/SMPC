@@ -16,4 +16,5 @@ venv
 
 README.md
 CLAUDE.md
-index.html
+examples/
+docs/
