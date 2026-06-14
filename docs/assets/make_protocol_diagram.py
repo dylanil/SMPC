@@ -132,16 +132,20 @@ def dashed(d, p1, p2, fill, width, dash=14, gap=10, alpha=1.0):
         t += step
 
 
-def arrow(d, p1, p2, fill, width, progress=1.0, shrink=R):
+def arrow(d, p1, center, fill, width, progress=1.0, shrink=R, box=(84, 32)):
+    """Arrow from party node p1 to the aggregator box centred at `center`.
+    The tip is clipped to the box edge facing the party (box = half-width, half-height)
+    so every arrow touches the box regardless of approach angle (vertical or diagonal)."""
     import math
-    x1, y1 = p1; x2, y2 = p2
-    dx, dy = x2 - x1, y2 - y1
+    dx, dy = center[0] - p1[0], center[1] - p1[1]
     dist = math.hypot(dx, dy)
     ux, uy = dx / dist, dy / dist
-    x1 += ux * shrink; y1 += uy * shrink
-    x2 -= ux * (shrink + 14); y2 -= uy * (shrink + 14)
-    x2 = x1 + (x2 - x1) * progress
-    y2 = y1 + (y2 - y1) * progress
+    x1, y1 = p1[0] + ux * shrink, p1[1] + uy * shrink  # start: off the party node
+    hw, hh = box                                        # end: on the box edge toward p1
+    t_edge = min(hw / abs(ux) if ux else 1e9, hh / abs(uy) if uy else 1e9)
+    ex, ey = center[0] - ux * (t_edge - 1), center[1] - uy * (t_edge - 1)
+    x2 = x1 + (ex - x1) * progress
+    y2 = y1 + (ey - y1) * progress
     d.line([_s((x1, y1)), _s((x2, y2))], fill=fill, width=width * SS)
     if progress > 0.6:
         ah = 11
@@ -203,14 +207,15 @@ def render(stage, prog=1.0):
         mask_edge(d, A, C, "+8", "−8", alpha=a)
         mask_edge(d, B, C, "+3", "−3", alpha=a)
 
-    # share arrows to the aggregator (only the masked shares travel)
+    # aggregator box dimensions (widens for the worked-sum beat, then collapses)
+    gw, gh = (344 if stage == "cancel" else 168), 64
+
+    # share arrows to the aggregator (only the masked shares travel) — clipped to the box edge
     if stage in ("shares", "cancel", "average", "still"):
         p = prog if stage == "shares" else 1.0
         for ctr, col in ((A, A_COL), (B, B_COL), (C, C_COL)):
-            arrow(d, ctr, G, col, 3, progress=p)
+            arrow(d, ctr, G, col, 3, progress=p, box=(gw / 2, gh / 2))
 
-    # aggregator node (widens for the worked-sum beat, then collapses to the answer)
-    gw, gh = (344 if stage == "cancel" else 168), 64
     gbb = [_s((G[0] - gw / 2, G[1] - gh / 2))[0], _s((G[0] - gw / 2, G[1] - gh / 2))[1],
            _s((G[0] + gw / 2, G[1] + gh / 2))[0], _s((G[0] + gw / 2, G[1] + gh / 2))[1]]
     lit = stage in ("cancel", "average", "still")
@@ -218,7 +223,7 @@ def render(stage, prog=1.0):
                         outline=AGG, width=(4 if lit else 3) * SS)
 
     if stage == "average":
-        text_c(d, (G[0], G[1] - 11), f"total {TOTAL}  ÷  {N} parties", MONO(13), MUTED)
+        text_c(d, (G[0], G[1] - 11), f"Total {TOTAL}  ÷  {N} parties", MONO(13), MUTED)
         text_c(d, (G[0], G[1] + 12), f"average = {AVG}", UIB(20), AGG)
     elif stage == "still":
         text_c(d, (G[0], G[1] - 11), "masks cancel", MONO(15), GOOD)
@@ -227,7 +232,7 @@ def render(stage, prog=1.0):
         text_c(d, (G[0], G[1] - 11), f"Σ shares = {sA} + {sB} + ({sn(sC)}) = {TOTAL}", MONO(16), TEXT)
         text_c(d, (G[0], G[1] + 13), "(+5−5) + (+8−8) + (+3−3) = 0", MONO(14), GOOD)
     else:
-        text_c(d, G, "aggregator", UI(17), AGG)
+        text_c(d, G, "Aggregator", UI(17), AGG)
 
     # party nodes (raw figure stays inside until masked)
     if stage in ("figures", "masks", "compute"):
