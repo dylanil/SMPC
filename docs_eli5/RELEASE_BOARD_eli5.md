@@ -181,13 +181,14 @@ slow connection can hog resources. Low risk on our current hosting, but a cheap 
 The server sends one security header today; adding a second cheap one ("don't guess file types")
 is easy defence-in-depth. **Fix:** one extra header line.
 
-### RB-18 — The "make it not look vibe-coded" visual polish pass  ◑ PART DONE
-**◑ Part done (2026-06-13), via the review-council (owner approved).** The safe, can't-look-worse bits
-are in: a proper Σ site icon (the little tab/bookmark logo) + dark browser chrome, a consistent card
-shadow + unified background gradient, a matched main heading size, a "reduce motion" option, and the
-mobile tap-target/heading tidy-ups. The judgement-call bits — recolouring the whole palette, applying
-a full type/spacing scale, motion timing, a custom icon set, a custom font — are **held for a session
-where you can look at the rendered screens with me** (they can't be judged blind), or skipped.
+### ~~RB-18 — The "make it not look vibe-coded" visual polish pass~~ ✅ DONE
+**✅ DONE (2026-06-13), via the review-council + a look-at-the-screens session with the owner.** The
+safe bits landed first (Σ site icon + dark browser chrome, card shadow, unified gradient, matched
+heading, reduce-motion, mobile tidy-ups). Then we tried colour schemes together and **kept a black +
+orange look** (the owner's call — "less purple, no blue gradients"): black background, orange accent,
+earth-toned participant colours, and **GitHub-style fonts/sizing** (so it reads like a GitHub page).
+A custom font and fancy motion were skipped as not worth it. Owner verdict: "good enough… looks a tad
+different to vibe-coded apps."
 This is the owner's explicit "it looks AI-generated" concern. Lots of small inconsistencies: no
 consistent text-size or spacing system, an arbitrary 10-colour rainbow, no icon or favicon, emoji
 used as icons (which look different on each device), mismatched gradients and shadows, too many
