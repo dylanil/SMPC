@@ -21,6 +21,8 @@
     --a:#6ea8ff; --b:#ffb26e; --c:#8af0a5; --d:#ff7eb6; --e:#ffec71;
     --f:#b88fff; --g:#6ee7e0; --h:#ff9d6c; --i:#c8ff6e; --j:#ffa3a3;
     --agg:#c79bff; --ok:#69d58a;
+    /* RB-18 shared tokens — keep byte-identical across home/party/aggregator (see CLAUDE.md Styling). */
+    --grad:linear-gradient(135deg,#1b2230,#2a1e3d); --shadow:0 1px 2px rgba(0,0,0,.3);
   }
   * { box-sizing:border-box; }
   body { margin:0; padding:28px; font-family:'Segoe UI',-apple-system,sans-serif;
@@ -39,7 +41,7 @@
 
   .card {
     background:var(--panel); border:1px solid var(--border); border-radius:10px;
-    padding:18px 20px; margin-bottom:14px;
+    padding:18px 20px; margin-bottom:14px; box-shadow:var(--shadow);
   }
   .card h3 { margin:0 0 10px; font-size:13px; color:var(--muted);
              text-transform:uppercase; letter-spacing:.05em; font-weight:600; }
@@ -73,7 +75,7 @@
   .compute .sum { color:var(--ok); font-weight:600; }
 
   .result {
-    background:linear-gradient(135deg,#1b2230,#2a1e3d);
+    background:var(--grad);
     border:1px solid var(--agg); border-radius:10px;
     padding:24px; text-align:center;
   }
@@ -113,7 +115,7 @@
   .invites { display:flex; flex-direction:column; gap:8px; margin-top:10px; }
   .invite-row {
     display:flex; align-items:center; gap:12px; flex-wrap:wrap;
-    background:linear-gradient(135deg,#1b2230,#23203a);
+    background:var(--grad);
     border:1px solid var(--role-color, var(--border));
     border-radius:8px; padding:10px 14px;
   }

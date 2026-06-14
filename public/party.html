@@ -21,6 +21,8 @@
     --a:#6ea8ff; --b:#ffb26e; --c:#8af0a5; --d:#ff7eb6; --e:#ffec71;
     --f:#b88fff; --g:#6ee7e0; --h:#ff9d6c; --i:#c8ff6e; --j:#ffa3a3;
     --danger:#ff7a8a; --ok:#69d58a;
+    /* RB-18 shared tokens — keep byte-identical across home/party/aggregator (see CLAUDE.md Styling). */
+    --grad:linear-gradient(135deg,#1b2230,#2a1e3d); --shadow:0 1px 2px rgba(0,0,0,.3);
   }
   * { box-sizing:border-box; }
   body { margin:0; padding:28px; font-family:'Segoe UI',-apple-system,sans-serif;
@@ -42,7 +44,7 @@
 
   .card {
     background:var(--panel); border:1px solid var(--border); border-radius:10px;
-    padding:18px 20px; margin-bottom:14px;
+    padding:18px 20px; margin-bottom:14px; box-shadow:var(--shadow);
   }
   .card h2 { margin:0 0 10px; font-size:13px; color:var(--muted);
              text-transform:uppercase; letter-spacing:.05em; font-weight:600; }
