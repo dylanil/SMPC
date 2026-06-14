@@ -1,5 +1,9 @@
 # SMPC — Secure Average of 3–10 Private Figures
 
+![A completed round on the live deployment: the secure average, plus the simulation-only reveal that re-derives (Σ x)/N from the raw figures and confirms it matches the masked-share result.](docs/assets/screenshot3.png)
+
+*A completed round on the [live deployment](https://fl-wg-smpc.fly.dev/): the secure average, plus the simulation-only reveal that re-derives (Σ x)/N from the raw figures and confirms it matches the result computed from masked shares alone.*
+
 A small demo of Secure Multi-Party Computation. Between 3 and 10 participants each enter one private number ("figure") from their own browser. A separate aggregator picks the participant count when creating the session, then computes the average **without any participant's raw figure ever crossing the wire**. Security comes from *pairwise one-time-pad masking*: every pair of participants shares a random mask that cancels out when all N masked shares are summed.
 
 > **Demonstration project.** This is a portfolio proof-of-concept showing the mechanics of
@@ -36,6 +40,10 @@ Detailed entries with the full rationale live under *Security notes* further dow
 
 ## Protocol
 
+![Masked shares received by the aggregator, each an apparently random integer, and the aggregation step summing them so the pairwise masks cancel.](docs/assets/screenshot2.png)
+
+*Masked shares look like random integers; every pairwise mask appears once with + and once with −, so summing all N cancels them and reveals only Σ xᵢ (and hence the average).*
+
 For every pair `(i, j)` with `i < j`, a 64-bit mask `r_ij` is **derived locally by both participants** from an ECDH shared secret — neither sends the mask to anyone, and the coordinator never sees it. Each participant `k` then computes a local masked share:
 
 ```
@@ -68,6 +76,10 @@ Mask derivation uses **ECDH P-256 + HKDF-SHA256** in the browser:
 ---
 
 ## Running it
+
+![The aggregator page showing three per-participant invites and the solo-demo button that simulates all participants in one tab.](docs/assets/screenshot1.png)
+
+*The aggregator page: per-participant invites to share out-of-band, plus the solo-demo button that runs every role in one tab over the real wire protocol.*
 
 Requires Python 3.7+ and `cryptography` for ECDSA P-256 signature verification.
 

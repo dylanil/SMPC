@@ -737,16 +737,18 @@ class Handler(http.server.BaseHTTPRequestHandler):
         if len(parts) == 2 and parts[0] == "party" and parts[1].upper() in MAX_PARTIES:
             return self._send_file(os.path.join(PUBLIC_DIR, "party.html"))
 
-        # Static JS shipped to the browser (PoW miner). Tightly scoped: only
-        # serves a flat `.js` filename out of public/static/.
+        # Static assets shipped to the browser. Tightly scoped: only a flat
+        # `.js` (PoW miner, protocol crypto) or `.png` (the og:image preview)
+        # filename out of public/static/ — no subdirs, no dotfiles, no traversal.
         if path.startswith("/static/"):
             name = path[len("/static/"):]
-            if not name or "/" in name or name.startswith(".") or not name.endswith(".js"):
+            if not name or "/" in name or name.startswith(".") or not (name.endswith(".js") or name.endswith(".png")):
                 return self.send_error(404)
             full = os.path.join(PUBLIC_DIR, "static", name)
             if not os.path.isfile(full):
                 return self.send_error(404)
-            return self._send_file(full, content_type="application/javascript; charset=utf-8")
+            ctype = "image/png" if name.endswith(".png") else "application/javascript; charset=utf-8"
+            return self._send_file(full, content_type=ctype)
 
         # Unprotected health check for platform liveness probes.
         if path == "/healthz":
