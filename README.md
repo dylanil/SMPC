@@ -42,27 +42,27 @@ Detailed entries with the full rationale live under *Security notes* further dow
 
 ![How the pairwise masks cancel - a three-party example. Each pair shares a secret mask, derived independently by both sides and never sent; the lower-letter party adds it and the higher subtracts it, so every mask appears once as plus and once as minus. Only the masked shares reach the aggregator, which sums them; every mask cancels with its opposite, leaving only the total of the real figures, divided by N for the average.](public/static/masks.gif)
 
-*Broadly how it works - not every detail. Each pair's mask is derived **locally** and **never transmitted**; only the masked shares are sent, and the aggregator sums them so every `+`mask meets its `-`mask and cancels, revealing only Σ xᵢ (and hence the average). There's no peer-to-peer link - parties exchange only **public keys via the server**, so the server and aggregator never see a raw figure or a mask. It also omits the integrity layer (each share is ECDSA-signed and server-verified). Privacy assumes honest, non-colluding parties - see [Known limitations](#known-limitations).*
+*Broadly how it works - not every detail. Each pair's mask is derived **locally** and **never transmitted**; only the masked shares are sent, and the aggregator sums them so every `+`mask meets its `−`mask and cancels, revealing only Σ xᵢ (and hence the average). There's no peer-to-peer link - parties exchange only **public keys via the server**, so the server and aggregator never see a raw figure or a mask. It also omits the integrity layer (each share is ECDSA-signed and server-verified). Privacy assumes honest, non-colluding parties - see [Known limitations](#known-limitations).*
 
 ![Masked shares received by the aggregator, each an apparently random integer, and the aggregation step summing them so the pairwise masks cancel.](docs/assets/screenshot2.png)
 
-*Masked shares look like random integers; every pairwise mask appears once with + and once with -, so summing all N cancels them and reveals only Σ xᵢ (and hence the average).*
+*Masked shares look like random integers; every pairwise mask appears once with + and once with −, so summing all N cancels them and reveals only Σ xᵢ (and hence the average).*
 
 For every pair `(i, j)` with `i < j`, a 64-bit mask `r_ij` is **derived locally by both participants** from an ECDH shared secret - neither sends the mask to anyone, and the coordinator never sees it. Each participant `k` then computes a local masked share:
 
 ```
-s_k = x_k + Σ r_kj  (for j > k)  - Σ r_jk  (for j < k)
+s_k = x_k + Σ r_kj  (for j > k)  − Σ r_jk  (for j < k)
 ```
 
 So for a 3-party round the shares look like:
 
 ```
 s_A = x_A + r_AB + r_AC
-s_B = x_B - r_AB + r_BC
-s_C = x_C - r_AC - r_BC
+s_B = x_B − r_AB + r_BC
+s_C = x_C − r_AC − r_BC
 ```
 
-…and the same shape generalises to any 3-10 participants. Only the masked shares are sent to the aggregator. Every mask appears once with `+` and once with `-`, so:
+…and the same shape generalises to any 3-10 participants. Only the masked shares are sent to the aggregator. Every mask appears once with `+` and once with `−`, so:
 
 ```
 Σ s_k = Σ x_k        (all masks cancel)

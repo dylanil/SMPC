@@ -441,7 +441,7 @@
       const lo = ROLE < other ? ROLE : other;
       const hi = ROLE < other ? other : ROLE;
       share += maskSign(ROLE, other) * masks[other];
-      parts.push(`${maskSign(ROLE, other) === 1n ? '+' : '-'} r<sub>${lo}${hi}</sub>`);
+      parts.push(`${maskSign(ROLE, other) === 1n ? '+' : '−'} r<sub>${lo}${hi}</sub>`);
     }
 
     document.getElementById('computeBody').innerHTML = `

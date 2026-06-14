@@ -112,7 +112,7 @@
     </figure>
     <p>1. Each pair of participants <code>(i, j)</code> with <code>i &lt; j</code> derives a one-time-pad mask <code>r_ij</code> via ECDH + HKDF. Participant <code>i</code> adds it; participant <code>j</code> subtracts it.</p>
     <p>2. Each participant submits only <code>s_i = x_i ± masks</code> - a single number indistinguishable from uniform random.</p>
-    <p>3. The aggregator sums all <code>N</code> masked shares. Every mask appears once with <code>+</code> and once with <code>-</code>, so the masks cancel and the sum reveals <code>Σ x_i</code>, from which the average follows.</p>
+    <p>3. The aggregator sums all <code>N</code> masked shares. Every mask appears once with <code>+</code> and once with <code>−</code>, so the masks cancel and the sum reveals <code>Σ x_i</code>, from which the average follows.</p>
   </div>
 
   <section class="honesty">

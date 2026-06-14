@@ -52,8 +52,8 @@ AVG = TOTAL // N        # 17
 
 
 def sn(v):
-    """Signed int with a typographic minus (U+2212) to match the +/- mask labels."""
-    return str(v).replace("-", "-")
+    """Signed int with a typographic minus (U+2212) to match the +/− mask labels."""
+    return str(v).replace("-", "−")
 
 
 def _font(names, size):
@@ -198,14 +198,14 @@ def render(stage, prog=1.0):
 
     # mask links
     if stage in ("masks", "compute"):
-        mask_edge(d, A, B, "+5", "-5", alpha=prog)
-        mask_edge(d, A, C, "+8", "-8", alpha=prog)
-        mask_edge(d, B, C, "+3", "-3", alpha=prog)
+        mask_edge(d, A, B, "+5", "−5", alpha=prog)
+        mask_edge(d, A, C, "+8", "−8", alpha=prog)
+        mask_edge(d, B, C, "+3", "−3", alpha=prog)
     elif stage in ("shares", "still"):
         a = 0.6 if stage == "still" else 0.4
-        mask_edge(d, A, B, "+5", "-5", alpha=a)
-        mask_edge(d, A, C, "+8", "-8", alpha=a)
-        mask_edge(d, B, C, "+3", "-3", alpha=a)
+        mask_edge(d, A, B, "+5", "−5", alpha=a)
+        mask_edge(d, A, C, "+8", "−8", alpha=a)
+        mask_edge(d, B, C, "+3", "−3", alpha=a)
 
     # aggregator box dimensions (widens for the worked-sum beat, then collapses)
     gw, gh = (344 if stage == "cancel" else 168), 64
@@ -230,7 +230,7 @@ def render(stage, prog=1.0):
         text_c(d, (G[0], G[1] + 12), f"average = {AVG}", UIB(20), AGG)
     elif stage == "cancel":
         text_c(d, (G[0], G[1] - 11), f"Σ shares = {sA} + {sB} + ({sn(sC)}) = {TOTAL}", MONO(16), TEXT)
-        text_c(d, (G[0], G[1] + 13), "(+5-5) + (+8-8) + (+3-3) = 0", MONO(14), GOOD)
+        text_c(d, (G[0], G[1] + 13), "(+5−5) + (+8−8) + (+3−3) = 0", MONO(14), GOOD)
     else:
         text_c(d, G, "Aggregator", UI(17), AGG)
 
@@ -247,15 +247,15 @@ def render(stage, prog=1.0):
     # beat 3 - each party turns its figure into a masked share: s = x ± its masks
     if stage == "compute":
         chip(d, (460, 74),  f"s = {xA} + {rAB} + {rAC} = {sn(sA)}", MONO(15), TEXT, A_COL)
-        chip(d, (150, 414), f"s = {xB} - {rAB} + {rBC} = {sn(sB)}", MONO(15), TEXT, B_COL)
-        chip(d, (772, 414), f"s = {xC} - {rAC} - {rBC} = {sn(sC)}", MONO(15), TEXT, C_COL)
+        chip(d, (150, 414), f"s = {xB} − {rAB} + {rBC} = {sn(sB)}", MONO(15), TEXT, B_COL)
+        chip(d, (772, 414), f"s = {xC} − {rAC} − {rBC} = {sn(sC)}", MONO(15), TEXT, C_COL)
 
     cap = {
         "figures": "1.  Every party has a private figure x - it never leaves their browser.",
         "masks":   "2.  Each pair shares a secret mask r - derived by both, never sent. One adds it, the other subtracts.",
         "compute": "3.  Each party adds its masks to its own figure - one sign per pair - to get its masked share s.",
         "shares":  "4.  Each party sends only its masked share s. On its own, s looks like a random number.",
-        "cancel":  "5.  The aggregator adds the shares - every +mask meets its -mask and cancels to zero.",
+        "cancel":  "5.  The aggregator adds the shares - every +mask meets its −mask and cancels to zero.",
         "average": "6.  Only the true total is left; divide by the number of parties to get the average.",
         "still":   "Masks are added by one side and subtracted by the other, so the shares sum to the true total - the average.",
     }[stage]

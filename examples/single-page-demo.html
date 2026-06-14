@@ -382,17 +382,17 @@
       </div>
       <div class="share-card b">
         <div class="label">Party B's masked share</div>
-        <div class="formula">s<sub>B</sub> = x<sub>B</sub> - r<sub>AB</sub> + r<sub>BC</sub></div>
+        <div class="formula">s<sub>B</sub> = x<sub>B</sub> − r<sub>AB</sub> + r<sub>BC</sub></div>
         <div class="value">
-          <span class="secret">[hidden x<sub>B</sub>]</span> - r<sub>AB</sub> + r<sub>BC</sub><br>
+          <span class="secret">[hidden x<sub>B</sub>]</span> − r<sub>AB</sub> + r<sub>BC</sub><br>
           = <span class="masked">${sB.toString()}</span>
         </div>
       </div>
       <div class="share-card c">
         <div class="label">Party C's masked share</div>
-        <div class="formula">s<sub>C</sub> = x<sub>C</sub> - r<sub>AC</sub> - r<sub>BC</sub></div>
+        <div class="formula">s<sub>C</sub> = x<sub>C</sub> − r<sub>AC</sub> − r<sub>BC</sub></div>
         <div class="value">
-          <span class="secret">[hidden x<sub>C</sub>]</span> - r<sub>AC</sub> - r<sub>BC</sub><br>
+          <span class="secret">[hidden x<sub>C</sub>]</span> − r<sub>AC</sub> − r<sub>BC</sub><br>
           = <span class="masked">${sC.toString()}</span>
         </div>
       </div>
@@ -411,7 +411,7 @@
       <div class="line">  s<sub>C</sub> = <span class="masked">${sC.toString()}</span></div>
       <div class="line">&nbsp;</div>
       <div class="line">Sum = s<sub>A</sub> + s<sub>B</sub> + s<sub>C</sub></div>
-      <div class="line">    = (x<sub>A</sub> + r<sub>AB</sub> + r<sub>AC</sub>) + (x<sub>B</sub> - r<sub>AB</sub> + r<sub>BC</sub>) + (x<sub>C</sub> - r<sub>AC</sub> - r<sub>BC</sub>)</div>
+      <div class="line">    = (x<sub>A</sub> + r<sub>AB</sub> + r<sub>AC</sub>) + (x<sub>B</sub> − r<sub>AB</sub> + r<sub>BC</sub>) + (x<sub>C</sub> − r<sub>AC</sub> − r<sub>BC</sub>)</div>
       <div class="line">    = x<sub>A</sub> + x<sub>B</sub> + x<sub>C</sub>   <span style="color:var(--muted)">(all masks cancel)</span></div>
       <div class="line sum">    = ${fromFixed(sum)}</div>
     `;
