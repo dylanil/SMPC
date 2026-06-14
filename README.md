@@ -209,7 +209,10 @@ planned improvements live in [`docs/review/RELEASE_BOARD.md`](docs/review/RELEAS
   from a partial set, as production secure-aggregation has.
 - **Not production-grade and not persistent.** A single in-memory instance: all state is lost on
   restart, sessions are auto-deleted after ~30 minutes, and it must run as exactly one always-on
-  instance (it can't be horizontally scaled).
+  instance (it can't be horizontally scaled). The single-instance pin should be enforced in config,
+  not just documented - `fly.toml` should cap `max_machines_running = 1` (not only the floor), so an
+  accidental scale-out or a rolling-restart overlap can't split a session across machines with
+  disjoint state (RB-44).
 - **No input-honesty guarantee and no figure caps.** A participant can submit any value
   (including a very large one) and skew the average; signatures prove *who* submitted and that it
   wasn't tampered with by others, not that the figure is truthful or reasonable. The absence of a
@@ -263,7 +266,11 @@ This is a demonstration that deliberately keeps as little as possible, all in me
 
 - **No accounts, no analytics, no third-party trackers.** Nothing is persisted to disk - all session state lives in memory and is wiped on restart or after the ~30-minute session TTL.
 - **IP addresses** are held briefly in memory for per-IP rate limiting, and may appear in the server's minimal stdout access log (one line per POST - time, IP, method, path, status; never request bodies, tokens, or query strings). These are ephemeral platform logs, not a database.
-- **One functional cookie** (`agg`) is set only on the aggregator page, and only when an aggregator password is configured, to carry that login across to the API endpoints. It is `HttpOnly`, `SameSite=Strict`, and expires on its own; the home and participant pages set no cookies.
+- **Functional cookies only, and only when a password is configured.** In the default fully-public
+  configuration **no cookies are set at all**. Two cookies can appear: `agg`, set on the aggregator
+  page when an aggregator password is configured (to carry that login across to the API endpoints);
+  and `site`, set on **every** page when the whole-site password (`SITE_PASSWORD`) is enabled. Both
+  are `HttpOnly`, `SameSite=Strict`, and self-expiring - functional auth cookies, not tracking.
 - **Your figure never leaves your browser** - see the protocol above.
 
 ## License
