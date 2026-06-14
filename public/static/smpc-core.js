@@ -25,6 +25,20 @@
     return me < other ? 1n : -1n;
   }
 
+  // --- Display helpers (not crypto; single-sourced so both pages agree) ---
+  // fmt6: render a Number with up to 6 dp, strip trailing zeros, never show
+  // "-0" (RB-22). Pinned as a contract vector in tests.py.
+  function fmt6(x) {
+    return x.toFixed(6).replace(/\.?0+$/, '').replace(/^-0$/, '0');
+  }
+  // escapeHtml: neutralise a peer/aggregator-supplied string before it touches
+  // innerHTML (RB-47 defence-in-depth - the share validator already constrains
+  // shares to decimals, but the guard belongs at the sink too).
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, c => (
+      { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  }
+
   // --- Base64 helpers (binary <-> ASCII) ---
   function b64encode(buf) {
     const bytes = new Uint8Array(buf);
@@ -106,7 +120,7 @@
   }
 
   window.SMPCCore = {
-    SCALE, toFixed, canonicalMessage, maskSign,
+    SCALE, toFixed, canonicalMessage, maskSign, fmt6, escapeHtml,
     b64encode, b64decode,
     generateECDHKeypair, exportEcdhPubB64, importEcdhPub, derivePairwiseMask,
     generateSigningKeypair, exportVkB64, signMessage, importVk, verifyMessage,

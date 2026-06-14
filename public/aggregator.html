@@ -265,7 +265,7 @@
 <script src="/static/smpc-core.js"></script>
 <script>
   const {
-    SCALE, toFixed, canonicalMessage, maskSign,
+    SCALE, toFixed, canonicalMessage, maskSign, fmt6, escapeHtml,
     generateECDHKeypair, exportEcdhPubB64, derivePairwiseMask,
     generateSigningKeypair, exportVkB64, signMessage,
   } = window.SMPCCore;
@@ -365,7 +365,7 @@
     document.getElementById('shareGrid').innerHTML = PARTIES.map(p => `
       <div class="share-card" style="--role-color: ${colorVar(p)}">
         <div class="label">s<sub>${p}</sub></div>
-        <div class="mono">${shares[p]}</div>
+        <div class="mono">${escapeHtml(shares[p])}</div>
       </div>`).join('');
 
     const sumFixed = BigInt(sumFixedStr);
@@ -375,7 +375,7 @@
 
     const sumExpr = PARTIES.map(p => `s<sub>${p}</sub>`).join(' + ');
     const sumIdent = PARTIES.map(p => `x<sub>${p}</sub>`).join(' + ');
-    const sumLines = PARTIES.map((p, i) => `<div class="line">${i === 0 ? '= ' : '+ '}${shares[p]}</div>`).join('');
+    const sumLines = PARTIES.map((p, i) => `<div class="line">${i === 0 ? '= ' : '+ '}${escapeHtml(shares[p])}</div>`).join('');
 
     document.getElementById('computeCard').classList.remove('hidden');
     document.getElementById('computeBody').innerHTML = `
@@ -385,15 +385,15 @@
       <div class="line sum">= ${sumFixed.toString()}  <span style="color:var(--muted); font-weight:normal">(fixed-point, ×10⁶)</span></div>
       <div class="line">&nbsp;</div>
       <div class="line">Every pairwise mask appears with both + and −, so all masks cancel:</div>
-      <div class="line">  sum = ${sumIdent} = <b>${sum}</b></div>
-      <div class="line sum">  average = sum / ${n} = ${avg}</div>
+      <div class="line">  sum = ${sumIdent} = <b>${fmt6(sum)}</b></div>
+      <div class="line sum">  average = sum / ${n} = ${fmt6(avg)}</div>
     `;
 
     document.getElementById('resultCard').classList.remove('hidden');
     document.getElementById('resultLabel').textContent = METRIC
       ? `${METRIC} - average of ${n} private figures`
       : `Average of the ${n} private figures`;
-    const pretty = avg.toFixed(6).replace(/\.?0+$/, '').replace(/^-0$/, '0');  // RB-22: never render -0
+    const pretty = fmt6(avg);  // RB-22: never render -0
     document.getElementById('avgValue').textContent = pretty;
     document.getElementById('statusNote').textContent = `All ${n} participants submitted. Average computed from masked shares.`;
 
@@ -415,7 +415,7 @@
     const match = figuresSumFixed === sumFixed;
     const avg = fromFixed(figuresSumFixed) / PARTIES.length;
     document.getElementById('revealCheck').textContent =
-      `(${PARTIES.map(p => DEMO_FIGURES[p]).join(' + ')}) / ${PARTIES.length} = ${avg.toFixed(6).replace(/\.?0+$/, '').replace(/^-0$/, '0')} ` +
+      `(${PARTIES.map(p => DEMO_FIGURES[p]).join(' + ')}) / ${PARTIES.length} = ${fmt6(avg)} ` +
       (match ? '✓ matches the average computed from masked shares'
              : '✗ DOES NOT match the masked-share average - this is a bug');
   }

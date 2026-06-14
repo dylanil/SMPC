@@ -185,7 +185,7 @@
   // canonical message format, sign convention) is shared with the
   // aggregator's demo mode via smpc-core.js - see CLAUDE.md.
   const {
-    SCALE, toFixed, canonicalMessage, maskSign,
+    SCALE, toFixed, canonicalMessage, maskSign, fmt6,
     generateECDHKeypair, exportEcdhPubB64, derivePairwiseMask,
     generateSigningKeypair, exportVkB64, signMessage, verifyMessage,
   } = window.SMPCCore;
@@ -526,7 +526,7 @@
             const serverSum = BigInt(data.sum);
             const sumOk = localSum === serverSum;
             const avgNum = Number(localSum) / Number(SCALE) / PARTIES.length;
-            const avgStr = avgNum.toFixed(6).replace(/\.?0+$/, '').replace(/^-0$/, '0');  // RB-22: never render -0
+            const avgStr = fmt6(avgNum);  // RB-22: never render -0 (shared formatter)
 
             const sigRows = PARTIES.map(p => `
               <div class="k">sig<sub>${p}</sub> verifies under vk<sub>${p}</sub>:</div>
