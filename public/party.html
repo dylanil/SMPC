@@ -333,7 +333,7 @@
         if (status === 403) {
           msg = `Could not join: ${detail || 'session, token, or party rejected'} (403). The session may have expired or restarted on the server, or the invite may be for a different participant. Ask the aggregator to mint a fresh invite.`;
         } else if (status === 409) {
-          msg = `Could not join: ${detail || 'slot already taken'} (409). Participant ${ROLE}'s slot has already been claimed in this session. If that wasn't you, the session is compromised — ask the aggregator to start a fresh round.`;
+          msg = `Could not join: ${detail || 'slot already taken'} (409). Participant ${ROLE}'s slot is already registered — most often because this page was reloaded, which can't recover an in-progress slot. Ask the aggregator for a fresh invite. (If you never joined, someone else may have claimed the slot.)`;
         } else if (status === 429) {
           msg = `Rate limited (429). Wait a minute and try again.`;
         } else if (status === 401) {
