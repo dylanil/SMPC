@@ -13,16 +13,18 @@ This board is the **single combined to-do list** — every issue, deduplicated, 
 a plain note on what to do about it. Where a second reviewer corrected the first, the corrected
 version is what's recorded here.
 
-**Update — 2026-06-13: nearly the whole list is now DONE.** Built and shipped: ✅ **31 of the 40
-items** — every must-fix and should-fix, plus most of the nice-to-haves (the crash fix, frozen-screen
-fix, friendly errors, licence, phone layout, keyboard focus, "this is a demo" disclaimers, softened
-wording, solo-demo signpost, README screenshots + share-preview cards, the slow-request timeout and
-extra protective header, the colour-blind-safe status, clipboard fallback, the metric on the figure
-box, the secure-connection guard, the pinned dependency, the security-contact file, the privacy note,
-and a proper test suite). Two are **partly done** (RB-24's last bits and RB-37's load test fold into
-the visual pass / a deploy-time check); a few are **deliberately skipped or accepted** (RB-20, RB-25,
-RB-32, RB-36, RB-38, RB-39). **The one big thing left is RB-18**, the "make it not look vibe-coded"
-visual pass — that's going through the review-council first. Done items are struck through below.
+**Update — 2026-06-13: almost the whole list is now DONE.** Built and shipped: ✅ **33 of the 40
+items** — every must-fix and should-fix, and nearly all the nice-to-haves (the crash fix, frozen-screen
+fix, friendly errors, licence, phone layout, keyboard focus, reduce-motion option, "this is a demo"
+disclaimers, softened wording, solo-demo signpost, README screenshots + share-preview cards, the
+slow-request timeout and extra protective header, the colour-blind-safe status, clipboard fallback, the
+metric on the figure box, the secure-connection guard, the pinned dependency, the security-contact
+file, the privacy note, and a proper test suite). **RB-18** (the "looks vibe-coded" visual pass) went
+through the review-council and its **safe half is done** (site icon, card depth, unified gradient,
+matched heading, mobile tidy-ups); the judgement-call half (recolour, full type/spacing scale, motion,
+icon set, custom font) is **held for a session where you can look at the rendered screens**. **RB-37**
+is partly done (the real protection shipped; the load test needs the live site). A few are
+deliberately **skipped/accepted** (RB-25, RB-32, RB-36, RB-38, RB-39). Done items are struck below.
 
 **Checked again on 2026-06-13 (before the fixes).** We first re-ran the whole thing — eight reviews
 and eight second opinions, each working alone — to see if the list still held up. It did: **nothing
@@ -179,7 +181,13 @@ slow connection can hog resources. Low risk on our current hosting, but a cheap 
 The server sends one security header today; adding a second cheap one ("don't guess file types")
 is easy defence-in-depth. **Fix:** one extra header line.
 
-### RB-18 — The "make it not look vibe-coded" visual polish pass
+### RB-18 — The "make it not look vibe-coded" visual polish pass  ◑ PART DONE
+**◑ Part done (2026-06-13), via the review-council (owner approved).** The safe, can't-look-worse bits
+are in: a proper Σ site icon (the little tab/bookmark logo) + dark browser chrome, a consistent card
+shadow + unified background gradient, a matched main heading size, a "reduce motion" option, and the
+mobile tap-target/heading tidy-ups. The judgement-call bits — recolouring the whole palette, applying
+a full type/spacing scale, motion timing, a custom icon set, a custom font — are **held for a session
+where you can look at the rendered screens with me** (they can't be judged blind), or skipped.
 This is the owner's explicit "it looks AI-generated" concern. Lots of small inconsistencies: no
 consistent text-size or spacing system, an arbitrary 10-colour rainbow, no icon or favicon, emoji
 used as icons (which look different on each device), mismatched gradients and shadows, too many
@@ -192,7 +200,7 @@ The current test only confirms a clean, successful round. It never checks what h
 things go wrong — which is exactly where the two worst bugs live. **Fix:** add tests for the
 error cases, including "a bad number is rejected and the totalling step never crashes."
 
-### RB-20 — No "reduce motion" option
+### ~~RB-20 — No "reduce motion" option~~ ✅ DONE
 Some people get motion sickness from animation; the OS has a "reduce motion" setting we don't
 honour. **Fix:** one rule that turns off the animations for those users.
 
@@ -208,8 +216,8 @@ Our defences against request-flooding rely on a feature of our specific host. If
 app exposed directly, that protection would quietly stop working. The risk itself is accepted for
 our setup — this item is just **documenting** the caveat in the README.
 
-### RB-24 — A bundle of small UX tidy-ups  ✅ MOSTLY DONE
-**✅ MOSTLY DONE 2026-06-13.** Better text-wrapping, a phone-friendly numeric keypad, and a "locked — get a fresh invite" hint after joining are in. Two visual bits (bigger wrapping tap-targets, tidier step headings) fold into the RB-18 look-and-feel pass.
+### ~~RB-24 — A bundle of small UX tidy-ups~~ ✅ DONE
+**✅ DONE 2026-06-13.** Better text-wrapping, a phone-friendly numeric keypad, a "locked — get a fresh invite" hint after joining, plus (with the RB-18 pass) bigger wrapping tap-targets and tidier step headings.
 A handful of minor fixes grouped together: better text-wrapping for long codes, bigger tap
 targets that wrap nicely on small screens, a "locked — reload to restart" hint, tidier step
 headings, and a phone-friendly numeric keypad for the figure input.

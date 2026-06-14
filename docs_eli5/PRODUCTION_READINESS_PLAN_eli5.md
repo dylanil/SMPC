@@ -142,8 +142,10 @@ accepted trade-offs, and four false alarms.**
 3. **Third batch — polish, hardening, and tests. ✅ DONE (2026-06-13), except the visual redesign.**
    All the quick wins shipped (the slow-request timeout, the extra protective header, the small UI
    fixes, the secure-connection guard, the pinned dependency, the security-contact file, and a proper
-   test suite). The one piece left is the bigger **"make it not look vibe-coded" visual redesign
-   (RB-18)** — that's going through the review-council first before any code is written.
+   test suite). The bigger **"make it not look vibe-coded" visual redesign (RB-18)** went through the review-council
+   (you approved): the safe half is done (site icon, card depth, unified gradient, matched heading,
+   reduce-motion, mobile tidy-ups); the judgement-call half (recolour, full type/spacing scale, motion,
+   icon set, custom font) is held for a session where you can look at the rendered screens.
 4. **Re-deploy** once the must-fixes are in and the safety gate is green, then re-test against
    the live site.
 5. **"Going public" extras — written down on 2026-06-13, not scheduled yet.** These came up when

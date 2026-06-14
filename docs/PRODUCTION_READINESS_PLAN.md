@@ -8,9 +8,12 @@ truth for what to fix and in what order.
 
 **Status: remediation largely complete (2026-06-13).** Done and pushed: **all P0** (RB-01–04), **all
 P1** (RB-05–11, RB-26, RB-35, RB-40), and the **P2 batch** (RB-12–17, RB-19, RB-21–23, RB-27 Tier-1,
-RB-28–31, RB-33, RB-34) — **31 of 40** items, all marked ✅ DONE on the board. RB-24/RB-37 are partial, RB-32/36/38/39
-accepted or won't-do, RB-20/RB-25 deferred/skipped. **The one substantive item left is RB-18** (the
-visual-craft pass), going through `/review-council` before implementation.
+RB-28–31, RB-33, RB-34) — **31 of 40** items, all marked ✅ DONE on the board. RB-32/36/38/39
+accepted or won't-do, RB-25 skipped. **RB-18** went through `/review-council` (owner approved REVISE):
+its bounded objective subset is **done** (identity favicon, theme-color, gradient/shadow tokens, h1
+unify, RB-20, RB-24-L2/L5); the subjective tail (OKLCH recolor, type/spacing-scale remap, motion
+easing, full icon set, `@font-face`) and RB-37's load test are **deferred to an owner
+render-in-the-loop / deploy-time pass**.
 
 **Re-validated 2026-06-13.** A second multi-agent pass (8 isolated domain reviews + 8 isolated meta
 audits, archived under [`review/run-2026-06-13/`](review/run-2026-06-13/)) re-confirmed this plan and
@@ -162,9 +165,11 @@ Each step is its own commit (or small commit series) and must clear the §6 gate
    ~~RB-16 read timeout, RB-17 nosniff, RB-12/RB-13/RB-14/RB-15/RB-22, RB-24 (most), RB-19/RB-33/RB-34
    tests, RB-21 SECURITY.md, RB-23, RB-27 Tier-1, RB-28/RB-29/RB-30/RB-31~~. RB-32 accepted (reads
    stay unlimited), RB-20/RB-25 deferred/skipped, RB-24-L2/L5 + RB-37 load-test folded onward. Then
-   the **RB-18 visual-craft pass** — its own focused series (tokens → favicon/identity → OKLCH colours
-   → mono → depth/motion/icons) — **going through `/review-council` first** (owner decision); not yet
-   implemented.
+   the **RB-18 visual-craft pass** went through `/review-council` (owner approved REVISE): the bounded
+   objective subset (identity favicon + theme-color, gradient/shadow tokens + h1 unify, RB-20,
+   RB-24-L2/L5) is **done**; the subjective tail (OKLCH recolor, type/spacing-scale remap, motion
+   easing, full icon set, `@font-face`) is **deferred to an owner render-in-the-loop session**. See
+   `docs/review/council/2026-06-13-rb18.md`.
 4. **Re-deploy** (`fly deploy`) once P0 (and ideally P1) are merged and the gate is green;
    re-run the click-through against production.
 5. **Public-deployment dimension — logged 2026-06-13, not yet scheduled.** Surfaced when
