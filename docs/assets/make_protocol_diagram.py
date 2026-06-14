@@ -81,6 +81,32 @@ def text_c(d, xy, s, font, fill, anchor="mm"):
     d.text(_s(xy), s, font=font, fill=fill, anchor=anchor)
 
 
+def chip(d, center, s, font, fg, border):
+    """A filled pill behind a label so connecting lines never obscure it."""
+    x, y = _s(center)
+    l, t, r, b = d.textbbox((x, y), s, font=font, anchor="mm")
+    px, py = 9 * SS, 5 * SS
+    d.rounded_rectangle([l - px, t - py, r + px, b + py], radius=7 * SS,
+                        fill=PANEL, outline=border, width=2 * SS)
+    d.text((x, y), s, font=font, fill=fg, anchor="mm")
+
+
+def legend(d):
+    """Persistent key — a fresh viewer doesn't know x / r / s."""
+    lx, ly, lw, lh = 622, 58, 276, 116
+    bb = [_s((lx, ly))[0], _s((lx, ly))[1], _s((lx + lw, ly + lh))[0], _s((lx + lw, ly + lh))[1]]
+    d.rounded_rectangle(bb, radius=10 * SS, fill=PANEL, outline=BORDER, width=1 * SS)
+    text_c(d, (lx + 16, ly + 17), "KEY", UIB(12), MUTED, anchor="lm")
+    rows = [("x", TEXT, "each party's private figure"),
+            ("r", MASK, "pairwise mask — never sent"),
+            ("s", TEXT, "masked share  (x ± masks)")]
+    yy = ly + 46
+    for sym, col, desc in rows:
+        text_c(d, (lx + 20, yy), sym, MONO(16), col, anchor="lm")
+        text_c(d, (lx + 44, yy), desc, UI(13), MUTED, anchor="lm")
+        yy += 27
+
+
 def dashed(d, p1, p2, fill, width, dash=14, gap=10, alpha=1.0):
     import math
     x1, y1 = _s(p1); x2, y2 = _s(p2)
@@ -134,6 +160,7 @@ def base():
     d = ImageDraw.Draw(img)
     text_c(d, (40, 34), "Secure average — how the pairwise masks cancel",
            UIB(19), TEXT, anchor="lm")
+    legend(d)
     return img, d
 
 
@@ -148,12 +175,12 @@ def mask_edge(d, p1, p2, plus_lo, minus_hi, alpha=1.0):
         return
     lo = midpt(p1, p2, 0.30)
     hi = midpt(p1, p2, 0.70)
-    text_c(d, lo, plus_lo, MONO(18), MASK)
-    text_c(d, hi, minus_hi, MONO(18), MASK)
+    chip(d, lo, plus_lo, MONO(17), TEXT, MASK)
+    chip(d, hi, minus_hi, MONO(17), TEXT, MASK)
 
 
 def caption(d, line):
-    text_c(d, (W // 2, 530), line, UI(16), MUTED)
+    text_c(d, (W // 2, 530), line, UI(15), TEXT)
 
 
 def render(stage, prog=1.0):
@@ -186,13 +213,14 @@ def render(stage, prog=1.0):
                         outline=AGG, width=(4 if lit else 3) * SS)
 
     if stage == "average":
-        text_c(d, G, f"average = {AVG}", UIB(22), AGG)
+        text_c(d, (G[0], G[1] - 11), f"total {TOTAL}  ÷  {N} parties", MONO(13), MUTED)
+        text_c(d, (G[0], G[1] + 12), f"average = {AVG}", UIB(20), AGG)
     elif stage == "still":
         text_c(d, (G[0], G[1] - 11), "masks cancel", MONO(15), GOOD)
         text_c(d, (G[0], G[1] + 12), f"average = {AVG}", UIB(20), AGG)
     elif stage == "cancel":
-        text_c(d, (G[0], G[1] - 9), f"Σ shares = {sA} + {sB} + ({sC}) = {TOTAL}", MONO(17), TEXT)
-        text_c(d, (G[0], G[1] + 13), f"masks cancel → = {xA}+{xB}+{xC}", MONO(15), GOOD)
+        text_c(d, (G[0], G[1] - 11), f"Σ shares = {sA} + {sB} + ({sC}) = {TOTAL}", MONO(16), TEXT)
+        text_c(d, (G[0], G[1] + 13), "(+5−5) + (+8−8) + (+3−3) = 0", MONO(14), GOOD)
     else:
         text_c(d, G, "aggregator", UI(17), AGG)
 
@@ -207,12 +235,12 @@ def render(stage, prog=1.0):
         node(d, C, C_COL, "C", f"s = {sC}")
 
     cap = {
-        "figures": "Each party holds a private figure that never leaves its browser.",
-        "masks":   "Each pair shares a secret mask — derived independently, never sent. One adds it, the other subtracts.",
-        "shares":  "Only the masked shares are sent to the aggregator — each looks like a random number.",
-        "cancel":  "The aggregator sums the shares; every +mask meets its −mask and cancels.",
-        "average": "Only the true total survives — divide by N for the average. No raw figure was ever revealed.",
-        "still":   "Each pair's mask is added by one side and subtracted by the other, so the masked shares sum to the true total.",
+        "figures": "1.  Every party has a private figure x — it never leaves their browser.",
+        "masks":   "2.  Each pair shares a secret mask r — derived by both, never sent. One adds it, the other subtracts.",
+        "shares":  "3.  Each party sends only its masked share s = x ± masks. On its own, s looks random.",
+        "cancel":  "4.  The aggregator adds the shares — every +mask meets its −mask and cancels to zero.",
+        "average": "5.  Only the true total is left; divide by the number of parties to get the average.",
+        "still":   "Masks are added by one side and subtracted by the other, so the shares sum to the true total — the average.",
     }[stage]
     caption(d, cap)
 
@@ -224,15 +252,16 @@ def main():
     out = os.path.normpath(os.path.join(here, "..", "..", "public", "static"))
     os.makedirs(out, exist_ok=True)
 
-    # (stage, hold_ms) — short partial frames give a sense of motion; long hold on payoff
+    # (stage, hold_ms) — short partial frames give a sense of motion; long holds so a
+    # first-time viewer can actually read each step (owner feedback: slow it down).
     seq = [
-        (render("figures"), 1900),
-        (render("masks", 0.5), 220),
-        (render("masks"), 2200),
-        (render("shares", 0.55), 260),
-        (render("shares"), 2200),
-        (render("cancel"), 2200),
-        (render("average"), 3000),
+        (render("figures"), 3400),
+        (render("masks", 0.5), 350),
+        (render("masks"), 4200),
+        (render("shares", 0.55), 380),
+        (render("shares"), 3800),
+        (render("cancel"), 4400),
+        (render("average"), 4600),
     ]
     frames = [f for f, _ in seq]
     durations = [ms for _, ms in seq]
