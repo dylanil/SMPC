@@ -843,16 +843,25 @@ class Handler(http.server.BaseHTTPRequestHandler):
             return self._send_file(os.path.join(PUBLIC_DIR, "party.html"), extra_headers=self._site_cookie_headers())
 
         # Static assets shipped to the browser. Tightly scoped: only a flat
-        # `.js` (PoW miner, protocol crypto) or `.png` (the og:image preview)
-        # filename out of public/static/ — no subdirs, no dotfiles, no traversal.
+        # `.js` (PoW miner, protocol crypto), `.png` (og:image + diagram still), or
+        # `.gif` (the animated protocol diagram). Flat filename out of public/static/
+        # — no subdirs, no dotfiles, no traversal.
         if path.startswith("/static/"):
             name = path[len("/static/"):]
-            if not name or "/" in name or name.startswith(".") or not (name.endswith(".js") or name.endswith(".png")):
+            if not name or "/" in name or name.startswith(".") or not (
+                    name.endswith(".js") or name.endswith(".png") or name.endswith(".gif")):
                 return self.send_error(404)
             full = os.path.join(PUBLIC_DIR, "static", name)
             if not os.path.isfile(full):
                 return self.send_error(404)
-            ctype = "image/png" if name.endswith(".png") else "application/javascript; charset=utf-8"
+            # Content-Type must be exact: X-Content-Type-Options: nosniff is on, so a
+            # mislabelled type would make the browser refuse to render the asset.
+            if name.endswith(".gif"):
+                ctype = "image/gif"
+            elif name.endswith(".png"):
+                ctype = "image/png"
+            else:
+                ctype = "application/javascript; charset=utf-8"
             return self._send_file(full, content_type=ctype)
 
         # Unprotected health check for platform liveness probes.
