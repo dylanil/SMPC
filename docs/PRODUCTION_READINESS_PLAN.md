@@ -73,7 +73,7 @@ The bar is a **credible public portfolio demo**, not a commercial product. Concr
 Seven independent review dimensions, each with an independent second opinion, all in
 [`docs/review/`](review/): **security**, **crypto/SMPC soundness**, **QA/correctness**,
 **legal/licensing**, **UI/UX**, **product/viability**, **front-end graphics**. The second
-opinions (`docs/review/meta/`) validated findings against the code and, in one case, caught
+opinions (`docs/review/run-2026-06-12/meta/`) validated findings against the code and, in one case, caught
 and refuted a review error (the WCAG contrast math). The load-bearing claims - crypto
 soundness and the security posture - held up under independent re-derivation and live
 testing.
