@@ -11,9 +11,9 @@ P1** (RB-05-11, RB-26, RB-35, RB-40), and the **P2 batch** (RB-12-17, RB-19, RB-
 RB-28-31, RB-33, RB-34) - **31 of 40** items, all marked ✅ DONE on the board. RB-32/36/38/39
 accepted or won't-do, RB-25 skipped. **RB-18** is **done** (via `/review-council` + an owner render-loop):
 the bounded subset plus a kept **black+orange + GitHub-typography** direction (`eee0eb1`; OKLCH-even
-and grey schemes were trialed and rejected, `@font-face`/motion-easing skipped). Remaining: a
-`fly deploy`, a screenshot recapture (the RB-10/RB-35 images still show the old purple UI), and the
-optional RB-37 load test on the live instance.
+and grey schemes were trialed and rejected, `@font-face`/motion-easing skipped). Remaining from that 2026-06-13 cycle: only the
+optional RB-37 load test on the live instance. (The `fly deploy` and the screenshot recaptures are
+done - the README/aggregator screenshots and the OG card are now script-generated and current.)
 
 **Re-validated 2026-06-13.** A second multi-agent pass (8 isolated domain reviews + 8 isolated meta
 audits, archived under [`review/run-2026-06-13/`](review/run-2026-06-13/)) re-confirmed this plan and
@@ -23,6 +23,16 @@ committed since the campaign began. Manager recommendation (see
 *before* surfacing the `docs/review/` apparatus as a portfolio feature - "found **and fixed**" is a
 far stronger signal than "found." **That batch has now been done** (the six items above); the review
 apparatus can be surfaced next on solid ground.
+
+**Third pass + implementation (2026-06-14 → 2026-06-15).** A *fresh independent* multi-agent run
+(8 isolated domain reviews + 8 metas + a facilitated debate, archived under
+[`review/run-2026-06-14/`](review/run-2026-06-14/); plan in
+[`review/run-2026-06-14/ACTION_PLAN.md`](review/run-2026-06-14/ACTION_PLAN.md)) found **0 Critical/High
+and 0 refutations** - crypto and the test suite were live-reproduced green - and added **RB-41…RB-55**
+(portfolio framing, honesty-surface accuracy, cheap hardening, and real test-coverage gaps such as the
+ECDSA signature-reject path), plus **RB-56** (display averages/sums to at most 2 dp, display-only). The
+owner approved implementing the whole set and it **landed 2026-06-15**. The only board item still open
+is **RB-37** (the load-test ceiling). The board's "Current status (2026-06-15)" line is authoritative.
 
 ---
 
@@ -138,9 +148,11 @@ Every remediation change must pass this gate before it's considered done:
 - **False positive / no action.** Findings refuted or corrected on audit; recorded so they
   aren't mistakenly actioned.
 
-The board is the instance of this framework: **P0 ×4, P1 ×9, P2 ×27, Accepted ×13, FP ×4.**
-*(Totals include the missing-dimensions pass, RB-26…RB-34 / AC-11…AC-13, and the
-public-deployment dimension scan, RB-35…RB-40 - see step 5 below.)*
+The board is the instance of this framework. As of 2026-06-15: **P0 ×4, P1 ×15, P2 ×37, Accepted ×14,
+FP ×5** - all implemented except RB-37.
+*(Totals include the missing-dimensions pass RB-26…RB-34 / AC-11…AC-13, the public-deployment scan
+RB-35…RB-40, and the 2026-06-14 fresh run RB-41…RB-56 / AC-14 / FP-05 - see the board for per-item
+status.)*
 
 ## 8. Proposed order of work
 
