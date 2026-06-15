@@ -155,19 +155,24 @@ def arrow(d, p1, center, fill, width, progress=1.0, shrink=R, box=(84, 32)):
                    _s((x2 - lx - px, y2 - ly - py))], fill=fill)
 
 
-def node(d, ctr, col, letter, line2):
+def node(d, ctr, col, letter, line2, person=False):
     x, y = ctr
     bb = [_s((x - R, y - R))[0], _s((x - R, y - R))[1],
           _s((x + R, y + R))[0], _s((x + R, y + R))[1]]
     d.ellipse(bb, fill=PANEL, outline=col, width=4 * SS)
     text_c(d, (x, y - 16), letter, UIB(26), col)
     text_c(d, (x, y + 17), line2, MONO(17), TEXT)
+    # The colour-coded person behind this node - drawn just outside the circle
+    # in the averaging beats so the intro characters are visibly the parties.
+    if person:
+        fx = x - (R + 26) if x <= 460 else x + (R + 26)
+        stickman(d, fx, y - 12, col, scale=0.55)
 
 
 def base():
     img = Image.new("RGB", (W * SS, H * SS), BG)
     d = ImageDraw.Draw(img)
-    text_c(d, (40, 34), "Secure average - how the pairwise masks cancel",
+    text_c(d, (40, 34), "Secure Average - how the pairwise masks cancel",
            UIB(19), TEXT, anchor="lm")
     legend(d)
     return img, d
@@ -224,10 +229,10 @@ def render(stage, prog=1.0):
 
     if stage == "average":
         text_c(d, (G[0], G[1] - 11), f"Total {TOTAL}  ÷  {N} parties", MONO(13), MUTED)
-        text_c(d, (G[0], G[1] + 12), f"average = {AVG}", UIB(20), AGG)
+        text_c(d, (G[0], G[1] + 12), f"Average = {AVG}", UIB(20), AGG)
     elif stage == "still":
         text_c(d, (G[0], G[1] - 11), "masks cancel", MONO(15), GOOD)
-        text_c(d, (G[0], G[1] + 12), f"average = {AVG}", UIB(20), AGG)
+        text_c(d, (G[0], G[1] + 12), f"Average = {AVG}", UIB(20), AGG)
     elif stage == "cancel":
         text_c(d, (G[0], G[1] - 11), f"Σ shares = {sA} + {sB} + ({sn(sC)}) = {TOTAL}", MONO(16), TEXT)
         text_c(d, (G[0], G[1] + 13), "(+5−5) + (+8−8) + (+3−3) = 0", MONO(14), GOOD)
@@ -240,9 +245,10 @@ def render(stage, prog=1.0):
         node(d, B, B_COL, "B", f"x = {xB}")
         node(d, C, C_COL, "C", f"x = {xC}")
     else:
-        node(d, A, A_COL, "A", f"s = {sn(sA)}")
-        node(d, B, B_COL, "B", f"s = {sn(sB)}")
-        node(d, C, C_COL, "C", f"s = {sn(sC)}")
+        ppl = stage in ("average", "still")   # show the people once the Average lands
+        node(d, A, A_COL, "A", f"s = {sn(sA)}", ppl)
+        node(d, B, B_COL, "B", f"s = {sn(sB)}", ppl)
+        node(d, C, C_COL, "C", f"s = {sn(sC)}", ppl)
 
     # beat 3 - each party turns its figure into a masked share: s = x ± its masks
     if stage == "compute":
@@ -256,11 +262,92 @@ def render(stage, prog=1.0):
         "compute": "3.  Each party adds its masks to its own figure - one sign per pair - to get its masked share s.",
         "shares":  "4.  Each party sends only its masked share s. On its own, s looks like a random number.",
         "cancel":  "5.  The aggregator adds the shares - every +mask meets its −mask and cancels to zero.",
-        "average": "6.  Only the true total is left; divide by the number of parties to get the average.",
-        "still":   "Masks are added by one side and subtracted by the other, so the shares sum to the true total - the average.",
+        "average": "6.  Only the true total is left; divide by the number of parties to get the Average.",
+        "still":   "Masks are added by one side and subtracted by the other, so the shares sum to the true total - the Average.",
     }[stage]
     caption(d, cap)
 
+    return img.resize((W, H), Image.LANCZOS)
+
+
+# ---- comedic cold-open: three people who don't trust each other -----------
+def _tw(d, s, font):
+    b = d.textbbox((0, 0), s, font=font)
+    return b[2] - b[0]
+
+
+def stickman(d, cx, cy_head, col, scale=1.0):
+    """A simple stick figure in role colour `col`, head centred at (cx, cy_head)."""
+    r = 13 * scale
+    sw = max(2 * SS, int(3 * SS * scale))
+    d.ellipse([(cx - r) * SS, (cy_head - r) * SS, (cx + r) * SS, (cy_head + r) * SS], outline=col, width=sw)
+    sh, hip = cy_head + r, cy_head + r + 34 * scale          # shoulders, hips
+    d.line([_s((cx, sh)), _s((cx, hip))], fill=col, width=sw)                               # spine
+    arm = sh + 9 * scale
+    d.line([_s((cx, arm)), _s((cx - 17 * scale, arm + 13 * scale))], fill=col, width=sw)    # arms
+    d.line([_s((cx, arm)), _s((cx + 17 * scale, arm + 13 * scale))], fill=col, width=sw)
+    d.line([_s((cx, hip)), _s((cx - 14 * scale, hip + 24 * scale))], fill=col, width=sw)    # legs
+    d.line([_s((cx, hip)), _s((cx + 14 * scale, hip + 24 * scale))], fill=col, width=sw)
+
+
+def bubble(d, cx, tail_y, text, max_w=300, fill=TEXT, fg=(20, 20, 22)):
+    """A comic speech bubble centred on cx, tail pointing down to (cx, tail_y)."""
+    font = UIB(15)
+    words, lines, cur = text.split(), [], ""
+    for w in words:
+        t = (cur + " " + w).strip()
+        if _tw(d, t, font) <= max_w * SS:
+            cur = t
+        else:
+            if cur:
+                lines.append(cur)
+            cur = w
+    if cur:
+        lines.append(cur)
+    asc, desc = font.getmetrics()
+    lh = asc + desc + 4 * SS
+    pad = 14 * SS
+    bw = max(_tw(d, l, font) for l in lines) + 2 * pad
+    bh = lh * len(lines) + 2 * pad - 4 * SS
+    cxs = cx * SS
+    tail = tail_y * SS
+    by1 = tail - 16 * SS
+    by0 = by1 - bh
+    d.rounded_rectangle([cxs - bw / 2, by0, cxs + bw / 2, by1], radius=12 * SS,
+                        fill=fill, outline=BORDER, width=SS)
+    d.polygon([(cxs - 10 * SS, by1 - 2 * SS), (cxs + 10 * SS, by1 - 2 * SS),
+               (cxs - 2 * SS, tail)], fill=fill)
+    ty = by0 + pad
+    for l in lines:
+        d.text((cxs, ty), l, font=font, fill=fg, anchor="ma")
+        ty += lh
+
+
+def render_intro(beat):
+    """Cold open before the protocol: three parties who want the Average but
+    won't reveal their numbers - the problem SMPC solves, played for a laugh.
+    beat: walk | ask | danger | idea."""
+    img = Image.new("RGB", (W * SS, H * SS), BG)
+    d = ImageDraw.Draw(img)
+    cyh = 250
+    xs = [250, 470, 690] if beat == "walk" else [330, 470, 610]  # spread, then gathered
+    for x, c, lab in zip(xs, (A_COL, B_COL, C_COL), "ABC"):
+        stickman(d, x, cyh, c)
+        text_c(d, (x, cyh + 89), lab, UIB(15), c)                # letter under the feet
+    if beat == "walk":
+        text_c(d, (W // 2, 92), "Secure Average - the problem", UIB(19), TEXT)
+        caption(d, "Three people, each with one private number.")
+    elif beat == "ask":      # B poses the problem
+        bubble(d, 470, cyh - 24,
+               "We all want our Average - but none of us will share our number. "
+               "Not with each other, and not with any third party.", max_w=380)
+    elif beat == "danger":   # A names the risk
+        bubble(d, 330, cyh - 24, "Sending our raw data outside would be dangerous.", max_w=250)
+    elif beat == "idea":     # C has the idea (hands off to the protocol). "mask", not
+                             # "encrypt": the mechanism is one-time-pad masking, not HE
+                             # (review council 2026-06-15 - keep the page's vocabulary).
+        bubble(d, 610, cyh - 24,
+               "What if we could mask our data first, and take the Average of that?", max_w=300)
     return img.resize((W, H), Image.LANCZOS)
 
 
@@ -272,6 +359,10 @@ def main():
     # (stage, hold_ms) - short partial frames give a sense of motion; long holds so a
     # first-time viewer can actually read each step (owner feedback: slow it down).
     seq = [
+        (render_intro("walk"), 1100),
+        (render_intro("ask"), 3600),
+        (render_intro("danger"), 2400),
+        (render_intro("idea"), 3400),
         (render("figures"), 3000),
         (render("masks", 0.5), 350),
         (render("masks"), 3600),
