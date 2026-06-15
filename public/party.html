@@ -13,18 +13,9 @@
 <meta name="twitter:image" content="https://fl-wg-smpc.fly.dev/static/og-preview.png">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230c0c0d'/%3E%3Cpath d='M23 8H9l8 8-8 8h14' fill='none' stroke='%23ff7a18' stroke-width='2.5' stroke-linejoin='round' stroke-linecap='round'/%3E%3C/svg%3E">
 <meta name="theme-color" content="#0c0c0d">
+<link rel="stylesheet" href="/static/theme.css">
 <title>SMPC Participant - demo</title>
 <style>
-  :root {
-    --bg:#0c0c0d; --panel:#161618; --panel-2:#1e1e20; --border:#2c2c30;
-    --text:#ededee; --muted:#98989e;
-    --a:#f2c64b; --b:#cf8ad9; --c:#5fcf80; --d:#ef6f9a; --e:#cfd152;
-    --f:#e0625c; --g:#4fc7bd; --h:#c79a6b; --i:#8fb53f; --j:#d99ab0;
-    --agg:#ff7a18; --danger:#ff7a8a; --ok:#69d58a;
-    /* RB-18 shared tokens - keep byte-identical across home/party/aggregator (see CLAUDE.md Styling). */
-    --grad:linear-gradient(135deg,#1a1410,#241a10); --shadow:0 1px 0 rgba(255,255,255,.04) inset, 0 2px 6px rgba(0,0,0,.55);
-    --r-sm:6px; --r-md:10px; /* RB-53 radius tokens - keep byte-identical across the three pages (see CLAUDE.md Styling). */
-  }
   * { box-sizing:border-box; }
   body { margin:0; padding:28px; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans",Helvetica,Arial,sans-serif;
          background:var(--bg); color:var(--text); line-height:1.5; }
@@ -52,7 +43,7 @@
   .card.muted { opacity:.45; }
 
   label { font-size:12px; color:var(--muted); display:block; margin-bottom:6px; }
-  input[type=number], input[type=text].code {
+  input[type=text].figure, input[type=text].code {
     width:100%; padding:12px 14px; background:var(--panel-2);
     border:1px solid var(--border); border-radius:var(--r-sm); color:var(--text);
     font-size:18px; font-family:inherit;
@@ -98,25 +89,6 @@
     font-size:13px;
   }
   a { color:var(--muted); font-size:12px; }
-  /* RB-11: visible keyboard-focus ring on every interactive control (WCAG 2.4.7). */
-  :focus-visible { outline:2px solid var(--agg, #ff7a18); outline-offset:2px; }
-  /* RB-20: honour the OS "reduce motion" setting. */
-  @media (prefers-reduced-motion: reduce) {
-    *, *::before, *::after { transition: none !important; animation: none !important; }
-  }
-  /* Shared honesty callout - keep this rule block AND its copy in sync across
-     home/party/aggregator (no shared stylesheet/build; see CLAUDE.md Styling). */
-  .honesty { background:var(--panel); border:1px solid var(--border);
-    border-radius:var(--r-md); padding:18px 20px; margin-bottom:24px; }
-  .honesty-title { margin:0 0 12px; font-size:15px; }
-  .honesty-cols { display:flex; gap:24px; flex-wrap:wrap; }
-  .honesty-cols > div { flex:1; min-width:240px; }
-  .honesty-h { font-size:12px; text-transform:uppercase; letter-spacing:.06em;
-    color:var(--muted); font-weight:600; margin-bottom:6px; }
-  .honesty ul { margin:0; padding-left:18px; }
-  .honesty li { font-size:13px; line-height:1.6; color:var(--muted); margin:4px 0; }
-  .honesty p { font-size:13px; line-height:1.6; color:var(--muted); margin:10px 0 0; }
-  .honesty a { color:var(--agg); }
 </style>
 </head>
 <body>
@@ -139,7 +111,7 @@
     <div style="font-size:12px; color:var(--muted); margin:0 0 10px;">Demo only - please don't enter a real or sensitive figure. Provided as is, with no warranty; don't rely on the result.</div>
     <div class="field-row">
       <label>Private figure <span class="pill">stays local</span></label>
-      <input type="number" id="numInput" step="any" inputmode="decimal" placeholder="e.g. 42">
+      <input type="text" class="figure" id="numInput" inputmode="decimal" placeholder="e.g. 42" autocomplete="off" spellcheck="false">
     </div>
     <button class="go" id="startBtn">Start Protocol</button>
     <div class="err" id="inputErr"></div>
@@ -175,7 +147,7 @@
     <p>An educational proof-of-concept, not an audited or production service - it shows how the cryptographic plumbing of secure multi-party computation works. The maths is real (your raw figure never leaves your browser; every result is independently verifiable), but it has deliberate, documented limits: it assumes everyone is honest about their own figure, needs all participants online at once, and can't stop an impostor who registers before the real participant. Full threat model and open review on GitHub: <a href="https://github.com/dylanil/SMPC#readme" target="_blank" rel="noopener">README</a> · <a href="https://github.com/dylanil/SMPC/blob/main/SECURITY.md" target="_blank" rel="noopener">SECURITY</a> · <a href="https://github.com/dylanil/SMPC/tree/main/docs/review" target="_blank" rel="noopener">review board</a>.</p>
   </section>
 
-  <p style="font-size:12px; color:var(--muted); margin-top:18px;">Educational demonstration only - a proof-of-concept, not a production, commercial, or professional service. Provided as is, with no warranty and no guarantee of correctness, security, or availability; do not rely on it for any real, confidential, regulated, or production purpose, and do not enter real or sensitive figures.</p>
+  <p class="disclaimer">Educational demonstration only - a proof-of-concept, not a production, commercial, or professional service. Provided as is, with no warranty and no guarantee of correctness, security, or availability; do not rely on it for any real, confidential, regulated, or production purpose, and do not enter real or sensitive figures.</p>
   <a href="/"><svg width="13" height="13" viewBox="0 0 16 16" aria-hidden="true" style="vertical-align:-2px; margin-right:5px"><path d="M9 3l-5 5 5 5M4 8h9" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>back to home</a>
 </div>
 
@@ -186,7 +158,7 @@
   // canonical message format, sign convention) is shared with the
   // aggregator's demo mode via smpc-core.js - see CLAUDE.md.
   const {
-    SCALE, toFixed, canonicalMessage, maskSign, fmt2,
+    parseDecimalToFixed, formatAverageFixed, canonicalMessage, maskSign,
     generateECDHKeypair, exportEcdhPubB64, derivePairwiseMask,
     generateSigningKeypair, exportVkB64, signMessage, verifyMessage,
   } = window.SMPCCore;
@@ -332,8 +304,12 @@
     const code = m[1];
     const inviteToken = m[2];
     const raw = document.getElementById('numInput').value;
-    if (raw === '' || Number.isNaN(parseFloat(raw))) {
-      showInputErr('Please enter a figure.'); return;
+    let xFixed;
+    try {
+      xFixed = parseDecimalToFixed(raw);
+    } catch (e) {
+      showInputErr(e.message);
+      return;
     }
 
     // === Step 2: generate signing key, mine PoW, and join ===
@@ -398,8 +374,6 @@
     }
     logLine('joinLog', `← Received server-signed bearer token. Session has ${PARTIES.length} participants: ${PARTIES.join(', ')}.`, 'ok');
 
-    const x = parseFloat(raw);
-    const xFixed = toFixed(x);
     document.getElementById('startBtn').disabled = true;
     document.getElementById('numInput').disabled = true;
     document.getElementById('inviteInput').disabled = true;
@@ -541,8 +515,7 @@
             const localSum = PARTIES.map(p => BigInt(data.shares[p])).reduce((a, b) => a + b, 0n);
             const serverSum = BigInt(data.sum);
             const sumOk = localSum === serverSum;
-            const avgNum = Number(localSum) / Number(SCALE) / PARTIES.length;
-            const avgStr = fmt2(avgNum);  // RB-22: never render -0 (shared formatter)
+            const avgStr = formatAverageFixed(localSum, PARTIES.length);
 
             const sigRows = PARTIES.map(p => `
               <div class="k">sig<sub>${p}</sub> verifies under vk<sub>${p}</sub>:</div>

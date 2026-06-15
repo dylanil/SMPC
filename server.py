@@ -850,13 +850,15 @@ class Handler(http.server.BaseHTTPRequestHandler):
             return self._send_file(os.path.join(PUBLIC_DIR, "party.html"), extra_headers=self._site_cookie_headers())
 
         # Static assets shipped to the browser. Tightly scoped: only a flat
-        # `.js` (PoW miner, protocol crypto), `.png` (og:image + diagram still), or
-        # `.gif` (the animated protocol diagram). Flat filename out of public/static/
-        # - no subdirs, no dotfiles, no traversal.
+        # `.js` (PoW miner, protocol crypto), `.css` (shared visual contract),
+        # `.png` (og:image + diagram still), or `.gif` (the animated protocol
+        # diagram). Flat filename out of public/static/ - no subdirs, no
+        # dotfiles, no traversal.
         if path.startswith("/static/"):
             name = path[len("/static/"):]
             if not name or "/" in name or name.startswith(".") or not (
-                    name.endswith(".js") or name.endswith(".png") or name.endswith(".gif")):
+                    name.endswith(".js") or name.endswith(".css") or
+                    name.endswith(".png") or name.endswith(".gif")):
                 return self.send_error(404)
             full = os.path.join(PUBLIC_DIR, "static", name)
             if not os.path.isfile(full):
@@ -867,6 +869,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 ctype = "image/gif"
             elif name.endswith(".png"):
                 ctype = "image/png"
+            elif name.endswith(".css"):
+                ctype = "text/css; charset=utf-8"
             else:
                 ctype = "application/javascript; charset=utf-8"
             return self._send_file(full, content_type=ctype)

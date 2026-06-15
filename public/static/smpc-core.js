@@ -11,7 +11,39 @@
   // Fixed-point scale: figures cross the wire as decimal-string integers
   // scaled by 10^6. Must match the server's interpretation.
   const SCALE = 1000000n;
-  const toFixed = x => BigInt(Math.round(x * Number(SCALE)));
+  const SCALE_DP = 6;
+
+  function pow10(n) {
+    return 10n ** BigInt(n);
+  }
+
+  // Parse a user-entered ASCII decimal string into the 1e6 fixed-point integer
+  // used on the wire. This deliberately has no magnitude cap (owner decision),
+  // but it rejects JS numeric shortcuts like 1e6/Infinity and non-ASCII digits
+  // so the browser path is as exact as the BigInt wire story claims.
+  function parseDecimalToFixed(raw) {
+    const s = String(raw).trim();
+    if (!/^[+-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)$/.test(s)) {
+      throw new Error("Enter a plain decimal number using ASCII digits, with no commas or exponent notation.");
+    }
+    let body = s;
+    let sign = 1n;
+    if (body[0] === "-" || body[0] === "+") {
+      sign = body[0] === "-" ? -1n : 1n;
+      body = body.slice(1);
+    }
+    let [whole, frac = ""] = body.split(".");
+    if (whole === "") whole = "0";
+    const micros = frac.slice(0, SCALE_DP).padEnd(SCALE_DP, "0");
+    let fixed = BigInt(whole) * SCALE + BigInt(micros);
+    const rest = frac.slice(SCALE_DP);
+    if (rest && rest[0] >= "5") fixed += 1n; // nearest micro-unit, half away from zero
+    return sign * fixed;
+  }
+
+  // Compatibility alias for older call sites. New code should pass the raw
+  // user string to parseDecimalToFixed so it never goes through Number.
+  const toFixed = parseDecimalToFixed;
 
   // Bytes both sides sign/verify for a party-scoped POST. Must match
   // canonical_message in server.py exactly.
@@ -26,13 +58,45 @@
   }
 
   // --- Display helpers (not crypto; single-sourced so both pages agree) ---
-  // fmt2: render a Number for DISPLAY at up to 2 dp, strip trailing zeros, never
-  // show "-0" (RB-22). Display only - the wire/protocol arithmetic stays exact at
-  // the 1e6 fixed-point SCALE; this just rounds what the user sees (e.g. an
-  // average of 18835.6033... shows as 18835.6).
-  function fmt2(x) {
-    return x.toFixed(2).replace(/\.?0+$/, '').replace(/^-0$/, '0');
+  function displayUnitsToString(units, maxDp) {
+    if (units === 0n) return "0";
+    const neg = units < 0n;
+    let abs = neg ? -units : units;
+    const scale = pow10(maxDp);
+    const whole = abs / scale;
+    let frac = (abs % scale).toString().padStart(maxDp, "0");
+    frac = frac.replace(/0+$/, "");
+    return (neg ? "-" : "") + whole.toString() + (frac ? "." + frac : "");
   }
+
+  function roundedDisplayUnits(numerFixed, denom, maxDp) {
+    if (!Number.isInteger(maxDp) || maxDp < 0 || maxDp > SCALE_DP) {
+      throw new Error("maxDp must be an integer from 0 to 6");
+    }
+    const d = BigInt(denom);
+    if (d <= 0n) throw new Error("denom must be positive");
+    const neg = numerFixed < 0n;
+    const abs = neg ? -numerFixed : numerFixed;
+    const divisor = d * SCALE;
+    let q = abs * pow10(maxDp);
+    let units = q / divisor;
+    const rem = q % divisor;
+    if (rem * 2n >= divisor) units += 1n; // display rounding, half away from zero
+    return neg ? -units : units;
+  }
+
+  // Render a fixed-point integer for display at up to maxDp decimal places,
+  // stripping trailing zeros and never rendering "-0".
+  function formatFixed(fixed, maxDp = 2) {
+    return displayUnitsToString(roundedDisplayUnits(BigInt(fixed), 1, maxDp), maxDp);
+  }
+
+  // Render (sumFixed / n) exactly, without first converting either side to
+  // Number. This keeps huge demo figures honest while preserving the 2dp UI.
+  function formatAverageFixed(sumFixed, n, maxDp = 2) {
+    return displayUnitsToString(roundedDisplayUnits(BigInt(sumFixed), n, maxDp), maxDp);
+  }
+
   // escapeHtml: neutralise a peer/aggregator-supplied string before it touches
   // innerHTML (RB-47 defence-in-depth - the share validator already constrains
   // shares to decimals, but the guard belongs at the sink too).
@@ -122,7 +186,8 @@
   }
 
   window.SMPCCore = {
-    SCALE, toFixed, canonicalMessage, maskSign, fmt2, escapeHtml,
+    SCALE, toFixed, parseDecimalToFixed, formatFixed, formatAverageFixed,
+    canonicalMessage, maskSign, escapeHtml,
     b64encode, b64decode,
     generateECDHKeypair, exportEcdhPubB64, importEcdhPub, derivePairwiseMask,
     generateSigningKeypair, exportVkB64, signMessage, importVk, verifyMessage,

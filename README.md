@@ -7,7 +7,7 @@
 **Compute a group average that nobody can de-anonymise - and check the result yourself.** Three to ten people each hold one private figure; together they learn only the average, and no participant's raw figure ever crosses the wire. Security comes from *pairwise one-time-pad masking*: every pair shares a random mask that cancels when all N masked shares are summed.
 
 *Built by **Dylan Liew** as a portfolio demonstration of applied secure multi-party computation - the cryptography, the threat modelling, and an honestly documented set of limits.*
-&nbsp; [**Try the live solo demo**](https://fl-wg-smpc.fly.dev/aggregator) (no friends needed - click **Demo**) · [How it works](#protocol) · [What it deliberately isn't](#known-limitations)
+&nbsp; [**Run the live solo demo**](https://fl-wg-smpc.fly.dev/aggregator?demo=1) · [How it works](#protocol) · [What it deliberately isn't](#known-limitations)
 
 **Privacy you don't have to take on trust.** Most "we do MPC" demos can't be checked by the viewer; this one can. Every result is independently verifiable:
 
@@ -24,26 +24,6 @@ The repo is also reviewed adversarially in the open - see [`docs/review/`](docs/
 > provided **as-is with no warranty**, and runs as a single in-memory instance with no persistence
 > or support. Please don't enter real or sensitive data. The "insurance claim severity" wording is
 > only an illustrative example metric.
-
----
-
-<details>
-<summary><strong>Recent updates</strong> - hardening + UX changelog (click to expand)</summary>
-
-A round of hardening and UX fixes landed together. In simple terms:
-
-- **Optional aggregator password.** Set `AGGREGATOR_PASSWORD` and the `/aggregator` page itself goes behind a browser auth dialog (HTTP Basic Auth). Casual visitors can't even see the form, and only people who hold the password can mint or wipe sessions. Leaving the variable unset keeps everything open, which is fine for local dev. See *Restricting who can create sessions* below.
-- **Browser-friendly auth bridge.** After the auth dialog accepts, the server hands the browser a signed cookie. Subsequent API calls ride that cookie automatically - there's no JS-side password handling at all. The cookie key is derived from the password itself, so cookies survive server restarts (a fly redeploy doesn't bounce you out) but invalidate the moment the password rotates.
-- **Auto-retry on stale proof-of-work.** If you switch tabs while the client is mining the PoW puzzle, browsers throttle the JS timer and the puzzle can expire mid-mine (60s server-side TTL). The client now silently fetches a fresh puzzle and tries once more instead of failing the request outright.
-- **Real `/api/join` error messages.** The participant page used to show a generic "Invite is not valid" no matter what went wrong. It now surfaces the actual HTTP status and the server's error string, with a status-aware next step (expired session vs. slot taken vs. rate limited vs. network).
-- **Aggregator detects session loss.** If the server restarts mid-round (so the in-memory session is gone), the aggregator now paints a red "session lost - reload" message after a few seconds of sustained 403s, instead of silently polling forever. Single-blip 403s are tolerated to avoid false positives.
-- **Memory-hygiene sweeps.** The per-IP rate-counter map and the proof-of-work used-challenge tracker are now swept by the session-reaper thread on its existing schedule, so neither accumulates dead entries indefinitely. Plain language: like tearing empty pages out of a guestbook so it doesn't grow forever even after visitors have left.
-- **Clickjacking defence.** Every response now carries `X-Frame-Options: DENY`, so a malicious page can't invisibly embed our aggregator UI inside fake bait UI to capture misclicks.
-- **Non-root container.** The Docker container creates a regular user (uid 1000) and switches to it before launching the server, so a hypothetical container-escape exploit doesn't start at admin privileges.
-
-Detailed entries with the full rationale live under *Security notes* further down.
-
-</details>
 
 ---
 
@@ -117,7 +97,7 @@ Each participant enters their figure and clicks *Start Protocol*. Once all N sha
 
 ### Try it alone
 
-After creating a session, the aggregator page offers **Demo: simulate all participants in this tab**. It runs every participant's side of the protocol - proof-of-work, join, signed key exchange, mask derivation, signed masked shares - over the real wire, with random figures, so you can watch a complete round solo. Two honest caveats, which the page itself displays: a simulated round has no privacy (one tab necessarily knows every figure - that's why the page shows a reveal card at the end, something nobody can produce in a real round), and the simulation consumes all the session's invites, so create a fresh session for rounds with real participants.
+Open [`/aggregator?demo=1`](https://fl-wg-smpc.fly.dev/aggregator?demo=1) to create a 3-party session and run the simulator automatically. The normal aggregator page also offers **Demo: simulate all participants in this tab** after you create a session. It runs every participant's side of the protocol - proof-of-work, join, signed key exchange, mask derivation, signed masked shares - over the real wire, with random figures, so you can watch a complete round solo. Two honest caveats, which the page itself displays: a simulated round has no privacy (one tab necessarily knows every figure - that's why the page shows a reveal card at the end, something nobody can produce in a real round), and the simulation consumes all the session's invites, so create a fresh session for rounds with real participants.
 
 To abandon an in-flight round, reload the aggregator page and create a new one; old sessions live in memory until the server restarts.
 
@@ -182,7 +162,8 @@ SMPC/
 │   ├── aggregator.html
 │   └── static/
 │       ├── pow.js         # Pure-JS SHA-256 proof-of-work miner
-│       └── smpc-core.js   # Shared protocol crypto (masks, signatures, canonical message)
+│       ├── smpc-core.js   # Shared protocol crypto and exact fixed-point display helpers
+│       └── theme.css      # Shared palette/focus/honesty/disclaimer styling
 ├── Dockerfile             # python:3.11-slim, drops to non-root uid 1000
 ├── fly.toml               # Single pinned machine - in-memory state can't autoscale
 └── examples/
@@ -239,10 +220,10 @@ planned improvements live in [`docs/review/RELEASE_BOARD.md`](docs/review/RELEAS
 - **Abuse controls depend on the hosting topology.** Per-IP rate limiting relies on the
   platform's trusted client-IP header; on a direct/forwarding exposure it can be bypassed.
 - **Operational choices for a wider public deployment** (consciously scoped - see RB-35…RB-40 on the
-  release board): no availability monitoring, no load-tested concurrency ceiling, and no moderation of
-  the free-text metric label - all accepted as out of proportion for a single-instance portfolio demo
-  (a concurrency reality-check is the one kept for later). The data-protection footprint is documented
-  in *Privacy* below.
+  release board): no availability monitoring and no moderation of the free-text metric label - both
+  accepted as out of proportion for a single-instance portfolio demo. A live load check has established
+  enough headroom for realistic portfolio traffic. The data-protection footprint is documented in
+  *Privacy* below.
 - **Author self-review only** - the `docs/review/` audits are rigorous self-cross-examination,
   not an independent third-party security or cryptographic certification.
 
@@ -275,7 +256,7 @@ This is an educational demo, not production-grade:
 - **Honest limitation: signed shares do NOT close the impersonation race.** vks are generated per-session in the browser. An attacker who intercepts an invite and races the legitimate participant to `/api/join` registers their own vk; subsequent signatures verify cleanly. Closing this gap requires a long-term per-participant key registry (or two-channel delivery, or federated identity) that binds vk to participant identity *before* the session begins. Not implemented here.
 - **Unbounded share magnitude.** `/api/share` accepts any decimal string - nothing caps the number. A malicious or buggy participant can drag the average by submitting a huge value. Signatures don't help: they only prove who submitted, not what was reasonable.
 - **No party-identity authentication beyond the token.** A legitimate holder of an invite token is still trusted to honestly submit *their own* figure - the protocol doesn't prevent a participant from entering whatever number they like as `x_i`.
-- **Fixed-point arithmetic** (×10⁶) is used so decimals work with BigInt on the client. Pick a scale that fits your expected range. Internal arithmetic keeps that full precision; the average, sum, and reveal cross-check are **displayed to at most 2 decimal places** (display rounding only - the masks-cancel verification stays exact).
+- **Fixed-point arithmetic** (×10⁶) is used so decimals work with BigInt on the client. The browser parses plain ASCII decimal input directly into that fixed-point integer - no `Number`, exponent notation, commas, or non-ASCII digits - and internal arithmetic keeps the full precision. The average, sum, and reveal cross-check are **displayed to at most 2 decimal places** (display rounding only - the masks-cancel verification stays exact).
 - **Collusion.** As with any pairwise-masking scheme, two colluding participants (or a participant colluding with the aggregator) can reconstruct the third participant's input - this is inherent to 3-party additive secret sharing.
 
 ## Privacy
@@ -294,6 +275,10 @@ This is a demonstration that deliberately keeps as little as possible, all in me
 ## License
 
 This project is licensed under the MIT License - see [`LICENSE`](LICENSE).
+
+## Changelog
+
+Notable hardening and UX changes are collected in [`docs/CHANGELOG.md`](docs/CHANGELOG.md).
 
 ---
 

@@ -1,0 +1,38 @@
+:root {
+  --bg:#0c0c0d; --panel:#161618; --panel-2:#1e1e20; --border:#2c2c30;
+  --text:#ededee; --muted:#98989e;
+  --a:#f2c64b; --b:#cf8ad9; --c:#5fcf80; --d:#ef6f9a; --e:#cfd152;
+  --f:#e0625c; --g:#4fc7bd; --h:#c79a6b; --i:#8fb53f; --j:#d99ab0;
+  --agg:#ff7a18; --danger:#ff7a8a; --ok:#69d58a;
+  --grad:linear-gradient(135deg,#1a1410,#241a10);
+  --shadow:0 1px 0 rgba(255,255,255,.04) inset, 0 2px 6px rgba(0,0,0,.55);
+  --r-sm:6px; --r-md:10px;
+}
+
+/* Visible keyboard-focus ring on every interactive control (WCAG 2.4.7). */
+:focus-visible { outline:2px solid var(--agg, #ff7a18); outline-offset:2px; }
+
+/* Honour the OS "reduce motion" setting. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; }
+}
+
+.honesty {
+  background:var(--panel); border:1px solid var(--border);
+  border-radius:var(--r-md); padding:18px 20px; margin-bottom:24px;
+}
+.honesty-title { margin:0 0 12px; font-size:15px; }
+.honesty-cols { display:flex; gap:24px; flex-wrap:wrap; }
+.honesty-cols > div { flex:1; min-width:240px; }
+.honesty-h {
+  font-size:12px; text-transform:uppercase; letter-spacing:.06em;
+  color:var(--muted); font-weight:600; margin-bottom:6px;
+}
+.honesty ul { margin:0; padding-left:18px; }
+.honesty li { font-size:13px; line-height:1.6; color:var(--muted); margin:4px 0; }
+.honesty p { font-size:13px; line-height:1.6; color:var(--muted); margin:10px 0 0; }
+.honesty a { color:var(--agg); }
+
+.disclaimer {
+  font-size:12px; color:var(--muted); margin-top:18px;
+}

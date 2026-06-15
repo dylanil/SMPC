@@ -6,33 +6,9 @@ no-account demo. This document is the strategy wrapper; the per-finding triage l
 [`docs/review/RELEASE_BOARD.md`](review/RELEASE_BOARD.md), which is the single source of
 truth for what to fix and in what order.
 
-**Status: remediation largely complete (2026-06-13).** Done and pushed: **all P0** (RB-01-04), **all
-P1** (RB-05-11, RB-26, RB-35, RB-40), and the **P2 batch** (RB-12-17, RB-19, RB-21-23, RB-27 Tier-1,
-RB-28-31, RB-33, RB-34) - **31 of 40** items, all marked ✅ DONE on the board. RB-32/36/38/39
-accepted or won't-do, RB-25 skipped. **RB-18** is **done** (via `/review-council` + an owner render-loop):
-the bounded subset plus a kept **black+orange + GitHub-typography** direction (`eee0eb1`; OKLCH-even
-and grey schemes were trialed and rejected, `@font-face`/motion-easing skipped). Remaining from that 2026-06-13 cycle: only the
-optional RB-37 load test on the live instance. (The `fly deploy` and the screenshot recaptures are
-done - the README/aggregator screenshots and the OG card are now script-generated and current.)
+**Current status (2026-06-15): release-board remediation is complete.** RB-01…RB-56 are implemented or consciously closed, and RB-37 was closed with a live load check (~200 req/s saturation, clean to ~25 concurrent). The public deployment is intentionally still a single in-memory demo, but the known correctness, UX, security-hygiene, and portfolio-presentation findings from the review campaign have been addressed.
 
-**Re-validated 2026-06-13.** A second multi-agent pass (8 isolated domain reviews + 8 isolated meta
-audits, archived under [`review/run-2026-06-13/`](review/run-2026-06-13/)) re-confirmed this plan and
-the board with **0 refutations and no re-prioritisation**. At that point no application code had been
-committed since the campaign began. Manager recommendation (see
-[`review/run-2026-06-13/debate.md`](review/run-2026-06-13/debate.md)): execute the §8.1 P0 batch
-*before* surfacing the `docs/review/` apparatus as a portfolio feature - "found **and fixed**" is a
-far stronger signal than "found." **That batch has now been done** (the six items above); the review
-apparatus can be surfaced next on solid ground.
-
-**Third pass + implementation (2026-06-14 → 2026-06-15).** A *fresh independent* multi-agent run
-(8 isolated domain reviews + 8 metas + a facilitated debate, archived under
-[`review/run-2026-06-14/`](review/run-2026-06-14/); plan in
-[`review/run-2026-06-14/ACTION_PLAN.md`](review/run-2026-06-14/ACTION_PLAN.md)) found **0 Critical/High
-and 0 refutations** - crypto and the test suite were live-reproduced green - and added **RB-41…RB-55**
-(portfolio framing, honesty-surface accuracy, cheap hardening, and real test-coverage gaps such as the
-ECDSA signature-reject path), plus **RB-56** (display averages/sums to at most 2 dp, display-only). The
-owner approved implementing the whole set and it **landed 2026-06-15**. The only board item still open
-is **RB-37** (the load-test ceiling). The board's "Current status (2026-06-15)" line is authoritative.
+**How it got here.** The repo went through three review waves: the initial multi-domain review under [`review/run-2026-06-12/`](review/run-2026-06-12/), a re-validation under [`review/run-2026-06-13/`](review/run-2026-06-13/), and a fresh-independent pass under [`review/run-2026-06-14/`](review/run-2026-06-14/). The consolidated board remains [`review/RELEASE_BOARD.md`](review/RELEASE_BOARD.md); this plan is the strategy wrapper, not a second issue tracker.
 
 ---
 
@@ -49,16 +25,17 @@ all signatures.
 - **State:** entirely in process memory, keyed by 6-char session code; reaped on a TTL
   (~30 min) by a daemon thread. Sessions never share state. Restart wipes everything - by
   design.
-- **Frontend:** three self-contained HTML pages (`public/{home,party,aggregator}.html`),
-  each with its own inline `<style>` and inline JS, plus two shared static modules
-  (`public/static/smpc-core.js` - protocol crypto; `pow.js` - proof-of-work miner).
+- **Frontend:** three lightweight HTML pages (`public/{home,party,aggregator}.html`),
+  each with page-specific inline CSS/JS, plus shared static assets:
+  `public/static/smpc-core.js` (protocol crypto + exact fixed-point helpers),
+  `pow.js` (proof-of-work miner), and `theme.css` (shared visual contract).
 - **Identity / integrity stack:** per-party invite token → server-signed HMAC bearer token
   → ECDSA-signed pubkeys/shares → first-write-wins per slot. Proof-of-work gates session
   creation and join; per-IP sliding-window rate limits; optional shared aggregator password.
 - **Deployment:** Docker (`python:3.11-slim`, drops to non-root uid 1000) on fly.io
   (`fl-wg-smpc`, region `lhr`), **single pinned always-on machine** (`auto_stop_machines =
-  false`, `min_machines_running = 1`) because in-memory state can't autoscale; `force_https`;
-  `/healthz` check.
+  false`, `min_machines_running = 1`, `max_machines_running = 1`) because in-memory state
+  can't autoscale; `force_https`; `/healthz` check.
 - **Deliberate non-goals (do not "fix"):** no persistence, no user accounts, no PKI/identity
   proxy, no input magnitude caps, no dropout resilience. These are documented design
   boundaries, not omissions - see the Accepted section of the board (AC-01…AC-10).
@@ -149,7 +126,7 @@ Every remediation change must pass this gate before it's considered done:
   aren't mistakenly actioned.
 
 The board is the instance of this framework. As of 2026-06-15: **P0 ×4, P1 ×15, P2 ×37, Accepted ×14,
-FP ×5** - all implemented except RB-37.
+FP ×5** - all implemented or consciously closed, including RB-37.
 *(Totals include the missing-dimensions pass RB-26…RB-34 / AC-11…AC-13, the public-deployment scan
 RB-35…RB-40, and the 2026-06-14 fresh run RB-41…RB-56 / AC-14 / FP-05 - see the board for per-item
 status.)*

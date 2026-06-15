@@ -14,6 +14,7 @@ under [`public/`](../public/); start with the top-level [`README.md`](../README.
     meta second-opinions + a debate). Append-only snapshots; earlier runs predate later conventions.
 - **[PRODUCTION_READINESS_PLAN.md](PRODUCTION_READINESS_PLAN.md)** - strategy wrapper: how the demo
   moves *toward* production-ready within its deliberately lightweight scope.
+- **[CHANGELOG.md](CHANGELOG.md)** - concise history of notable hardening, UX, and public-demo changes.
 - **[REVIEW_ORCHESTRATION.md](REVIEW_ORCHESTRATION.md)** - brief for the heavy periodic whole-repo
   multi-agent audit (the heavyweight companion to the per-proposal council).
 - **[assets/](assets/)** - dev-only Pillow generators (`make_*.py`) that are the single editable

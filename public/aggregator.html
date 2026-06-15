@@ -13,18 +13,9 @@
 <meta name="twitter:image" content="https://fl-wg-smpc.fly.dev/static/og-preview.png">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230c0c0d'/%3E%3Cpath d='M23 8H9l8 8-8 8h14' fill='none' stroke='%23ff7a18' stroke-width='2.5' stroke-linejoin='round' stroke-linecap='round'/%3E%3C/svg%3E">
 <meta name="theme-color" content="#0c0c0d">
+<link rel="stylesheet" href="/static/theme.css">
 <title>SMPC Aggregator - demo</title>
 <style>
-  :root {
-    --bg:#0c0c0d; --panel:#161618; --panel-2:#1e1e20; --border:#2c2c30;
-    --text:#ededee; --muted:#98989e;
-    --a:#f2c64b; --b:#cf8ad9; --c:#5fcf80; --d:#ef6f9a; --e:#cfd152;
-    --f:#e0625c; --g:#4fc7bd; --h:#c79a6b; --i:#8fb53f; --j:#d99ab0;
-    --agg:#ff7a18; --danger:#ff7a8a; --ok:#69d58a;
-    /* RB-18 shared tokens - keep byte-identical across home/party/aggregator (see CLAUDE.md Styling). */
-    --grad:linear-gradient(135deg,#1a1410,#241a10); --shadow:0 1px 0 rgba(255,255,255,.04) inset, 0 2px 6px rgba(0,0,0,.55);
-    --r-sm:6px; --r-md:10px; /* RB-53 radius tokens - keep byte-identical across the three pages (see CLAUDE.md Styling). */
-  }
   * { box-sizing:border-box; }
   body { margin:0; padding:28px; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans",Helvetica,Arial,sans-serif;
          background:var(--bg); color:var(--text); line-height:1.5; }
@@ -157,26 +148,6 @@
     margin-top:12px; padding:10px 14px; background:var(--panel-2);
     border-radius:var(--r-sm); font-family:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace; font-size:13px; color:var(--ok);
   }
-  /* RB-11: visible keyboard-focus ring on every interactive control (WCAG 2.4.7).
-     The :not(:focus-visible) guards above keep mouse-focus on the inputs ring-free. */
-  :focus-visible { outline:2px solid var(--agg, #ff7a18); outline-offset:2px; }
-  /* RB-20: honour the OS "reduce motion" setting. */
-  @media (prefers-reduced-motion: reduce) {
-    *, *::before, *::after { transition: none !important; animation: none !important; }
-  }
-  /* Shared honesty callout - keep this rule block AND its copy in sync across
-     home/party/aggregator (no shared stylesheet/build; see CLAUDE.md Styling). */
-  .honesty { background:var(--panel); border:1px solid var(--border);
-    border-radius:var(--r-md); padding:18px 20px; margin-bottom:24px; }
-  .honesty-title { margin:0 0 12px; font-size:15px; }
-  .honesty-cols { display:flex; gap:24px; flex-wrap:wrap; }
-  .honesty-cols > div { flex:1; min-width:240px; }
-  .honesty-h { font-size:12px; text-transform:uppercase; letter-spacing:.06em;
-    color:var(--muted); font-weight:600; margin-bottom:6px; }
-  .honesty ul { margin:0; padding-left:18px; }
-  .honesty li { font-size:13.5px; line-height:1.6; color:var(--muted); margin:4px 0; }
-  .honesty p { font-size:13.5px; line-height:1.6; color:var(--muted); margin:10px 0 0; }
-  .honesty a { color:var(--agg); }
 </style>
 </head>
 <body>
@@ -258,7 +229,7 @@
     <p>An educational proof-of-concept, not an audited or production service - it shows how the cryptographic plumbing of secure multi-party computation works. The maths is real (your raw figure never leaves your browser; every result is independently verifiable), but it has deliberate, documented limits: it assumes everyone is honest about their own figure, needs all participants online at once, and can't stop an impostor who registers before the real participant. Full threat model and open review on GitHub: <a href="https://github.com/dylanil/SMPC#readme" target="_blank" rel="noopener">README</a> · <a href="https://github.com/dylanil/SMPC/blob/main/SECURITY.md" target="_blank" rel="noopener">SECURITY</a> · <a href="https://github.com/dylanil/SMPC/tree/main/docs/review" target="_blank" rel="noopener">review board</a>.</p>
   </section>
 
-  <p style="font-size:12px; color:var(--muted); margin-top:18px;">Educational demonstration only - a proof-of-concept, not a production, commercial, or professional service. Provided as is, with no warranty and no guarantee of correctness, security, or availability; do not rely on it for any real, confidential, regulated, or production purpose, and do not enter real or sensitive figures.</p>
+  <p class="disclaimer">Educational demonstration only - a proof-of-concept, not a production, commercial, or professional service. Provided as is, with no warranty and no guarantee of correctness, security, or availability; do not rely on it for any real, confidential, regulated, or production purpose, and do not enter real or sensitive figures.</p>
   <a href="/"><svg width="13" height="13" viewBox="0 0 16 16" aria-hidden="true" style="vertical-align:-2px; margin-right:5px"><path d="M9 3l-5 5 5 5M4 8h9" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>back to home</a>
 </div>
 
@@ -266,11 +237,11 @@
 <script src="/static/smpc-core.js"></script>
 <script>
   const {
-    SCALE, toFixed, canonicalMessage, maskSign, fmt2, escapeHtml,
+    parseDecimalToFixed, formatFixed, formatAverageFixed,
+    canonicalMessage, maskSign, escapeHtml,
     generateECDHKeypair, exportEcdhPubB64, derivePairwiseMask,
     generateSigningKeypair, exportVkB64, signMessage,
   } = window.SMPCCore;
-  const fromFixed = b => Number(b) / Number(SCALE);
   const sleep = ms => new Promise(r => setTimeout(r, ms));
 
   let SESSION = '';
@@ -376,9 +347,8 @@
       </div>`).join('');
 
     const sumFixed = BigInt(sumFixedStr);
-    const sum = fromFixed(sumFixed);
     const n = PARTIES.length;
-    const avg = sum / n;
+    const avgDisplay = formatAverageFixed(sumFixed, n);
 
     const sumExpr = PARTIES.map(p => `s<sub>${p}</sub>`).join(' + ');
     const sumIdent = PARTIES.map(p => `x<sub>${p}</sub>`).join(' + ');
@@ -392,16 +362,15 @@
       <div class="line sum">= ${sumFixed.toString()}  <span style="color:var(--muted); font-weight:normal">(fixed-point, ×10⁶)</span></div>
       <div class="line">&nbsp;</div>
       <div class="line">Every pairwise mask appears with both + and −, so all masks cancel:</div>
-      <div class="line">  sum = ${sumIdent} = <b>${fmt2(sum)}</b></div>
-      <div class="line sum">  average = sum / ${n} = ${fmt2(avg)}</div>
+      <div class="line">  sum = ${sumIdent} = <b>${formatFixed(sumFixed)}</b></div>
+      <div class="line sum">  average = sum / ${n} = ${avgDisplay}</div>
     `;
 
     document.getElementById('resultCard').classList.remove('hidden');
     document.getElementById('resultLabel').textContent = METRIC
       ? `${METRIC} - average of ${n} private figures`
       : `Average of the ${n} private figures`;
-    const pretty = fmt2(avg);  // RB-22: never render -0
-    document.getElementById('avgValue').textContent = pretty;
+    document.getElementById('avgValue').textContent = avgDisplay;
     document.getElementById('statusNote').textContent = `All ${n} participants submitted. Average computed from masked shares.`;
 
     if (DEMO_FIGURES) renderReveal(sumFixed);
@@ -418,11 +387,11 @@
         <div class="label">x<sub>${p}</sub> (never transmitted)</div>
         <div class="mono">${DEMO_FIGURES[p]}</div>
       </div>`).join('');
-    const figuresSumFixed = PARTIES.reduce((acc, p) => acc + toFixed(DEMO_FIGURES[p]), 0n);
+    const figuresSumFixed = PARTIES.reduce((acc, p) => acc + parseDecimalToFixed(DEMO_FIGURES[p]), 0n);
     const match = figuresSumFixed === sumFixed;
-    const avg = fromFixed(figuresSumFixed) / PARTIES.length;
+    const avgDisplay = formatAverageFixed(figuresSumFixed, PARTIES.length);
     document.getElementById('revealCheck').textContent =
-      `(${PARTIES.map(p => DEMO_FIGURES[p]).join(' + ')}) / ${PARTIES.length} = ${fmt2(avg)} ` +
+      `(${PARTIES.map(p => DEMO_FIGURES[p]).join(' + ')}) / ${PARTIES.length} = ${avgDisplay} ` +
       (match ? '✓ matches the average computed from masked shares'
              : '✗ DOES NOT match the masked-share average - this is a bug');
   }
@@ -529,6 +498,12 @@
     return `HTTP ${status} at ${step} for ${party}. Create a fresh session and try again.`;
   }
 
+  function centsToDecimal(cents) {
+    const whole = Math.floor(cents / 100);
+    const frac = String(cents % 100).padStart(2, '0');
+    return `${whole}.${frac}`;
+  }
+
   async function signedPost(url, body, party, step) {
     const r = await fetch(url, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -551,8 +526,8 @@
       // Phase 1: join - sequential so the mining progress reads sensibly.
       for (const p of PARTIES) {
         figures[p] = claimsLike
-          ? Math.round((800 + Math.random() * 24200) * 100) / 100 // £800.00-£25,000.00
-          : Math.round(Math.random() * 10000) / 100;              // 0.00-100.00
+          ? centsToDecimal(80000 + Math.floor(Math.random() * 2420001)) // £800.00-£25,000.00
+          : centsToDecimal(Math.floor(Math.random() * 10001));          // 0.00-100.00
         signKps[p] = await generateSigningKeypair();
         const vk = await exportVkB64(signKps[p]);
         const line = demoLine(`${p}: mining proof-of-work…`);
@@ -584,7 +559,7 @@
       DEMO_FIGURES = figures;
       for (const p of PARTIES) {
         const { pubkeys } = await (await fetch(`/api/pubkeys?for=${p}&session=${encodeURIComponent(SESSION)}`)).json();
-        let share = toFixed(figures[p]);
+        let share = parseDecimalToFixed(figures[p]);
         for (const item of pubkeys) {
           const o = item.party;
           if (o === p) continue;
@@ -621,8 +596,10 @@
     }
   }
 
-  document.getElementById('createBtn').addEventListener('click', async () => {
-    const n = parseInt(document.getElementById('nInput').value, 10);
+  async function createSession(autoDemo = false) {
+    const nInput = document.getElementById('nInput');
+    if (autoDemo) nInput.value = '3';
+    const n = parseInt(nInput.value, 10);
     if (!Number.isInteger(n) || n < 3 || n > 10) {
       showSessionErr('N must be an integer between 3 and 10.');
       return;
@@ -663,12 +640,25 @@
         `Waiting for ${PARTIES.length} participants to submit their masked shares…`
         + (METRIC ? ` Benchmarking: ${METRIC}` : '');
       poll();
+      if (autoDemo) {
+        if (document.getElementById('demoBtn').disabled) {
+          showSessionErr('The one-click demo needs a secure context (HTTPS or http://localhost) and BigInt support for in-browser cryptography.');
+        } else {
+          setTimeout(runDemo, 100);
+        }
+      }
     } catch (e) {
       btn.disabled = false;
       btn.textContent = origLabel;
       showSessionErr('Could not create a session: ' + e.message);
     }
-  });
+  }
+
+  document.getElementById('createBtn').addEventListener('click', () => createSession(false));
+
+  if (new URLSearchParams(location.search).get('demo') === '1') {
+    createSession(true);
+  }
 </script>
 </body>
 </html>
