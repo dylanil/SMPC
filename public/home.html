@@ -41,6 +41,7 @@
   .card .name { font-size:20px; font-weight:600; display:flex; align-items:center; gap:10px; }
   .card .desc { font-size:13px; color:var(--muted); }
   .dot { width:10px; height:10px; border-radius:50%; display:inline-block; background:var(--agg); }
+  .actions { margin-bottom:24px; }
   .flow {
     background:var(--grad);
     border:1px solid var(--agg); border-radius:var(--r-md);
@@ -69,6 +70,17 @@
   <h1>Secure Multi-Party Average</h1>
   <div class="sub">Three to ten participants each privately enter one figure on their own page. A separate aggregator computes the average from masked shares - raw figures are never transmitted. Rounds can be named for whatever's being benchmarked: e.g. competing insurers privately computing the market's average claim severity, or a team benchmarking average pay without anyone revealing their own number.</div>
 
+  <div class="boundary-note">Educational proof-of-concept only. Use test figures only - not real, sensitive, regulated, or production data.</div>
+
+  <div class="actions">
+    <a class="card" href="/aggregator">
+      <div class="role">Coordinator</div>
+      <div class="name"><span class="dot"></span>Aggregator</div>
+      <div class="desc">Pick how many participants will join, mint the session, and watch the average appear once every share lands.</div>
+    </a>
+    <p class="solo-cta">Just exploring on your own? <a href="/aggregator?demo=1"><b>Run solo demo</b></a> to watch a complete round simulated in one tab - no friends required.</p>
+  </div>
+
   <div class="flow">
     <div class="label">How to start a round</div>
     <p>1. The aggregator opens their page, picks how many participants will join (between 3 and 10), and clicks <b>Create session</b> - the server mints a unique 6-character session code plus one per-role invite token.</p>
@@ -83,7 +95,7 @@
         <source srcset="/static/masks-still.png" media="(prefers-reduced-motion: reduce)">
         <img src="/static/masks.gif" width="920" height="560" alt="Three participants A, B and C. Each pair shares a secret mask - A and B share one, A and C another, B and C another - derived independently by both sides and never sent. In each pair the lower-letter participant adds the mask and the higher subtracts it, so every mask appears once as plus and once as minus. Only the masked shares are sent to the aggregator, which sums them; every mask cancels with its opposite, leaving only the total of the real figures, divided by N for the average.">
       </picture>
-      <figcaption>A three-party example - broadly how it works, not every detail. There's no direct peer-to-peer link: parties exchange only public keys via the server and derive each pairwise mask locally, so the mask itself is never sent, and the server (and aggregator) only ever see public keys, masked shares, and the final average - never a raw figure or a mask. It omits the integrity layer (each share is also ECDSA-signed and server-verified). Privacy assumes honest, non-colluding parties; see the limitations above.</figcaption>
+      <figcaption>A three-party example - broadly how it works, not every detail. There's no direct peer-to-peer link: parties exchange only public keys via the server and derive each pairwise mask locally, so the mask itself is never sent, and the server (and aggregator) only ever see public keys, masked shares, and the final average - never a raw figure or a mask. It omits the integrity layer (each share is also ECDSA-signed and server-verified). Privacy assumes honest, non-colluding parties; see the limitations below.</figcaption>
     </figure>
     <p>1. Each pair of participants <code>(i, j)</code> with <code>i &lt; j</code> derives a one-time-pad mask <code>r_ij</code> via ECDH + HKDF. Participant <code>i</code> adds it; participant <code>j</code> subtracts it.</p>
     <p>2. Each participant submits only <code>s_i = x_i ± masks</code> - a single number indistinguishable from uniform random.</p>
@@ -110,22 +122,15 @@
         </ul>
       </div>
     </div>
-    <p>An educational proof-of-concept - the cryptographic plumbing, faithfully built and openly documented. <a href="https://github.com/dylanil/SMPC#readme" target="_blank" rel="noopener">README</a> · <a href="https://github.com/dylanil/SMPC/blob/main/SECURITY.md" target="_blank" rel="noopener">SECURITY</a> · <a href="https://github.com/dylanil/SMPC/tree/main/docs/review" target="_blank" rel="noopener">review board</a></p>
+    <p>This demo shows the mechanics of secure multi-party computation. It does not verify whether inputs are truthful or reasonable; everyone must finish the round; invite tokens are not real-world identity. Full threat model and open review: <a href="https://github.com/dylanil/SMPC#readme" target="_blank" rel="noopener">README</a> · <a href="https://github.com/dylanil/SMPC/blob/main/SECURITY.md" target="_blank" rel="noopener">SECURITY</a> · <a href="https://github.com/dylanil/SMPC/tree/main/docs/review" target="_blank" rel="noopener">review board</a></p>
   </section>
-
-  <a class="card" href="/aggregator" target="_blank">
-    <div class="role">Coordinator</div>
-    <div class="name"><span class="dot"></span>Aggregator</div>
-    <div class="desc">Pick how many participants will join, mint the session, and watch the average appear once every share lands.</div>
-  </a>
-
-  <p class="solo-cta">Just exploring on your own? <a href="/aggregator?demo=1" target="_blank"><b>Run solo demo</b></a> to watch a complete round simulated in one tab - no friends required.</p>
 
   <div class="note">
     Participant pages live at <code>/party/A</code> through <code>/party/J</code>. You don't need to open them from here - the aggregator's invite includes a clickable link that pre-fills the right code.
   </div>
 
-  <p class="disclaimer">Educational demonstration only - a proof-of-concept, not a production, commercial, or professional service. Provided as is, with no warranty and no guarantee of correctness, security, or availability; do not rely on it for any real, confidential, regulated, or production purpose, and do not enter real or sensitive figures.</p>
+  <p class="disclaimer">Demo provided as-is; do not rely on it for real, confidential, regulated, or production use.</p>
+  <p class="privacy-note">No accounts or analytics. Logs are minimal and ephemeral; IPs are used for rate limiting. Functional auth cookies are used only when password protection is enabled.</p>
 </div>
 </body>
 </html>

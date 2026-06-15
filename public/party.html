@@ -108,9 +108,9 @@
       <input type="text" class="code" id="inviteInput" maxlength="13" placeholder="XXXXXX-YYYYYY" autocomplete="off" spellcheck="false" autofocus>
     </div>
     <div class="metric-note" id="metricNote" hidden></div>
-    <div style="font-size:12px; color:var(--muted); margin:0 0 10px;">Demo only - please don't enter a real or sensitive figure. Provided as is, with no warranty; don't rely on the result.</div>
     <div class="field-row">
       <label>Private figure <span class="pill">stays local</span></label>
+      <div class="boundary-note">Use a test figure only - not real, sensitive, regulated, or production data. Your input stays in your browser, but this demo does not verify whether the value is truthful or reasonable.</div>
       <input type="text" class="figure" id="numInput" inputmode="decimal" placeholder="e.g. 42" autocomplete="off" spellcheck="false">
     </div>
     <button class="go" id="startBtn">Start Protocol</button>
@@ -144,10 +144,11 @@
 
   <section class="honesty">
     <div class="honesty-h">About this demo</div>
-    <p>An educational proof-of-concept, not an audited or production service - it shows how the cryptographic plumbing of secure multi-party computation works. The maths is real (your raw figure never leaves your browser; every result is independently verifiable), but it has deliberate, documented limits: it assumes everyone is honest about their own figure, needs all participants online at once, and can't stop an impostor who registers before the real participant. Full threat model and open review on GitHub: <a href="https://github.com/dylanil/SMPC#readme" target="_blank" rel="noopener">README</a> · <a href="https://github.com/dylanil/SMPC/blob/main/SECURITY.md" target="_blank" rel="noopener">SECURITY</a> · <a href="https://github.com/dylanil/SMPC/tree/main/docs/review" target="_blank" rel="noopener">review board</a>.</p>
+    <p>An educational proof-of-concept, not an audited or production service. In a real round, your raw figure stays in your browser and every result is independently verifiable, but the demo has deliberate limits: it assumes honest inputs, needs all participants online at once, and can't stop an impostor who registers before the real participant. Full threat model and open review: <a href="https://github.com/dylanil/SMPC#readme" target="_blank" rel="noopener">README</a> · <a href="https://github.com/dylanil/SMPC/blob/main/SECURITY.md" target="_blank" rel="noopener">SECURITY</a> · <a href="https://github.com/dylanil/SMPC/tree/main/docs/review" target="_blank" rel="noopener">review board</a>.</p>
   </section>
 
-  <p class="disclaimer">Educational demonstration only - a proof-of-concept, not a production, commercial, or professional service. Provided as is, with no warranty and no guarantee of correctness, security, or availability; do not rely on it for any real, confidential, regulated, or production purpose, and do not enter real or sensitive figures.</p>
+  <p class="disclaimer">Demo provided as-is; do not rely on it for real, confidential, regulated, or production use.</p>
+  <p class="privacy-note">No accounts or analytics. Logs are minimal and ephemeral; IPs are used for rate limiting. Functional auth cookies are used only when password protection is enabled.</p>
   <a href="/"><svg width="13" height="13" viewBox="0 0 16 16" aria-hidden="true" style="vertical-align:-2px; margin-right:5px"><path d="M9 3l-5 5 5 5M4 8h9" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>back to home</a>
 </div>
 

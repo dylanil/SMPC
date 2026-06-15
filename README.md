@@ -22,8 +22,8 @@ The repo is also reviewed adversarially in the open - see [`docs/review/`](docs/
 > **Demonstration project.** This is a portfolio proof-of-concept showing the mechanics of
 > privacy-preserving secure aggregation. It is **not** a production or commercial service, is
 > provided **as-is with no warranty**, and runs as a single in-memory instance with no persistence
-> or support. Please don't enter real or sensitive data. The "insurance claim severity" wording is
-> only an illustrative example metric.
+> or support. Please don't enter real, sensitive, regulated, confidential, or production data. The
+> "insurance claim severity" wording is only an illustrative example metric.
 
 ---
 

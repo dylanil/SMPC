@@ -168,7 +168,7 @@
         <input type="text" class="metric" id="metricInput" maxlength="80">
       </div>
       <label>How many participants will join this round?</label>
-      <div style="font-size:12px; color:var(--muted); margin:0 0 10px;">Demo only - don't run a round with real or sensitive figures. Provided as is, with no warranty; don't rely on the result.</div>
+      <div class="boundary-note">Demo only - use test figures, not real, sensitive, regulated, or production data. Not a production or professional service.</div>
       <div class="n-row">
         <div>
           <input type="number" class="n" id="nInput" min="3" max="10" value="3">
@@ -191,7 +191,7 @@
   <div class="card hidden" id="statusCard">
     <h2>Status</h2>
     <div class="demo-banner hidden" id="demoBanner">
-      <b>Simulated round.</b> All participants are running inside this one tab, so this tab necessarily knows every figure - privacy holds only when each participant runs on their own device. The protocol traffic below is real: every join, key exchange, and signed masked share went over the wire and was verified by the server exactly as in a live round.
+      <b>Solo demo mode.</b> This tab generates and knows every figure. Privacy only holds when each participant runs separately in their own browser. The protocol traffic below is real: every join, key exchange, and signed masked share went over the wire and was verified by the server exactly as in a live round.
     </div>
     <div class="status-row" id="statusRow" aria-live="polite"></div>
     <div class="note" id="statusNote" aria-live="polite">Waiting for participants to submit their masked shares…</div>
@@ -221,15 +221,16 @@
     <h2>Reveal - simulation only</h2>
     <div class="share-grid" id="revealGrid"></div>
     <div class="reveal-check" id="revealCheck"></div>
-    <div class="note">These figures come straight from this tab's JS memory - they were never transmitted. The server only ever saw the masked shares above. In a real round nobody, including the aggregator, can produce this card.</div>
+    <div class="note">Simulation-only reveal. These raw figures came from this browser tab and were never sent as raw inputs. The server only ever saw the masked shares above; in a real round nobody, including the aggregator, can produce this card.</div>
   </div>
 
   <section class="honesty">
     <div class="honesty-h">About this demo</div>
-    <p>An educational proof-of-concept, not an audited or production service - it shows how the cryptographic plumbing of secure multi-party computation works. The maths is real (your raw figure never leaves your browser; every result is independently verifiable), but it has deliberate, documented limits: it assumes everyone is honest about their own figure, needs all participants online at once, and can't stop an impostor who registers before the real participant. Full threat model and open review on GitHub: <a href="https://github.com/dylanil/SMPC#readme" target="_blank" rel="noopener">README</a> · <a href="https://github.com/dylanil/SMPC/blob/main/SECURITY.md" target="_blank" rel="noopener">SECURITY</a> · <a href="https://github.com/dylanil/SMPC/tree/main/docs/review" target="_blank" rel="noopener">review board</a>.</p>
+    <p>This is an educational proof-of-concept, not an audited or production service. It shows the cryptographic plumbing of secure multi-party computation, but it does not verify whether inputs are truthful or reasonable; everyone must finish the round; invite tokens are not real-world identity. Full threat model and open review: <a href="https://github.com/dylanil/SMPC#readme" target="_blank" rel="noopener">README</a> · <a href="https://github.com/dylanil/SMPC/blob/main/SECURITY.md" target="_blank" rel="noopener">SECURITY</a> · <a href="https://github.com/dylanil/SMPC/tree/main/docs/review" target="_blank" rel="noopener">review board</a>.</p>
   </section>
 
-  <p class="disclaimer">Educational demonstration only - a proof-of-concept, not a production, commercial, or professional service. Provided as is, with no warranty and no guarantee of correctness, security, or availability; do not rely on it for any real, confidential, regulated, or production purpose, and do not enter real or sensitive figures.</p>
+  <p class="disclaimer">Demo provided as-is; do not rely on it for real, confidential, regulated, or production use.</p>
+  <p class="privacy-note">No accounts or analytics. Logs are minimal and ephemeral; IPs are used for rate limiting. Functional auth cookies are used only when password protection is enabled.</p>
   <a href="/"><svg width="13" height="13" viewBox="0 0 16 16" aria-hidden="true" style="vertical-align:-2px; margin-right:5px"><path d="M9 3l-5 5 5 5M4 8h9" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>back to home</a>
 </div>
 
