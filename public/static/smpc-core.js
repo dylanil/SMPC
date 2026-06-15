@@ -26,10 +26,12 @@
   }
 
   // --- Display helpers (not crypto; single-sourced so both pages agree) ---
-  // fmt6: render a Number with up to 6 dp, strip trailing zeros, never show
-  // "-0" (RB-22). Pinned as a contract vector in tests.py.
-  function fmt6(x) {
-    return x.toFixed(6).replace(/\.?0+$/, '').replace(/^-0$/, '0');
+  // fmt2: render a Number for DISPLAY at up to 2 dp, strip trailing zeros, never
+  // show "-0" (RB-22). Display only - the wire/protocol arithmetic stays exact at
+  // the 1e6 fixed-point SCALE; this just rounds what the user sees (e.g. an
+  // average of 18835.6033... shows as 18835.6).
+  function fmt2(x) {
+    return x.toFixed(2).replace(/\.?0+$/, '').replace(/^-0$/, '0');
   }
   // escapeHtml: neutralise a peer/aggregator-supplied string before it touches
   // innerHTML (RB-47 defence-in-depth - the share validator already constrains
@@ -120,7 +122,7 @@
   }
 
   window.SMPCCore = {
-    SCALE, toFixed, canonicalMessage, maskSign, fmt6, escapeHtml,
+    SCALE, toFixed, canonicalMessage, maskSign, fmt2, escapeHtml,
     b64encode, b64decode,
     generateECDHKeypair, exportEcdhPubB64, importEcdhPub, derivePairwiseMask,
     generateSigningKeypair, exportVkB64, signMessage, importVk, verifyMessage,

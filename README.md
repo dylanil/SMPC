@@ -266,7 +266,7 @@ This is an educational demo, not production-grade:
 - **Honest limitation: signed shares do NOT close the impersonation race.** vks are generated per-session in the browser. An attacker who intercepts an invite and races the legitimate participant to `/api/join` registers their own vk; subsequent signatures verify cleanly. Closing this gap requires a long-term per-participant key registry (or two-channel delivery, or federated identity) that binds vk to participant identity *before* the session begins. Not implemented here.
 - **Unbounded share magnitude.** `/api/share` accepts any decimal string - nothing caps the number. A malicious or buggy participant can drag the average by submitting a huge value. Signatures don't help: they only prove who submitted, not what was reasonable.
 - **No party-identity authentication beyond the token.** A legitimate holder of an invite token is still trusted to honestly submit *their own* figure - the protocol doesn't prevent a participant from entering whatever number they like as `x_i`.
-- **Fixed-point arithmetic** (×10⁶) is used so decimals work with BigInt on the client. Pick a scale that fits your expected range.
+- **Fixed-point arithmetic** (×10⁶) is used so decimals work with BigInt on the client. Pick a scale that fits your expected range. Internal arithmetic keeps that full precision; the average, sum, and reveal cross-check are **displayed to at most 2 decimal places** (display rounding only - the masks-cancel verification stays exact).
 - **Collusion.** As with any pairwise-masking scheme, two colluding participants (or a participant colluding with the aggregator) can reconstruct the third participant's input - this is inherent to 3-party additive secret sharing.
 
 ## Privacy
