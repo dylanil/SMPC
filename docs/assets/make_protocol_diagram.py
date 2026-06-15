@@ -1,12 +1,17 @@
 #!/usr/bin/env python3
 """Generate the "how the masks cancel" protocol schematic.
 
-Single editable source of truth for two committed assets (no build step - run by
+Single editable source of truth for three committed assets (no build step - run by
 hand when the protocol notation changes):
 
   public/static/masks.gif        - animated, used on the README and the website
   public/static/masks-still.png  - final/resolved frame, the prefers-reduced-motion
                                    fallback on the website and a crisp still
+  public/static/og-preview.png   - the social/link-unfurl image (og:image on all
+                                   three pages), 1200x630: the resolved "still" beat
+                                   matted onto the OG canvas. Link previews don't
+                                   animate, so the OG image is this static still
+                                   (there is no separate hand-made card).
 
 Requires Pillow (dev-only; NOT a server dependency):  pip install Pillow
 Run:  python docs/assets/make_protocol_diagram.py
@@ -197,8 +202,10 @@ def caption(d, line):
     text_c(d, (W // 2, 530), line, UI(15), TEXT)
 
 
-def render(stage, prog=1.0):
-    """stage: figures | masks | shares | cancel | average"""
+def render(stage, prog=1.0, downscale=True):
+    """stage: figures | masks | shares | cancel | average.
+    downscale=False returns the full 2x supersample image (used to build the
+    high-res OG still); the GIF/PNG frames use the downscaled W x H."""
     img, d = base()
 
     # mask links
@@ -267,7 +274,7 @@ def render(stage, prog=1.0):
     }[stage]
     caption(d, cap)
 
-    return img.resize((W, H), Image.LANCZOS)
+    return img.resize((W, H), Image.LANCZOS) if downscale else img
 
 
 # ---- comedic cold-open: three people who don't trust each other -----------
@@ -382,8 +389,21 @@ def main():
     still = render("still")
     still.save(os.path.join(out, "masks-still.png"), optimize=True)
 
+    # og-preview.png: the social/link-unfurl image (og:image on all three pages).
+    # Link previews don't animate, so it's the resolved "still" beat matted onto a
+    # 1200x630 OG canvas (built from the 2x supersample for crispness). This is the
+    # single source for the OG image - there is no separate hand-made card.
+    og_w, og_h = 1200, 630
+    still_hi = render("still", downscale=False)            # 2x supersample frame
+    s = min(og_w / still_hi.width, og_h / still_hi.height)
+    nw, nh = round(still_hi.width * s), round(still_hi.height * s)
+    og = Image.new("RGB", (og_w, og_h), BG)
+    og.paste(still_hi.resize((nw, nh), Image.LANCZOS), ((og_w - nw) // 2, (og_h - nh) // 2))
+    og.save(os.path.join(out, "og-preview.png"), optimize=True)
+
     print("wrote", gif_path, "(%d frames)" % len(frames))
     print("wrote", os.path.join(out, "masks-still.png"))
+    print("wrote", os.path.join(out, "og-preview.png"), "(%dx%d)" % (og_w, og_h))
 
 
 if __name__ == "__main__":
