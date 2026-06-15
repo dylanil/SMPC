@@ -19,10 +19,11 @@
     --bg:#0c0c0d; --panel:#161618; --panel-2:#1e1e20; --border:#2c2c30;
     --text:#ededee; --muted:#98989e;
     --a:#f2c64b; --b:#cf8ad9; --c:#5fcf80; --d:#ef6f9a; --e:#cfd152;
-    --f:#e0625c; --g:#4fc7bd; --h:#b08968; --i:#8fb53f; --j:#d99ab0;
+    --f:#e0625c; --g:#4fc7bd; --h:#c79a6b; --i:#8fb53f; --j:#d99ab0;
     --agg:#ff7a18; --danger:#ff7a8a; --ok:#69d58a;
     /* RB-18 shared tokens - keep byte-identical across home/party/aggregator (see CLAUDE.md Styling). */
     --grad:linear-gradient(135deg,#1a1410,#241a10); --shadow:0 1px 0 rgba(255,255,255,.04) inset, 0 2px 6px rgba(0,0,0,.55);
+    --r-sm:6px; --r-md:10px; /* RB-53 radius tokens - keep byte-identical across the three pages (see CLAUDE.md Styling). */
   }
   * { box-sizing:border-box; }
   body { margin:0; padding:28px; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans",Helvetica,Arial,sans-serif;
@@ -31,7 +32,7 @@
 
   .header { display:flex; align-items:center; gap:14px; margin-bottom:6px; }
   .badge {
-    width:44px; height:44px; border-radius:10px; display:flex;
+    width:44px; height:44px; border-radius:var(--r-md); display:flex;
     align-items:center; justify-content:center; font-size:22px; font-weight:700;
     color:#0c0c0d; background:var(--agg);
   }
@@ -40,7 +41,7 @@
   .sub { color:var(--muted); font-size:15px; line-height:1.6; margin-bottom:22px; }
 
   .card {
-    background:var(--panel); border:1px solid var(--border); border-radius:10px;
+    background:var(--panel); border:1px solid var(--border); border-radius:var(--r-md);
     padding:18px 20px; margin-bottom:14px; box-shadow:var(--shadow);
   }
   .card h2 { margin:0 0 10px; font-size:13px; color:var(--muted);
@@ -49,7 +50,7 @@
   .status-row { display:flex; gap:8px; margin-top:8px; flex-wrap:wrap; }
   .chip {
     flex:1 1 120px; min-width:120px;
-    padding:10px 12px; border-radius:6px; background:var(--panel-2);
+    padding:10px 12px; border-radius:var(--r-sm); background:var(--panel-2);
     border:1px solid var(--border); font-size:13px; text-align:center;
   }
   .chip.waiting { color:var(--muted); }
@@ -62,13 +63,13 @@
     gap:10px; margin-top:10px;
   }
   .share-card {
-    background:var(--panel-2); padding:12px; border-radius:6px;
+    background:var(--panel-2); padding:12px; border-radius:var(--r-sm);
     border:1px solid var(--border); border-left:3px solid var(--role-color, var(--border));
   }
   .share-card .label { font-size:12px; color:var(--muted); margin-bottom:4px; }
 
   .compute {
-    background:var(--panel-2); padding:14px; border-radius:6px;
+    background:var(--panel-2); padding:14px; border-radius:var(--r-sm);
     font-family:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace; font-size:13px; margin-top:10px;
   }
   .compute .line { margin:3px 0; }
@@ -76,7 +77,7 @@
 
   .result {
     background:var(--grad);
-    border:1px solid var(--agg); border-radius:10px;
+    border:1px solid var(--agg); border-radius:var(--r-md);
     padding:24px; text-align:center;
   }
   .result .label { font-size:12px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); }
@@ -87,20 +88,20 @@
   .hidden { display:none; }
 
   label { font-size:12px; color:var(--muted); display:block; margin-bottom:6px; }
-  label code { background:rgba(255,255,255,.08); padding:.15em .4em; border-radius:6px;
+  label code { background:rgba(255,255,255,.08); padding:.15em .4em; border-radius:var(--r-sm);
                font-family:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace; font-size:.88em; }
   .n-row { display:flex; align-items:flex-end; gap:14px; flex-wrap:wrap; }
   .n-row > div { flex:0 0 auto; }
   input[type=number].n {
     width:80px; padding:10px 12px; background:var(--panel-2);
-    border:1px solid var(--border); border-radius:6px; color:var(--text);
+    border:1px solid var(--border); border-radius:var(--r-sm); color:var(--text);
     font-size:18px; font-family:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace; text-align:center;
   }
   input[type=number].n:focus { border-color:var(--agg); }
   input[type=number].n:focus:not(:focus-visible) { outline:none; }
   input[type=text].metric {
     width:100%; max-width:420px; padding:10px 12px; background:var(--panel-2);
-    border:1px solid var(--border); border-radius:6px; color:var(--text);
+    border:1px solid var(--border); border-radius:var(--r-sm); color:var(--text);
     font-size:15px; font-family:inherit;
   }
   input[type=text].metric:focus { border-color:var(--agg); }
@@ -108,7 +109,7 @@
   .metric-row { margin-bottom:14px; }
   .create {
     padding:12px 22px; background:var(--agg); color:#0c0c0d; border:none;
-    border-radius:6px; font-weight:600; font-size:14px; cursor:pointer;
+    border-radius:var(--r-sm); font-weight:600; font-size:14px; cursor:pointer;
     font-family:inherit;
   }
   .create:disabled { opacity:.4; cursor:not-allowed; }
@@ -117,7 +118,7 @@
     display:flex; align-items:center; gap:12px; flex-wrap:wrap;
     background:var(--grad);
     border:1px solid var(--role-color, var(--border));
-    border-radius:8px; padding:10px 14px;
+    border-radius:var(--r-md); padding:10px 14px;
   }
   .invite-label {
     flex:0 0 110px; font-size:12px; text-transform:uppercase;
@@ -129,7 +130,7 @@
   }
   .copy {
     padding:9px 14px; min-height:40px; background:transparent; color:var(--muted);
-    border:1px solid var(--border); border-radius:6px; cursor:pointer;
+    border:1px solid var(--border); border-radius:var(--r-sm); cursor:pointer;
     font-family:inherit; font-size:12px;
   }
   .copy:hover { color:var(--text); border-color:var(--agg); }
@@ -139,22 +140,22 @@
 
   button.demo {
     margin-top:14px; padding:10px 18px; background:transparent; color:var(--agg);
-    border:1px solid var(--agg); border-radius:6px; font-weight:600; font-size:13px;
+    border:1px solid var(--agg); border-radius:var(--r-sm); font-weight:600; font-size:13px;
     cursor:pointer; font-family:inherit;
   }
   button.demo:disabled { opacity:.4; cursor:not-allowed; }
-  .demo-log { font-family:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace; font-size:12.5px; margin-top:10px; }
+  .demo-log { font-family:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace; font-size:12px; margin-top:10px; }
   .demo-log .line { padding:2px 0; color:var(--muted); }
   .demo-log .ok { color:var(--ok); }
   .demo-log .bad { color:#ff7a8a; }
   .demo-banner {
     margin-bottom:12px; padding:12px 14px; background:rgba(255,207,122,.08);
-    border:1px solid rgba(255,207,122,.45); border-radius:6px;
+    border:1px solid rgba(255,207,122,.45); border-radius:var(--r-sm);
     color:#ffcf7a; font-size:13px;
   }
   .reveal-check {
     margin-top:12px; padding:10px 14px; background:var(--panel-2);
-    border-radius:6px; font-family:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace; font-size:13px; color:var(--ok);
+    border-radius:var(--r-sm); font-family:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace; font-size:13px; color:var(--ok);
   }
   /* RB-11: visible keyboard-focus ring on every interactive control (WCAG 2.4.7).
      The :not(:focus-visible) guards above keep mouse-focus on the inputs ring-free. */
@@ -166,7 +167,7 @@
   /* Shared honesty callout - keep this rule block AND its copy in sync across
      home/party/aggregator (no shared stylesheet/build; see CLAUDE.md Styling). */
   .honesty { background:var(--panel); border:1px solid var(--border);
-    border-radius:10px; padding:18px 20px; margin-bottom:24px; }
+    border-radius:var(--r-md); padding:18px 20px; margin-bottom:24px; }
   .honesty-title { margin:0 0 12px; font-size:15px; }
   .honesty-cols { display:flex; gap:24px; flex-wrap:wrap; }
   .honesty-cols > div { flex:1; min-width:240px; }
@@ -209,7 +210,7 @@
       <div class="invites" id="invites"></div>
       <div class="share-hint hidden" id="metricEcho"></div>
       <div class="share-hint">Codes live in this tab only. If you close or reload this page the session is abandoned.</div>
-      <button class="demo" id="demoBtn">▶ Demo: simulate all participants in this tab</button>
+      <button class="demo" id="demoBtn"><svg width="11" height="11" viewBox="0 0 12 12" aria-hidden="true" style="vertical-align:-1px; margin-right:7px"><path d="M3 2l7 4-7 4z" fill="currentColor"/></svg>Demo: simulate all participants in this tab</button>
       <div class="note">Alone? This runs the real wire protocol for every invite above - join, key exchange, signed masked shares - so you can watch a full round solo. It consumes all the invites, so don't use it for a round with real participants.</div>
       <div class="demo-log hidden" id="demoLog"></div>
     </div>
@@ -258,7 +259,7 @@
   </section>
 
   <p style="font-size:12px; color:var(--muted); margin-top:18px;">Educational demonstration only - a proof-of-concept, not a production, commercial, or professional service. Provided as is, with no warranty and no guarantee of correctness, security, or availability; do not rely on it for any real, confidential, regulated, or production purpose, and do not enter real or sensitive figures.</p>
-  <a href="/">← back to home</a>
+  <a href="/"><svg width="13" height="13" viewBox="0 0 16 16" aria-hidden="true" style="vertical-align:-2px; margin-right:5px"><path d="M9 3l-5 5 5 5M4 8h9" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>back to home</a>
 </div>
 
 <script src="/static/pow.js"></script>
