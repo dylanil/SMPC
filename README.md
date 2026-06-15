@@ -246,6 +246,15 @@ planned improvements live in [`docs/review/RELEASE_BOARD.md`](docs/review/RELEAS
 - **Author self-review only** - the `docs/review/` audits are rigorous self-cross-examination,
   not an independent third-party security or cryptographic certification.
 
+<details>
+<summary><strong>How changes are reviewed</strong> (the review-council process)</summary>
+
+Non-trivial changes go through a gated **review council** before any code is written: a manager convenes only the relevant domain experts plus a dedicated *challenger*, each gives an independent opinion, they debate only where they collide, and the manager adjudicates into a single go / revise / no-go recommendation for me to approve. It's the lightweight, per-proposal companion to the full periodic audit under [`docs/review/`](docs/review/).
+
+![Review-council flow: the owner proposes a change; the manager convenes the relevant domain reviewers plus a challenger, who give isolated parallel opinions; a debate runs only where they collide; the manager adjudicates through four lenses into one go / revise / no-go recommendation; the owner approves; then it is implemented.](docs/assets/review-council.png)
+
+</details>
+
 ---
 
 ## Security notes
