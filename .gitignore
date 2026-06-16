@@ -22,3 +22,6 @@ desktop.ini
 
 # Claude Code local settings (per-machine; shared settings.json is OK to track)
 .claude/settings.local.json
+
+# Private Codex/agent memory and skills live under .git/agents locally.
+.agents/
