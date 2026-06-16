@@ -15,6 +15,10 @@
 - [`verify_round.py`](verify_round.py) replays the whole wire protocol headless as a genuine second implementation;
 - the solo-demo **reveal card** (the image above) re-derives (Σ x)/N from the raw figures and shows it matches the result computed from masked shares alone.
 
+**Reviewed like a small safety-critical system.** Larger changes went through a lightweight review-council workflow before implementation: scope the proposal, ask only the relevant expert lenses for isolated opinions, include a challenger, reconcile disagreements, then move only after an explicit go/revise/no-go recommendation.
+
+![Review Council workflow: owner proposal, manager, isolated expert opinions, challenger, debate, adjudication, recommendation, owner approval, then implementation.](docs/assets/review-council.png)
+
 **Where it's useful.** Any group that wants a shared statistic but can't pool the raw inputs. A toy version of the problem can arise in insurance: competing firms may want a market-average claim severity, but raw-book pooling creates obvious sensitivity and governance problems. The same shape fits salary benchmarking (a team learns its average pay without anyone revealing their own number) or any consortium comparing sensitive figures. The app stays deliberately generic - you name each round for whatever's being benchmarked, and insurance is only the pre-filled example.
 
 > **Demonstration project.** This is a portfolio proof-of-concept showing the mechanics of
