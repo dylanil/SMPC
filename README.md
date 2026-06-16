@@ -4,7 +4,7 @@
 
 *A completed round on the [live deployment](https://fl-wg-smpc.fly.dev/): the secure average, plus the simulation-only reveal that re-derives (Σ x)/N from the raw figures and confirms it matches the result computed from masked shares alone.*
 
-**Compute a group average that nobody can de-anonymise - and check the result yourself.** Three to ten people each hold one private figure; together they learn only the average, and no participant's raw figure ever crosses the wire. Security comes from *pairwise one-time-pad masking*: every pair shares a random mask that cancels when all N masked shares are summed.
+**Compute a group average without pooling raw inputs - and check the result yourself.** Three to ten people each hold one private figure; together they learn only the average, and no participant's raw figure ever crosses the wire. Security comes from *pairwise one-time-pad masking*: every pair shares a random mask that cancels when all N masked shares are summed.
 
 *Built by **Dylan Liew** as a portfolio demonstration of applied secure multi-party computation - the cryptography, the threat modelling, and an honestly documented set of limits.*
 &nbsp; [**Run the live solo demo**](https://fl-wg-smpc.fly.dev/aggregator?demo=1) · [How it works](#protocol) · [What it deliberately isn't](#known-limitations)
@@ -17,7 +17,7 @@
 
 The repo is also reviewed adversarially in the open - see [`docs/review/`](docs/review/): eight domain reviews, eight independent second opinions, and a consolidated [release board](docs/review/RELEASE_BOARD.md).
 
-**Where it's useful.** Any group that wants a shared statistic but can't pool the raw inputs. Competing insurers, for example, want the market-average claim severity to price accurately - but none will hand a rival their book, and pooling raw data raises antitrust exposure; SMPC gives them the average and nothing else. The same shape fits salary benchmarking (a team learns its average pay without anyone revealing their own number) or any consortium comparing sensitive figures. The app stays deliberately generic - you name each round for whatever's being benchmarked, and insurance is only the pre-filled example.
+**Where it's useful.** Any group that wants a shared statistic but can't pool the raw inputs. A toy version of the problem can arise in insurance: competing firms may want a market-average claim severity, but raw-book pooling creates obvious sensitivity and governance problems. The same shape fits salary benchmarking (a team learns its average pay without anyone revealing their own number) or any consortium comparing sensitive figures. The app stays deliberately generic - you name each round for whatever's being benchmarked, and insurance is only the pre-filled example.
 
 > **Demonstration project.** This is a portfolio proof-of-concept showing the mechanics of
 > privacy-preserving secure aggregation. It is **not** a production or commercial service, is
@@ -97,7 +97,7 @@ Each participant enters their figure and clicks *Start Protocol*. Once all N sha
 
 ### Try it alone
 
-Open [`/aggregator?demo=1`](https://fl-wg-smpc.fly.dev/aggregator?demo=1) to create a 3-party session and run the simulator automatically. The normal aggregator page also offers **Demo: simulate all participants in this tab** after you create a session. It runs every participant's side of the protocol - proof-of-work, join, signed key exchange, mask derivation, signed masked shares - over the real wire, with random figures, so you can watch a complete round solo. Two honest caveats, which the page itself displays: a simulated round has no privacy (one tab necessarily knows every figure - that's why the page shows a reveal card at the end, something nobody can produce in a real round), and the simulation consumes all the session's invites, so create a fresh session for rounds with real participants.
+Open [`/aggregator?demo=1`](https://fl-wg-smpc.fly.dev/aggregator?demo=1) to create a 3-party session and run the simulator automatically. The normal aggregator page also offers **Demo: simulate all participants in this tab** after you create a session. It runs every participant's side of the protocol - proof-of-work, join, signed key exchange, mask derivation, signed masked shares - over the real wire, with random figures, so you can watch a complete round solo. The 3-party default is the smallest teaching example, chosen because the mask cancellation is easy to see; it is not a claim that tiny groups provide strong real-world privacy. Two honest caveats, which the page itself displays: a simulated round has no privacy (one tab necessarily knows every figure - that's why the page shows a reveal card at the end, something nobody can produce in a real round), and the simulation consumes all the session's invites, so create a fresh session for rounds with real participants.
 
 To abandon an in-flight round, reload the aggregator page and create a new one; old sessions live in memory until the server restarts.
 
@@ -212,6 +212,9 @@ planned improvements live in [`docs/review/RELEASE_BOARD.md`](docs/review/RELEAS
   convincingly. Closing this needs a pre-established identity/key registry - out of scope.
 - **Collusion has a floor.** Enough colluding participants (or one plus the aggregator) can
   reconstruct a remaining honest participant's figure. This is inherent to pairwise masking.
+- **The final statistic can still be sensitive.** SMPC hides individual inputs; it does not
+  automatically make the resulting average safe to publish or share. Small groups, collusion,
+  prior knowledge, or repeated overlapping rounds can still leak information through the aggregate.
 - **Coarse access control.** A single shared aggregator password with no per-user attribution;
   for real access control, front the app with an identity proxy.
 - **Anyone with a session code can read that round's metadata** (label, roster, masked shares,

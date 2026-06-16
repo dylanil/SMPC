@@ -17,6 +17,7 @@ These are accepted demo boundaries, not vulnerabilities to report:
 - **No identity anchor.** Invite tokens bind a browser session to a party slot, but there is no long-term participant identity or key registry. An interceptor who claims an invite first can impersonate that party.
 - **No input honesty guarantee.** A participant can enter any value, including a very large one. The app deliberately has no figure cap and no range proofs.
 - **Collusion is possible.** Enough colluding participants, or a participant plus the aggregator, can reconstruct another participant's input. This is inherent to the simple pairwise-mask design.
+- **The aggregate can still be sensitive.** SMPC hides individual inputs, but it does not automatically make the final average non-sensitive. Small groups, repeated overlapping rounds, or prior knowledge can leak information through the statistic itself.
 - **All parties must finish.** There is no dropout recovery or threshold reconstruction.
 - **Single in-memory instance.** Sessions vanish on restart and cannot be horizontally scaled.
 - **No certification.** The open review docs are rigorous self-review, not an independent third-party audit.

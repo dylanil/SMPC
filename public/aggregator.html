@@ -144,6 +144,17 @@
     border:1px solid rgba(255,207,122,.45); border-radius:var(--r-sm);
     color:#ffcf7a; font-size:13px;
   }
+  .watch-guide {
+    margin-bottom:12px; padding:12px 14px; background:var(--panel-2);
+    border:1px solid var(--border); border-radius:var(--r-sm); font-size:13px;
+  }
+  .watch-guide .guide-title {
+    color:var(--text); font-weight:600; margin-bottom:6px;
+  }
+  .watch-guide ul {
+    margin:0; padding-left:18px; color:var(--muted);
+  }
+  .watch-guide li { margin:3px 0; }
   .reveal-check {
     margin-top:12px; padding:10px 14px; background:var(--panel-2);
     border-radius:var(--r-sm); font-family:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace; font-size:13px; color:var(--ok);
@@ -192,6 +203,14 @@
     <h2>Status</h2>
     <div class="demo-banner hidden" id="demoBanner">
       <b>Solo demo mode.</b> This tab generates and knows every figure. Privacy only holds when each participant runs separately in their own browser. The protocol traffic below is real: every join, key exchange, and signed masked share went over the wire and was verified by the server exactly as in a live round.
+    </div>
+    <div class="watch-guide hidden" id="demoGuide">
+      <div class="guide-title">What to watch</div>
+      <ul>
+        <li>Participants submit masked shares, not raw figures.</li>
+        <li>The masked shares look unrelated to the inputs.</li>
+        <li>The aggregation cancels the pairwise masks, then the reveal card checks the simulated inputs against the masked-share average.</li>
+      </ul>
     </div>
     <div class="status-row" id="statusRow" aria-live="polite"></div>
     <div class="note" id="statusNote" aria-live="polite">Waiting for participants to submit their masked shares…</div>
@@ -518,6 +537,7 @@
     const btn = document.getElementById('demoBtn');
     btn.disabled = true;
     document.getElementById('demoBanner').classList.remove('hidden');
+    document.getElementById('demoGuide').classList.remove('hidden');
 
     const figures = {}, signKps = {}, ecdhKps = {}, bearers = {};
     try {
