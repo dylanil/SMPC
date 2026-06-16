@@ -20,10 +20,10 @@ These are accepted demo boundaries, not vulnerabilities to report:
 - **The aggregate can still be sensitive.** SMPC hides individual inputs, but it does not automatically make the final average non-sensitive. Small groups, repeated overlapping rounds, or prior knowledge can leak information through the statistic itself.
 - **All parties must finish.** There is no dropout recovery or threshold reconstruction.
 - **Single in-memory instance.** Sessions vanish on restart and cannot be horizontally scaled.
-- **No certification.** The open review docs are rigorous self-review, not an independent third-party audit.
+- **No certification.** This is not an independent third-party security audit.
 
 ## Reporting
 
 There is **no formal vulnerability-disclosure process and no bug bounty** for this demo. If you spot something useful, please open a GitHub issue or pull request. For anything genuinely sensitive, contact the maintainer via the email on their GitHub profile rather than filing a public issue.
 
-For the full threat model, privacy notes, and review history, see [`README.md`](README.md) and [`docs/review/`](docs/review/).
+For the full threat model and privacy notes, see [`README.md`](README.md).

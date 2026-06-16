@@ -171,10 +171,8 @@ RATE_LIMITS = {
     "/api/pow-challenge": (60, 60),  # 60/min - generous, each session/join needs one
 }
 # Read endpoints (/api/state, /api/result, /api/pubkeys, /healthz) are deliberately NOT
-# rate-limited: they're polled sub-second by the pages and do no expensive per-request work.
-# A future agent may be tempted to add a cap "for safety" - but the trade-off (session-code
-# enumeration leaks round metadata, never raw figures) is accepted and tracked as RB-32/AC,
-# not an oversight. See CLAUDE.md *Rate limiting*.
+# rate-limited: they're polled sub-second by the pages, do no expensive per-request work,
+# and session-code enumeration leaks round metadata rather than raw figures.
 
 # Proof-of-work tuning. Each session/join request must include a successfully
 # mined challenge + nonce. Difficulty 14 ≈ 16K SHA-256 hashes ≈ 30-80ms on a
@@ -632,7 +630,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
         bait page (e.g. 'Click to claim your prize') so a misclick fires
         the real Create-session button. There's no legitimate reason to
         iframe our own pages, so DENY has no downside. CSP/HSTS are a
-        larger commitment (see CLAUDE.md) and not added here."""
+        larger maintenance commitment and are not added here."""
         self.send_header("X-Frame-Options", "DENY")
         # RB-17: stop browsers MIME-sniffing a response into a type we didn't
         # declare (defence in depth; cheap, no downside). CSP/HSTS still omitted.

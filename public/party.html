@@ -144,7 +144,7 @@
 
   <section class="honesty">
     <div class="honesty-h">About this demo</div>
-    <p>An educational proof-of-concept, not an audited or production service. In a real round, your raw figure stays in your browser and every result is independently verifiable, but the demo has deliberate limits: it assumes honest inputs, needs all participants online at once, and can't stop an impostor who registers before the real participant. Full threat model and open review: <a href="https://github.com/dylanil/SMPC#readme" target="_blank" rel="noopener">README</a> · <a href="https://github.com/dylanil/SMPC/blob/main/SECURITY.md" target="_blank" rel="noopener">SECURITY</a> · <a href="https://github.com/dylanil/SMPC/tree/main/docs/review" target="_blank" rel="noopener">review board</a>.</p>
+    <p>An educational proof-of-concept, not an audited or production service. In a real round, your raw figure stays in your browser and every result is independently verifiable, but the demo has deliberate limits: it assumes honest inputs, needs all participants online at once, and can't stop an impostor who registers before the real participant. Full threat model: <a href="https://github.com/dylanil/SMPC#readme" target="_blank" rel="noopener">README</a> · <a href="https://github.com/dylanil/SMPC/blob/main/SECURITY.md" target="_blank" rel="noopener">SECURITY</a>.</p>
   </section>
 
   <p class="disclaimer">Demo provided as-is; do not rely on it for real, confidential, regulated, or production use.</p>
@@ -157,7 +157,7 @@
 <script>
   // Protocol crypto (curve, HKDF info string, signed-BigInt conversion,
   // canonical message format, sign convention) is shared with the
-  // aggregator's demo mode via smpc-core.js - see CLAUDE.md.
+  // aggregator's demo mode via smpc-core.js.
   const {
     parseDecimalToFixed, formatAverageFixed, canonicalMessage, maskSign,
     generateECDHKeypair, exportEcdhPubB64, derivePairwiseMask,

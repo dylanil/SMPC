@@ -7,7 +7,7 @@ Notable changes that affect the public demo, threat model, or operator workflow.
 - **Exact browser decimals.** Participant figures are now parsed as plain ASCII decimal strings directly into the `1e6` BigInt fixed-point representation. The UI rejects exponent notation, commas, `Infinity`, blank input, and non-ASCII digits instead of letting browser `Number` parsing quietly round or normalize them. Display of sums and averages now formats from BigInt too.
 - **One-click solo demo.** `/aggregator?demo=1` creates a default 3-party session and runs the in-tab simulator automatically. The normal aggregator flow and the amber simulated-round warning remain unchanged.
 - **Shared visual contract.** The common palette, focus ring, reduced-motion rule, honesty panel styles, and disclaimer style now live in `public/static/theme.css`; page-specific layout CSS stays inline.
-- **Layered demo boundaries.** The public warning copy now follows the review-council compromise: concise "test figures only" warnings near actions, contextual limitations in the "About this demo" blocks, a compact as-is footer, and a short privacy/cookie note. The generated README screenshots were refreshed from the real solo-demo flow.
+- **Layered demo boundaries.** The public warning copy uses concise "test figures only" warnings near actions, contextual limitations in the "About this demo" blocks, a compact as-is footer, and a short privacy/cookie note. The generated README screenshots were refreshed from the real solo-demo flow.
 
 ## Earlier hardening and UX pass
 

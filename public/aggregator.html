@@ -245,7 +245,7 @@
 
   <section class="honesty">
     <div class="honesty-h">About this demo</div>
-    <p>This is an educational proof-of-concept, not an audited or production service. It shows the cryptographic plumbing of secure multi-party computation, but it does not verify whether inputs are truthful or reasonable; everyone must finish the round; invite tokens are not real-world identity. Full threat model and open review: <a href="https://github.com/dylanil/SMPC#readme" target="_blank" rel="noopener">README</a> · <a href="https://github.com/dylanil/SMPC/blob/main/SECURITY.md" target="_blank" rel="noopener">SECURITY</a> · <a href="https://github.com/dylanil/SMPC/tree/main/docs/review" target="_blank" rel="noopener">review board</a>.</p>
+    <p>This is an educational proof-of-concept, not an audited or production service. It shows the cryptographic plumbing of secure multi-party computation, but it does not verify whether inputs are truthful or reasonable; everyone must finish the round; invite tokens are not real-world identity. Full threat model: <a href="https://github.com/dylanil/SMPC#readme" target="_blank" rel="noopener">README</a> · <a href="https://github.com/dylanil/SMPC/blob/main/SECURITY.md" target="_blank" rel="noopener">SECURITY</a>.</p>
   </section>
 
   <p class="disclaimer">Demo provided as-is; do not rely on it for real, confidential, regulated, or production use.</p>
@@ -422,7 +422,7 @@
   // we deliberately tolerate: (a) a request arriving at the server a few
   // ms before the session-creation write becomes visible to readers; (b)
   // fly.io routing alternating between machines if more than one is up
-  // (which is itself a misconfiguration - see CLAUDE.md - but shouldn't
+  // (a deployment misconfiguration for this in-memory demo, but it shouldn't
   // produce a false-positive "session lost" message). The real failure
   // mode (server restart wipes everything) produces a sustained run of
   // 403s and gets surfaced after a couple of seconds.

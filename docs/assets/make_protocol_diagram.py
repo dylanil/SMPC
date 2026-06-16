@@ -364,7 +364,7 @@ def main():
     os.makedirs(out, exist_ok=True)
 
     # (stage, hold_ms) - short partial frames give a sense of motion; long holds so a
-    # first-time viewer can actually read each step (owner feedback: slow it down).
+    # first-time viewer can actually read each step.
     seq = [
         (render_intro("walk"), 1100),
         (render_intro("ask"), 3600),

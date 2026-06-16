@@ -18,7 +18,7 @@
   }
 
   // Parse a user-entered ASCII decimal string into the 1e6 fixed-point integer
-  // used on the wire. This deliberately has no magnitude cap (owner decision),
+  // used on the wire. This deliberately has no magnitude cap,
   // but it rejects JS numeric shortcuts like 1e6/Infinity and non-ASCII digits
   // so the browser path is as exact as the BigInt wire story claims.
   function parseDecimalToFixed(raw) {

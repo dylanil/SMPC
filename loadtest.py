@@ -23,8 +23,8 @@ climbs sharply. Watch the instance in another terminal: `fly status`, `fly logs`
 or the fly dashboard Metrics tab (CPU%, memory).
 
 Responsible testing: it's a public box. Keep durations short, ramp gently, stop
-if errors appear, and only hit /healthz. Record the ceiling as a one-line note
-on RB-37 in docs/review/RELEASE_BOARD.md and that closes the item.
+if errors appear, and only hit /healthz. Record the ceiling in the private
+project notes if you are using them.
 """
 import sys
 import threading

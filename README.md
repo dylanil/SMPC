@@ -15,8 +15,6 @@
 - [`verify_round.py`](verify_round.py) replays the whole wire protocol headless as a genuine second implementation;
 - the solo-demo **reveal card** (the image above) re-derives (Σ x)/N from the raw figures and shows it matches the result computed from masked shares alone.
 
-The repo is also reviewed adversarially in the open - see [`docs/review/`](docs/review/): eight domain reviews, eight independent second opinions, and a consolidated [release board](docs/review/RELEASE_BOARD.md).
-
 **Where it's useful.** Any group that wants a shared statistic but can't pool the raw inputs. A toy version of the problem can arise in insurance: competing firms may want a market-average claim severity, but raw-book pooling creates obvious sensitivity and governance problems. The same shape fits salary benchmarking (a team learns its average pay without anyone revealing their own number) or any consortium comparing sensitive figures. The app stays deliberately generic - you name each round for whatever's being benchmarked, and insurance is only the pre-filled example.
 
 > **Demonstration project.** This is a portfolio proof-of-concept showing the mechanics of
@@ -201,9 +199,8 @@ A participant's first POST is `/api/join` with `(session, party, token, vk)` - t
 
 This is a deliberately lightweight educational demo. The boundaries below are known and, in most
 cases, intentional - listed here so they're explicit rather than discovered. Deeper rationale for
-the security-specific points is in *Security notes* immediately below; the full triage and
-planned improvements live in [`docs/review/RELEASE_BOARD.md`](docs/review/RELEASE_BOARD.md) and
-[`docs/PRODUCTION_READINESS_PLAN.md`](docs/PRODUCTION_READINESS_PLAN.md).
+the security-specific points is in *Security notes* immediately below; production-readiness notes
+live in [`docs/PRODUCTION_READINESS_PLAN.md`](docs/PRODUCTION_READINESS_PLAN.md).
 
 - **All participants must be online together; there is no dropout handling.** If any participant
   fails to submit, the round stalls - there's no threshold mask-sharing to recover the aggregate
@@ -233,22 +230,11 @@ planned improvements live in [`docs/review/RELEASE_BOARD.md`](docs/review/RELEAS
   read capability.
 - **Abuse controls depend on the hosting topology.** Per-IP rate limiting relies on the
   platform's trusted client-IP header; on a direct/forwarding exposure it can be bypassed.
-- **Operational choices for a wider public deployment** (consciously scoped - see RB-35…RB-40 on the
-  release board): no availability monitoring and no moderation of the free-text metric label - both
+- **Operational choices for a wider public deployment**: no availability monitoring and no
+  moderation of the free-text metric label - both
   accepted as out of proportion for a single-instance portfolio demo. A live load check has established
   enough headroom for realistic portfolio traffic. The data-protection footprint is documented in
   *Privacy* below.
-- **Author self-review only** - the `docs/review/` audits are rigorous self-cross-examination,
-  not an independent third-party security or cryptographic certification.
-
-<details>
-<summary><strong>How changes are reviewed</strong> (the review-council process)</summary>
-
-Non-trivial changes go through a gated **review council** before any code is written: a manager convenes only the relevant domain experts plus a dedicated *challenger*, each gives an independent opinion, they debate only where they collide, and the manager adjudicates into a single go / revise / no-go recommendation for me to approve. It's the lightweight, per-proposal companion to the full periodic audit under [`docs/review/`](docs/review/).
-
-![Review-council flow: the owner proposes a change; the manager convenes the relevant domain reviewers plus a challenger, who give isolated parallel opinions; a debate runs only where they collide; the manager adjudicates through four lenses into one go / revise / no-go recommendation; the owner approves; then it is implemented.](docs/assets/review-council.png)
-
-</details>
 
 ---
 
@@ -296,4 +282,4 @@ Notable hardening and UX changes are collected in [`docs/CHANGELOG.md`](docs/CHA
 
 ---
 
-Built by **Dylan Liew** as a portfolio project. Source and full open review history: [github.com/dylanil/SMPC](https://github.com/dylanil/SMPC).
+Built by **Dylan Liew** as a portfolio project. Source: [github.com/dylanil/SMPC](https://github.com/dylanil/SMPC).
