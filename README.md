@@ -2,7 +2,7 @@
 
 **Get the average, not the secrets.**
 
-The name is a blend of **cr**yptographic **av**er**age** (pronounced "kra-vaage"), and that is exactly what it does: Cravage lets three to ten participants compute a shared average while keeping their raw figures private. Each figure stays in the participant's browser; only masked shares reach the server, and the group learns the average, not the inputs.
+The name is a blend of **cr**yptographic **av**er**age** (pronounced "kruh-VAHZH", rhymes with "mirage"), and that is exactly what it does: Cravage lets three to ten participants compute a shared average while keeping their raw figures private. Each figure stays in the participant's browser; only masked shares reach the server, and the group learns the average, not the inputs.
 
 ![A completed round on the live deployment: the average, plus the simulation-only reveal that re-derives (Σ x)/N from the raw figures and confirms it matches the masked-share result.](docs/assets/screenshot3.png)
 
