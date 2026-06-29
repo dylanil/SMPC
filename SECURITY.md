@@ -1,6 +1,6 @@
 # Security Policy
 
-Cravage is an educational **demonstration project**, not a production or commercial service. It computes a group average without pooling raw figures (under the hood, secure multi-party computation). The security goal is narrow: show the mechanics of secure aggregation honestly, with the important limits visible.
+Cravage (a **cr**yptographic **av**er**age**) is an educational **demonstration project**, not a production or commercial service. It computes a group average without pooling raw figures (under the hood, secure multi-party computation). The security goal is narrow: show the mechanics of secure aggregation honestly, with the important limits visible.
 
 ## What This Demo Protects
 

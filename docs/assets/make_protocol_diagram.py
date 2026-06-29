@@ -177,8 +177,9 @@ def node(d, ctr, col, letter, line2, person=False):
 def base():
     img = Image.new("RGB", (W * SS, H * SS), BG)
     d = ImageDraw.Draw(img)
-    text_c(d, (40, 34), "Cravage - how the pairwise masks cancel",
+    text_c(d, (40, 30), "Cravage - how the pairwise masks cancel",
            UIB(19), TEXT, anchor="lm")
+    text_c(d, (40, 54), "a cryptographic average", UI(13), MUTED, anchor="lm")
     legend(d)
     return img, d
 
