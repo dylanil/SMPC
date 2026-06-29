@@ -3,10 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="An educational demo of secure multi-party computation - 3 to 10 participants compute an average without any raw figure leaving their browser. Not production-secure.">
+<meta name="description" content="Contribute to a Cravage round: your private figure stays in your browser and you submit only a signed, masked share. Educational proof-of-concept, not production-secure.">
 <meta property="og:type" content="website">
-<meta property="og:title" content="SMPC Participant - submit one private figure">
-<meta property="og:description" content="3 to 10 participants compute an average without any participant's raw figure crossing the wire - pairwise masks cancel, and every result is independently verifiable.">
+<meta property="og:title" content="Cravage Participant - submit one private figure">
+<meta property="og:description" content="Contribute to a Cravage round: your figure stays local, you submit only a signed masked share, and the group learns the average - not your input.">
 <meta property="og:url" content="https://fl-wg-smpc.fly.dev/">
 <meta property="og:image" content="https://fl-wg-smpc.fly.dev/static/og-preview.png">
 <meta name="twitter:card" content="summary_large_image">
@@ -14,7 +14,7 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230c0c0d'/%3E%3Cpath d='M23 8H9l8 8-8 8h14' fill='none' stroke='%23ff7a18' stroke-width='2.5' stroke-linejoin='round' stroke-linecap='round'/%3E%3C/svg%3E">
 <meta name="theme-color" content="#0c0c0d">
 <link rel="stylesheet" href="/static/theme.css">
-<title>SMPC Participant - demo</title>
+<title>Cravage Participant - demo</title>
 <style>
   * { box-sizing:border-box; }
   body { margin:0; padding:28px; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans",Helvetica,Arial,sans-serif;
@@ -96,8 +96,8 @@
   <div class="header">
     <div class="badge" id="badge">?</div>
     <div>
-      <h1>Participant <span id="roleName" class="accent">?</span> - demo</h1>
-      <div class="sub">Your figure never leaves this browser. Two keypairs are generated locally: one for ECDH mask derivation, one for ECDSA signing of every submission. Private halves stay in this tab.</div>
+      <h1>Cravage Participant <span id="roleName" class="accent">?</span> - demo</h1>
+      <div class="sub">Contribute to a Cravage round. Your figure never leaves this browser; you submit only a signed, masked share. Two keypairs are generated locally: one for ECDH mask derivation, one for ECDSA signing of every submission. Private halves stay in this tab.</div>
     </div>
   </div>
 
@@ -185,7 +185,7 @@
   document.body.style.setProperty('--role-color', `var(--${ROLE.toLowerCase()})`);
   document.getElementById('badge').textContent = ROLE;
   document.getElementById('roleName').textContent = ROLE;
-  document.title = `Participant ${ROLE} - SMPC`;
+  document.title = `Participant ${ROLE} - Cravage`;
 
   // PARTIES is filled in after /api/join - we don't know the session size up
   // front from the URL alone.

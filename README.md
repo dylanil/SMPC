@@ -1,10 +1,14 @@
-# SMPC - Secure Average of 3-10 Private Figures
+# Cravage
 
-![A completed round on the live deployment: the secure average, plus the simulation-only reveal that re-derives (Σ x)/N from the raw figures and confirms it matches the masked-share result.](docs/assets/screenshot3.png)
+**Get the average, not the secrets.**
 
-*A completed round on the [live deployment](https://fl-wg-smpc.fly.dev/): the secure average, plus the simulation-only reveal that re-derives (Σ x)/N from the raw figures and confirms it matches the result computed from masked shares alone.*
+Cravage (pronounced "kra-vaage", short for *cryptographic average*) is a cryptographic average demo: three to ten participants compute a shared average while keeping their raw figures private. Each figure stays in the participant's browser; only masked shares reach the server, and the group learns the average, not the inputs.
 
-**Compute a group average without pooling raw inputs - and check the result yourself.** Three to ten people each hold one private figure; together they learn only the average, and no participant's raw figure ever crosses the wire. Security comes from *pairwise one-time-pad masking*: every pair shares a random mask that cancels when all N masked shares are summed.
+![A completed round on the live deployment: the average, plus the simulation-only reveal that re-derives (Σ x)/N from the raw figures and confirms it matches the masked-share result.](docs/assets/screenshot3.png)
+
+*A completed round on the [live deployment](https://fl-wg-smpc.fly.dev/): the average, plus the simulation-only reveal that re-derives (Σ x)/N from the raw figures and confirms it matches the result computed from masked shares alone.*
+
+**Compute a group average without pooling raw inputs - and check the result yourself.** Three to ten people each hold one private figure; together they learn only the average, and no participant's raw figure ever crosses the wire. Under the hood, Cravage demonstrates secure multi-party computation: security comes from *pairwise one-time-pad masking*, where every pair shares a random mask that cancels when all N masked shares are summed.
 
 *Built by **Dylan Liew** as a portfolio demonstration of applied secure multi-party computation - the cryptography, the threat modelling, and an honestly documented set of limits.*
 &nbsp; [**Run the live solo demo**](https://fl-wg-smpc.fly.dev/aggregator?demo=1) · [How it works](#protocol) · [What it deliberately isn't](#known-limitations)

@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 """
-SMPC coordination server for an N-party pairwise-mask average (3 ≤ N ≤ 10),
-using ECDH-derived masks so the server never sees any mask value.
+Cravage coordination server for an N-party pairwise-mask average (3 ≤ N ≤ 10),
+using ECDH-derived masks so the server never sees any mask value. Cravage
+("cryptographic average") is the brand; under the hood this is secure
+multi-party computation. The "SMPC mask " HKDF info string below is part of
+the wire contract and must not be renamed.
 
 Roles:
   - Participants A, B, ... up to J: each runs in their own browser, generates
@@ -747,7 +750,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
         self.send_header("Content-Type", "application/json")
         self.send_header("Content-Length", str(len(body)))
         self.send_header("Cache-Control", "no-store")
-        self.send_header("WWW-Authenticate", 'Basic realm="SMPC aggregator", charset="UTF-8"')
+        self.send_header("WWW-Authenticate", 'Basic realm="Cravage aggregator", charset="UTF-8"')
         self._emit_security_headers()
         self.end_headers()
         self.wfile.write(body)
@@ -780,7 +783,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
         self.send_header("Content-Type", "application/json")
         self.send_header("Content-Length", str(len(body)))
         self.send_header("Cache-Control", "no-store")
-        self.send_header("WWW-Authenticate", 'Basic realm="SMPC (private)", charset="UTF-8"')
+        self.send_header("WWW-Authenticate", 'Basic realm="Cravage (private)", charset="UTF-8"')
         self._emit_security_headers()
         self.end_headers()
         self.wfile.write(body)
@@ -1118,7 +1121,7 @@ def main():
     httpd = http.server.ThreadingHTTPServer((HOST, PORT), Handler)
     display_host = "127.0.0.1" if HOST in ("0.0.0.0", "::") else HOST
     start_session_reaper()
-    print(f"SMPC server listening on {HOST}:{PORT}")
+    print(f"Cravage server listening on {HOST}:{PORT}")
     print(f"  Home:       http://{display_host}:{PORT}/")
     print(f"  Aggregator: http://{display_host}:{PORT}/aggregator")
     print(f"  Participant pages at /party/A through /party/{MAX_PARTIES[-1]} (session size {MIN_N}-{MAX_N})")

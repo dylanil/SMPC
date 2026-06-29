@@ -177,7 +177,7 @@ def node(d, ctr, col, letter, line2, person=False):
 def base():
     img = Image.new("RGB", (W * SS, H * SS), BG)
     d = ImageDraw.Draw(img)
-    text_c(d, (40, 34), "Secure Average - how the pairwise masks cancel",
+    text_c(d, (40, 34), "Cravage - how the pairwise masks cancel",
            UIB(19), TEXT, anchor="lm")
     legend(d)
     return img, d
@@ -332,7 +332,7 @@ def bubble(d, cx, tail_y, text, max_w=300, fill=TEXT, fg=(20, 20, 22)):
 
 def render_intro(beat):
     """Cold open before the protocol: three parties who want the Average but
-    won't reveal their numbers - the problem SMPC solves, played for a laugh.
+    won't reveal their numbers - the problem Cravage solves, played for a laugh.
     beat: walk | ask | danger | idea."""
     img = Image.new("RGB", (W * SS, H * SS), BG)
     d = ImageDraw.Draw(img)
@@ -342,7 +342,7 @@ def render_intro(beat):
         stickman(d, x, cyh, c)
         text_c(d, (x, cyh + 89), lab, UIB(15), c)                # letter under the feet
     if beat == "walk":
-        text_c(d, (W // 2, 92), "Secure Average - the problem", UIB(19), TEXT)
+        text_c(d, (W // 2, 92), "Cravage - the problem", UIB(19), TEXT)
         caption(d, "Three people, each with one private number.")
     elif beat == "ask":      # B poses the problem
         bubble(d, 470, cyh - 24,
