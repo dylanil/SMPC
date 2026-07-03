@@ -125,6 +125,13 @@
     font-family:inherit; font-size:12px;
   }
   .copy:hover { color:var(--text); border-color:var(--agg); }
+  /* Narrow screens: the row's flex squeeze breaks the invite code into a
+     vertical shard of 2-3 char lines. Stack instead: label, full-width code,
+     then the button row. */
+  @media (max-width: 560px) {
+    .invite-label { flex-basis:100%; }
+    .invite-code { flex-basis:100%; }
+  }
   .invite-qr { flex-basis:100%; padding:8px 0 4px; }
   .invite-qr img { display:block; width:148px; height:auto; image-rendering:pixelated;
                    border-radius:var(--r-sm); }
