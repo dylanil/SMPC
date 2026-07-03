@@ -125,6 +125,10 @@
     font-family:inherit; font-size:12px;
   }
   .copy:hover { color:var(--text); border-color:var(--agg); }
+  .invite-qr { flex-basis:100%; padding:8px 0 4px; }
+  .invite-qr img { display:block; width:148px; height:auto; image-rendering:pixelated;
+                   border-radius:var(--r-sm); }
+  .invite-qr .qr-cap { font-size:12px; color:var(--muted); margin-top:6px; }
   .share-hint { font-size:13px; color:var(--muted); margin-top:10px; }
   .err { margin-top:10px; color:var(--danger); font-size:13px; display:none; }
   .err.show { display:block; }
@@ -263,6 +267,7 @@
 
 <script src="/static/pow.js"></script>
 <script src="/static/smpc-core.js"></script>
+<script src="/static/qrcode.js"></script>
 <script>
   const {
     SCALE, parseDecimalToFixed, formatFixed, formatAverageFixed,
@@ -299,13 +304,16 @@
         <div class="invite-code" id="invite${p}">${code}-${tokens[p]}</div>
         <button class="copy" data-mode="code" data-party="${p}">Copy code</button>
         <button class="copy" data-mode="link" data-party="${p}">Copy link</button>
+        <button class="copy" data-mode="qr" data-party="${p}">QR</button>
         <div class="invite-url" id="inviteurl${p}" hidden style="flex-basis:100%; font-size:12px; color:var(--muted); word-break:break-all; margin-top:4px;">${inviteUrl(p, code, tokens[p])}</div>
+        <div class="invite-qr" id="inviteqr${p}" hidden></div>
       </div>
     `).join('');
     el.querySelectorAll('.copy').forEach(btn => {
       btn.addEventListener('click', async () => {
         const p = btn.dataset.party;
         const mode = btn.dataset.mode;
+        if (mode === 'qr') { toggleQr(p, btn); return; }
         const text = mode === 'link'
           ? inviteUrl(p, code, tokens[p])
           : document.getElementById('invite' + p).textContent;
@@ -338,6 +346,33 @@
         }
       });
     });
+  }
+
+  // Per-invite QR code, generated entirely in this tab by the vendored
+  // /static/qrcode.js (never an external image API - that would send the
+  // invite token to a third party). The QR encodes the same fragment-form
+  // invite URL as "Copy link", so scanning it is equivalent to clicking it.
+  function toggleQr(party, btn) {
+    const el = document.getElementById('inviteqr' + party);
+    if (el.hidden) {
+      if (!el.firstChild) {
+        const qr = qrcode(0, 'M');
+        qr.addData(inviteUrl(party, SESSION, TOKENS[party]));
+        qr.make();
+        const img = document.createElement('img');
+        img.src = qr.createDataURL(4, 16);
+        img.alt = `QR code for participant ${party}'s invite link`;
+        const cap = document.createElement('div');
+        cap.className = 'qr-cap';
+        cap.textContent = `Scan on a phone to open participant ${party}'s pre-filled page. The QR is the invite - show it only to ${party}.`;
+        el.append(img, cap);
+      }
+      el.hidden = false;
+      btn.textContent = 'Hide QR';
+    } else {
+      el.hidden = true;
+      btn.textContent = 'QR';
+    }
   }
 
   function renderStatus() {
