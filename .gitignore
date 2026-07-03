@@ -24,5 +24,6 @@ desktop.ini
 .claude/
 
 .agents/
-docs/review/
+# The full review archive is private (.git/agents), but the curated public
+# slice in docs/review/ (summary + selected transcripts) is committed.
 docs/REVIEW_ORCHESTRATION.md

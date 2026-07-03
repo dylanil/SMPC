@@ -19,7 +19,7 @@ The name is a blend of **cr**yptographic **av**er**age** (pronounced "kruh-VAHZH
 - [`verify_round.py`](verify_round.py) replays the whole wire protocol headless as a genuine second implementation;
 - the solo-demo **reveal card** (the image above) re-derives (Σ x)/N from the raw figures and shows it matches the result computed from masked shares alone.
 
-**Reviewed like a small safety-critical system.** Larger changes went through a lightweight review-council workflow before implementation: scope the proposal, ask only the relevant expert lenses for isolated opinions, include a challenger, reconcile disagreements, then move only after an explicit go/revise/no-go recommendation.
+**Reviewed like a small safety-critical system.** Larger changes went through a lightweight review-council workflow before implementation: scope the proposal, ask only the relevant expert lenses for isolated opinions, include a challenger, reconcile disagreements, then move only after an explicit go/revise/no-go recommendation. This isn't just a claim - [`docs/review/`](docs/review/) publishes the campaign summary (three independent multi-domain audit passes, a fully resolved 56-item release board, zero refutations on re-review) and two verbatim council transcripts.
 
 ![Review Council workflow: owner proposal, manager, isolated expert opinions, challenger, debate, adjudication, recommendation, owner approval, then implementation.](docs/assets/review-council.png)
 
