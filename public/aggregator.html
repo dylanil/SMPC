@@ -243,6 +243,14 @@
     <div class="note">Simulation-only reveal. These raw figures came from this browser tab and were never sent as raw inputs. The server only ever saw the masked shares above; in a real round nobody, including the aggregator, can produce this card.</div>
   </div>
 
+  <div class="card hidden" id="tamperCard">
+    <h2>Catch a dishonest aggregator - simulation only</h2>
+    <div class="note" style="margin-top:0">Every result can be re-checked: the server returns each masked share, the participant's signature over it, and the verifying key registered at join. In a real round each participant's own page re-runs these checks (party page, Step 6). Here you can watch them catch a forged result.</div>
+    <button class="demo" id="tamperBtn">Tamper with a share locally, then re-verify</button>
+    <div class="demo-log hidden" id="tamperLog"></div>
+    <div class="note hidden" id="tamperNote">The tampering above happened to a local copy in this tab only - the round's real data on the server is untouched. A dishonest aggregator can report a self-consistent sum, but it cannot forge a signature over a value the participant never sent - that would need the participant's private signing key, which never left their browser. (Tampered data can't even land server-side: signatures are verified at write time and first-write-wins locks each share.) This check protects result integrity; it does not by itself prove who is behind each party - see the impersonation limitation in the README.</div>
+  </div>
+
   <section class="honesty">
     <div class="honesty-h">About this demo</div>
     <p>This is an educational proof-of-concept, not an audited or production service. It shows the cryptographic plumbing of secure multi-party computation, but it does not verify whether inputs are truthful or reasonable; everyone must finish the round; invite tokens are not real-world identity. Full threat model: <a href="https://github.com/dylanil/SMPC#readme" target="_blank" rel="noopener">README</a> · <a href="https://github.com/dylanil/SMPC/blob/main/SECURITY.md" target="_blank" rel="noopener">SECURITY</a>.</p>
@@ -257,10 +265,10 @@
 <script src="/static/smpc-core.js"></script>
 <script>
   const {
-    parseDecimalToFixed, formatFixed, formatAverageFixed,
+    SCALE, parseDecimalToFixed, formatFixed, formatAverageFixed,
     canonicalMessage, maskSign, escapeHtml,
     generateECDHKeypair, exportEcdhPubB64, derivePairwiseMask,
-    generateSigningKeypair, exportVkB64, signMessage,
+    generateSigningKeypair, exportVkB64, signMessage, verifyMessage,
   } = window.SMPCCore;
   const sleep = ms => new Promise(r => setTimeout(r, ms));
 
@@ -268,6 +276,7 @@
   let PARTIES = [];
   let TOKENS = null;        // invite tokens, kept for the demo simulator
   let DEMO_FIGURES = null;  // set only by the simulator; triggers the reveal card
+  let RESULT_DATA = null;   // full /api/result payload (shares, sigs, vks, sum)
   let METRIC = '';          // optional "what's being benchmarked" label (server-echoed)
 
   // The example metric. Pre-filled so a fresh round reads like a real
@@ -393,7 +402,10 @@
     document.getElementById('avgValue').textContent = avgDisplay;
     document.getElementById('statusNote').textContent = `All ${n} participants submitted. Average computed from masked shares.`;
 
-    if (DEMO_FIGURES) renderReveal(sumFixed);
+    if (DEMO_FIGURES) {
+      renderReveal(sumFixed);
+      document.getElementById('tamperCard').classList.remove('hidden');
+    }
   }
 
   // Simulation-only teaching moment: the simulator knows every figure (it
@@ -478,6 +490,7 @@
         noteLostMiss();
         const result = await resultResp.json();
         if (result.ready) {
+          RESULT_DATA = result;
           renderResult(result.shares, result.sum);
           return; // stop polling
         }
@@ -605,6 +618,65 @@
   }
 
   document.getElementById('demoBtn').addEventListener('click', runDemo);
+
+  // --- Tamper check (simulation-only teaching moment) ----------------------
+  // Forge one share on a LOCAL copy of the result - the way a dishonest
+  // aggregator would misreport a round - and re-run the exact checks a
+  // participant runs. The lie keeps its arithmetic self-consistent, so the
+  // sum check passes; the signature check is what catches it.
+
+  function tamperLine(html, cls = '') {
+    const log = document.getElementById('tamperLog');
+    log.classList.remove('hidden');
+    const div = document.createElement('div');
+    div.className = 'line ' + cls;
+    div.innerHTML = html;
+    log.appendChild(div);
+    return div;
+  }
+
+  async function verifyShareSig(party, shareStr) {
+    try {
+      return await verifyMessage(RESULT_DATA.vks[party], RESULT_DATA.share_sigs[party],
+                                 canonicalMessage('share', SESSION, party, shareStr));
+    } catch (_) {
+      return false;
+    }
+  }
+
+  async function runTamperCheck() {
+    if (!RESULT_DATA) return;
+    const btn = document.getElementById('tamperBtn');
+    btn.disabled = true;
+    const n = PARTIES.length;
+    const shares = RESULT_DATA.shares;
+
+    tamperLine('<b>1. The genuine result, as any participant verifies it:</b>');
+    for (const p of PARTIES) {
+      const ok = await verifyShareSig(p, shares[p]);
+      tamperLine(`sig over s<sub>${p}</sub> verifies under ${p}'s registered key: ${ok ? '✓ valid' : '✗ INVALID'}`, ok ? 'ok' : 'bad');
+    }
+    const genuineSum = PARTIES.reduce((acc, p) => acc + BigInt(shares[p]), 0n);
+    const sumOk = genuineSum === BigInt(RESULT_DATA.sum);
+    tamperLine(`recomputed sum of shares ${sumOk ? 'matches' : 'DOES NOT match'} the reported sum ${sumOk ? '✓' : '✗'} - average ${formatAverageFixed(genuineSum, n)}`, sumOk ? 'ok' : 'bad');
+
+    const victim = PARTIES[0];
+    const delta = 5000n * SCALE; // +5000 units, enough to visibly steer the average
+    const forged = (BigInt(shares[victim]) + delta).toString();
+    const forgedSum = genuineSum + delta;
+    tamperLine('&nbsp;');
+    tamperLine(`<b>2. Now a dishonest aggregator reports a forged s<sub>${victim}</sub></b> (nudged by +5000 to steer the average, with the reported sum adjusted to stay self-consistent):`);
+    tamperLine(`forged average: ${formatAverageFixed(forgedSum, n)} (genuine was ${formatAverageFixed(genuineSum, n)})`);
+    tamperLine('recomputed sum matches the forged reported sum - arithmetic alone cannot catch this lie');
+    for (const p of PARTIES) {
+      const ok = await verifyShareSig(p, p === victim ? forged : shares[p]);
+      tamperLine(`sig over ${p === victim ? 'forged ' : ''}s<sub>${p}</sub>: ${ok ? '✓ valid' : `✗ INVALID - ${p} never signed this value`}`, ok ? 'ok' : 'bad');
+    }
+    tamperLine(`<b>Signature verification fails, so a verifying participant rejects the forged result.</b>`, 'bad');
+    document.getElementById('tamperNote').classList.remove('hidden');
+  }
+
+  document.getElementById('tamperBtn').addEventListener('click', runTamperCheck);
 
   // RB-28: the in-tab demo needs WebCrypto (secure context - HTTPS or localhost).
   // Creating a session and watching a real round don't, so only the demo is
