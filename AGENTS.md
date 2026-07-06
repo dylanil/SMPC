@@ -44,5 +44,8 @@ node tests_numeric.js
 ## Public Scope
 
 Keep the public repository focused on the demo source, user-facing docs, and reproducible assets.
-Local agent memory, review transcripts, and personal workflow instructions should remain under
-`.git\agents\` and must not be committed.
+Local agent memory, the full review working archive, and personal workflow instructions should
+remain under `.git\agents\` and must not be committed. The one deliberate exception is
+`docs/review/`: a curated public slice (campaign summary + selected council transcripts, published
+2026-07-03) that substantiates the README's review claims - keep it in sync if the review story
+changes, but do not publish further private material without an explicit owner decision.
