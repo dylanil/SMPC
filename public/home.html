@@ -20,7 +20,35 @@
   body { margin:0; padding:28px; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans",Helvetica,Arial,sans-serif;
          color:var(--text); line-height:1.5; }
   .wrap { max-width:1000px; margin:0 auto; }
-  h1 { margin:0 0 4px; font-size:clamp(34px, 5.5vw, 46px); letter-spacing:-.02em; line-height:1.1; }
+  .hero { position:relative; }
+  h1 { margin:0 0 4px; font-size:clamp(36px, 6vw, 54px); letter-spacing:-.04em; line-height:1.05;
+       font-weight:800; width:fit-content; color:var(--agg); }
+  @supports ((-webkit-background-clip:text) or (background-clip:text)) {
+    h1 { background:linear-gradient(120deg,#ffb35c 0%,var(--agg) 55%,#e05e00 100%);
+         -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
+         filter:drop-shadow(0 0 22px rgba(255,122,24,.16)); }
+  }
+  /* Brand texture, not a diagram: paired mask glyphs drifting in the empty
+     top-right of the hero. Deliberately abstract - no arrows, boxes, sums, or
+     "cancellation" event (masks.gif below keeps the monopoly on teaching, and
+     no page may depict a vantage point it doesn't have). CSS keyframes only,
+     so the theme.css reduced-motion kill covers it. */
+  .hero-motif { position:absolute; top:0; right:0; width:46%; height:160px;
+                pointer-events:none; font-family:var(--font-mono); font-weight:600; }
+  .hero-motif span { position:absolute; opacity:0; color:var(--agg);
+                     animation:motif-drift 9s ease-in-out infinite; }
+  .hero-motif span:nth-child(even) { color:var(--muted); }
+  .hero-motif .m1 { right:4%;  top:4%;  font-size:28px; animation-delay:0s; }
+  .hero-motif .m2 { right:22%; top:44%; font-size:20px; animation-delay:1.6s; }
+  .hero-motif .m3 { right:44%; top:12%; font-size:15px; animation-delay:3.1s; }
+  .hero-motif .m4 { right:1%;  top:66%; font-size:23px; animation-delay:4.4s; }
+  .hero-motif .m5 { right:60%; top:58%; font-size:13px; animation-delay:5.9s; }
+  .hero-motif .m6 { right:36%; top:76%; font-size:17px; animation-delay:7.2s; }
+  @keyframes motif-drift {
+    0%, 100% { opacity:0; transform:translateY(7px); }
+    35%, 55% { opacity:.17; transform:translateY(-5px); }
+  }
+  @media (max-width:640px) { .hero-motif { display:none; } }
   .gloss { margin:0 0 14px; font-size:14px; color:var(--muted); }
   .gloss b { color:var(--agg); font-weight:700; }
   .gloss .pron { font-style:italic; }
@@ -32,6 +60,7 @@
   }
   .how h2 { margin:0 0 10px; font-size:14px; letter-spacing:.05em;
             text-transform:uppercase; color:var(--muted); font-weight:600; }
+  .how .plain { font-size:16px; line-height:1.65; margin:0 0 14px; }
   .how p { margin:6px 0; font-size:15px; line-height:1.6; }
   .how code { background:rgba(255,255,255,.08); padding:.15em .4em; border-radius:var(--r-sm);
               font-family:var(--font-mono); font-size:.88em; }
@@ -51,7 +80,9 @@
   /* Colour semantics: orange = brand/action (the CTA pill), amber/orange-bar =
      caution (boundary-note), neutral borders = information. Don't give
      informational cards the accent border - it dilutes the warning family. */
-  .card.primary { background:var(--grad); }
+  .card.primary { background:var(--grad); padding:22px 24px; }
+  .card.primary .name { font-size:23px; }
+  .card.primary:hover { box-shadow:var(--glow); }
   .cta {
     margin-top:auto; align-self:flex-start; padding:9px 16px;
     border:1px solid var(--agg); border-radius:var(--r-sm);
@@ -88,10 +119,15 @@
 </head>
 <body>
 <div class="wrap" role="main">
-  <h1>Cravage</h1>
-  <div class="gloss"><b>Cr</b>yptographic <b>av</b>er<b>age</b> <span class="pron">(pronounced "kruh-VAHZH", rhymes with "mirage")</span></div>
-  <div class="tagline">Get the average, not the secrets.</div>
-  <div class="sub">Compute a group average without pooling raw figures. Three to ten participants each privately enter one figure on their own page; Cravage sends only masked shares and reveals the aggregate, so no raw figure is ever transmitted. Rounds can be named for whatever's being benchmarked: a toy version of insurers comparing claim severity, a team benchmarking average pay, or any group learning a shared statistic without pooling raw inputs. Under the hood it demonstrates secure multi-party computation.</div>
+  <div class="hero">
+    <div class="hero-motif" aria-hidden="true">
+      <span class="m1">+r</span><span class="m2">−r</span><span class="m3">+r</span><span class="m4">−r</span><span class="m5">+r</span><span class="m6">−r</span>
+    </div>
+    <h1>Cravage</h1>
+    <div class="gloss"><b>Cr</b>yptographic <b>av</b>er<b>age</b> <span class="pron">(pronounced "kruh-VAHZH", rhymes with "mirage")</span></div>
+    <div class="tagline">Get the average, not the secrets.</div>
+    <div class="sub">Compute a group average without pooling raw figures. Three to ten participants each privately enter one figure on their own page; Cravage sends only masked shares and reveals the aggregate, so no raw figure is ever transmitted. Rounds can be named for whatever's being benchmarked: a toy version of insurers comparing claim severity, a team benchmarking average pay, or any group learning a shared statistic without pooling raw inputs. Under the hood it demonstrates secure multi-party computation.</div>
+  </div>
 
   <div class="boundary-note">Educational proof-of-concept only. Use test figures only - not real, sensitive, regulated, or production data.</div>
 
@@ -120,6 +156,7 @@
 
   <div class="how">
     <h2>How it works</h2>
+    <p class="plain">Each pair of participants creates a shared random mask. One adds it to their figure, the other subtracts it. Add all the masked values together and every mask cancels out - what remains is only the group total, and from it the average.</p>
     <figure class="diagram">
       <a href="/static/masks.gif" target="_blank" rel="noopener">
         <picture>
