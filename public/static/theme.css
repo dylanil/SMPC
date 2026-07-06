@@ -5,14 +5,30 @@
   --f:#e0625c; --g:#4fc7bd; --h:#c79a6b; --i:#8fb53f; --j:#d99ab0;
   --agg:#ff7a18; --danger:#ff7a8a; --ok:#69d58a;
   --grad:linear-gradient(135deg,#1a1410,#241a10);
-  --shadow:0 1px 0 rgba(255,255,255,.04) inset, 0 2px 6px rgba(0,0,0,.55);
+  --shadow:0 1px 0 rgba(255,255,255,.05) inset, 0 6px 18px rgba(0,0,0,.4), 0 2px 6px rgba(0,0,0,.55);
+  /* Glow is action-vocabulary only (orange = brand/action): CTA and button
+     hovers, never informational or caution surfaces. */
+  --glow:0 0 0 1px var(--agg), 0 4px 18px rgba(255,122,24,.28);
+  --font-mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
   --r-sm:6px; --r-md:10px;
+}
+
+/* Warm top vignette - brand-orange dark-on-dark, panels and text tokens
+   untouched (the FP-01/FP-02 contrast ratios are pinned against --panel/
+   --panel-2/--muted; do not lighten those "while in here"). Pages must not
+   re-declare a body background or they override this. */
+body {
+  background:radial-gradient(1100px 520px at 50% -8%, #17100a 0%, var(--bg) 62%) no-repeat fixed var(--bg);
 }
 
 /* Visible keyboard-focus ring on every interactive control (WCAG 2.4.7). */
 :focus-visible { outline:2px solid var(--agg, #ff7a18); outline-offset:2px; }
 
-/* Honour the OS "reduce motion" setting. */
+/* Honour the OS "reduce motion" setting. NOTE: this kill covers CSS
+   transitions/animations ONLY. Keep every page animation CSS-driven (no
+   rAF/WAAPI/SMIL) so this rule stays sufficient - and never gate content
+   rendering on an animation event (they don't fire when animations are
+   killed). Council decision 2026-07-06. */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition: none !important; animation: none !important; }
 }
