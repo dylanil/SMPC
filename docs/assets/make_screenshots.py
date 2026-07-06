@@ -103,8 +103,13 @@ def main():
     try:
         with sync_playwright() as pw:
             browser = pw.chromium.launch(channel=CHANNEL, headless=True)
+            # reduced_motion pins every CSS animation to its settled end state
+            # (via the theme.css kill), so stills are deterministic - and this
+            # run doubles as the reduced-motion regression probe: it fails
+            # loudly if rendering ever gates on an animation event.
             page = browser.new_context(viewport={"width": 1040, "height": 1400},
-                                       device_scale_factor=SCALE).new_page()
+                                       device_scale_factor=SCALE,
+                                       reduced_motion="reduce").new_page()
             page.goto(f"{BASE}/aggregator", wait_until="networkidle")
 
             # create a 3-party session (metric prefill + N=3 are the defaults)
