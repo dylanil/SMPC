@@ -170,6 +170,20 @@
     margin-top:12px; padding:10px 14px; background:var(--panel-2);
     border-radius:var(--r-sm); font-family:var(--font-mono); font-size:13px; color:var(--ok);
   }
+
+  /* Motion layer (council 2026-07-06): CSS-only and purely decorative. Content
+     is always written to the DOM first; animation is presentation on top, so
+     the theme.css reduced-motion kill silences everything and nothing ever
+     waits on an animation event. setChip's early-return keeps the poll loop
+     from replaying chip-in every tick. */
+  .chip.ready { animation:chip-in .3s ease-out; }
+  .demo-log .line { animation:rise-in .3s ease-out both; }
+  .compute .line { animation:rise-in .35s ease-out both; animation-delay:calc(var(--i, 0) * 60ms); }
+  .result { animation:result-in .5s ease-out; }
+  .create:hover:not(:disabled), button.demo:hover:not(:disabled) { box-shadow:var(--glow); }
+  @keyframes chip-in { 0% { transform:scale(.92); } 60% { transform:scale(1.05); } 100% { transform:scale(1); } }
+  @keyframes rise-in { from { opacity:0; transform:translateY(4px); } to { opacity:1; transform:none; } }
+  @keyframes result-in { from { opacity:0; transform:scale(.97); } to { opacity:1; transform:none; } }
 </style>
 </head>
 <body>
@@ -205,6 +219,7 @@
       <div class="share-hint">Codes live in this tab only. If you close or reload this page the session is abandoned.</div>
       <button class="demo" id="demoBtn"><svg width="11" height="11" viewBox="0 0 12 12" aria-hidden="true" style="vertical-align:-1px; margin-right:7px"><path d="M3 2l7 4-7 4z" fill="currentColor"/></svg>Demo: simulate all participants in this tab</button>
       <div class="note">Alone? This runs the real wire protocol for every invite above - join, key exchange, signed masked shares - so you can watch a full round solo. It consumes all the invites, so don't use it for a round with real participants.</div>
+      <div class="note">Three participants is the smallest round and the easiest to watch - a teaching size. In small groups the final average itself can still narrow down individual figures, especially if participants collude or re-run overlapping rounds.</div>
       <div class="demo-log hidden" id="demoLog"></div>
     </div>
     <div class="err" id="sessionErr"></div>
@@ -264,7 +279,7 @@
 
   <section class="honesty">
     <div class="honesty-h">About this demo</div>
-    <p>This is an educational proof-of-concept, not an audited or production service. It shows the cryptographic plumbing of secure multi-party computation, but it does not verify whether inputs are truthful or reasonable; everyone must finish the round; invite tokens are not real-world identity. Full threat model: <a href="https://github.com/dylanil/SMPC#readme" target="_blank" rel="noopener">README</a> · <a href="https://github.com/dylanil/SMPC/blob/main/SECURITY.md" target="_blank" rel="noopener">SECURITY</a>.</p>
+    <p>This is an educational proof-of-concept, not an audited or production service. It shows the cryptographic plumbing of secure multi-party computation, but it does not verify whether inputs are truthful or reasonable; everyone must finish the round; invite tokens are not real-world identity; and the final average itself can still be sensitive for small groups, collusion, or repeated overlapping rounds. Full threat model: <a href="https://github.com/dylanil/SMPC#readme" target="_blank" rel="noopener">README</a> · <a href="https://github.com/dylanil/SMPC/blob/main/SECURITY.md" target="_blank" rel="noopener">SECURITY</a>.</p>
   </section>
 
   <p class="disclaimer">Demo provided as-is; do not rely on it for real, confidential, regulated, or production use.</p>
@@ -394,6 +409,10 @@
   function setChip(party, submitted) {
     const chip = document.getElementById('chip' + party);
     if (!chip) return;
+    // Idempotent under the 600ms poll: bail if already in the target state, so
+    // the chip-in animation plays once per transition and the aria-live region
+    // isn't rewritten (and re-announced) every tick.
+    if (chip.classList.contains(submitted ? 'ready' : 'waiting')) return;
     // RB-13: convey state with a glyph AND a text label, not colour alone, so it
     // doesn't collapse for colour-blind users (WCAG 1.4.1).
     if (submitted) {
@@ -436,6 +455,9 @@
       <div class="line">  sum = ${sumIdent} = <b>${formatFixed(sumFixed)}</b></div>
       <div class="line sum">  average = sum / ${n} = ${avgDisplay}</div>
     `;
+    // Stagger index for the compute cascade (decoration only; content above is
+    // complete in the DOM regardless of whether the animation ever runs).
+    document.querySelectorAll('#computeBody .line').forEach((el, i) => el.style.setProperty('--i', i));
 
     document.getElementById('resultCard').classList.remove('hidden');
     document.getElementById('resultLabel').textContent = METRIC
