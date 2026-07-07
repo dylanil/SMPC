@@ -20,6 +20,8 @@ These are accepted demo boundaries, not vulnerabilities to report:
 - **The aggregate can still be sensitive.** SMPC hides individual inputs, but it does not automatically make the final average non-sensitive. Small groups, repeated overlapping rounds, or prior knowledge can leak information through the statistic itself.
 - **All parties must finish.** There is no dropout recovery or threshold reconstruction.
 - **Single in-memory instance.** Sessions vanish on restart and cannot be horizontally scaled.
+- **A session code is a read-and-reset capability.** Anyone who holds a code can observe the round's public state (status, masked shares, the final sum - never raw figures) and, unless the deployment sets `AGGREGATOR_PASSWORD`, delete the session via `/api/reset`. Codes are random six-character values with a 30-minute lifetime; share them like the invites they accompany.
+- **Read endpoints are deliberately un-throttled.** `/api/state`, `/api/result`, and `/api/pubkeys` are polled sub-second by every page in a round, so they carry no rate limit. Guessing a live code by scanning is astronomically unlikely within a session's lifetime, and the prize would be the metadata above, not raw figures.
 - **No certification.** This is not an independent third-party security audit.
 
 ## Reporting
