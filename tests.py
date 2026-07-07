@@ -1,5 +1,9 @@
 """Contract + error-path test suite (RB-19 / RB-33 / RB-34).
 
+(The auth layer - passwords, cookies, bearer/PoW internals - lives in
+tests_auth.py, which spawns its own server and never touches this suite's
+rate windows.)
+
 Goes beyond verify_round.py's single happy-path round:
   - a pinned protocol **contract vector** (canonical message, signed-64-bit
     conversion, ECDH+HKDF mask, and a full SHA-256 digest) so a drift on either
@@ -18,8 +22,12 @@ implementation - so it stays single-sourced. Run with the server up:
     python tests.py             # in another
 """
 import hashlib
+import http.client
 import json
+import os
+import re
 import urllib.error
+import urllib.parse
 import urllib.request
 
 from cryptography.hazmat.primitives.asymmetric import ec
@@ -244,6 +252,74 @@ def _signed_share_round(share_ints):
     return api(f"/api/result?session={code}")
 
 
+def _raw_get(path):
+    """GET with the path sent verbatim (urllib normalises '..' away, which
+    would test the client, not the server's traversal guard)."""
+    host = urllib.parse.urlparse(BASE)
+    conn = http.client.HTTPConnection(host.hostname, host.port, timeout=10)
+    try:
+        conn.request("GET", path)
+        r = conn.getresponse()
+        return r.status, dict(r.getheaders())
+    finally:
+        conn.close()
+
+
+def test_static_and_headers():
+    """GAP-T2: the /static/ allowlist branches and the security headers.
+    All GETs - none of these consume a rate window."""
+    for path, why in (("/static/notes.txt", "disallowed extension"),
+                      ("/static/.hidden.js", "dotfile"),
+                      ("/static/sub/x.js", "subdirectory"),
+                      ("/static/../server.py", "traversal")):
+        st, _ = _raw_get(path)
+        check(f"static route rejects {why} (404)", st == 404)
+    st, headers = _raw_get("/healthz")
+    check("X-Frame-Options: DENY on every response", headers.get("X-Frame-Options") == "DENY")
+    check("X-Content-Type-Options: nosniff on every response",
+          headers.get("X-Content-Type-Options") == "nosniff")
+
+
+def test_metric_innerhtml_tripwire():
+    """GAP-S6 tripwire: the metric label is aggregator-supplied text rendered
+    on other people's screens and must only ever reach the DOM via
+    textContent/placeholder - never interpolated into an innerHTML template
+    (RB-47 discipline). This scans every innerHTML template literal (and the
+    log-helper calls that feed innerHTML) and fails if any ${...} expression
+    mentions the metric. It is a TRIPWIRE, not a proof: a renamed binding
+    (const m = ROUND_METRIC) evades it. Zero requests."""
+    root = os.path.dirname(os.path.abspath(__file__))
+    templates = []
+    for page in ("party.html", "aggregator.html"):
+        src = open(os.path.join(root, "public", page), encoding="utf-8").read()
+        templates += re.findall(r"innerHTML\s*=\s*`(.*?)`", src, re.DOTALL)
+        templates += re.findall(r"(?:demoLine|tamperLine)\(\s*`(.*?)`", src, re.DOTALL)
+        templates += re.findall(r"logLine\(\s*'[^']*'\s*,\s*`(.*?)`", src, re.DOTALL)
+    offenders = [expr for t in templates
+                 for expr in re.findall(r"\$\{([^}]*)\}", t)
+                 if re.search(r"metric", expr, re.IGNORECASE)]
+    check("metric never interpolates into an innerHTML sink "
+          f"({len(templates)} templates scanned)", not offenders)
+
+
+def test_reset_and_rate_limit(ctx):
+    """GAP-T2: /api/reset semantics, then - LAST, because it exhausts reset's
+    own 30/min window - an actual 429. Reset is the only endpoint where a 429
+    probe is affordable: per-path counters mean nothing else is disturbed."""
+    code = ctx["code"]
+    st, body = api_status("/api/reset", {"session": code})
+    check("reset deletes an existing session (200 ok)", st == 200 and json.loads(body).get("ok") is True)
+    st, _ = api_status("/api/reset", {"session": code})
+    check("reset of a missing session rejected (403)", st == 403)
+    saw_429 = False
+    for _ in range(40):
+        st, _ = api_status("/api/reset", {"session": "ZZZZZZ"})
+        if st == 429:
+            saw_429 = True
+            break
+    check("sliding-window rate limit fires (429 on reset flood)", saw_429)
+
+
 def test_sum_zero_and_negative():
     """RB-49: the happy path only ever uses positive figures. One lean round with
     a negative share AND a zero total exercises both the negative-value path and
@@ -264,6 +340,9 @@ def main():
     test_sum_zero_and_negative()
     test_pow()
     test_body_and_json()
+    test_static_and_headers()
+    test_metric_innerhtml_tripwire()
+    test_reset_and_rate_limit(ctx)  # last: floods reset's own rate window
     print(f"\nALL {_passed} CHECKS PASSED")
 
 

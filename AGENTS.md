@@ -41,6 +41,13 @@ Run the browser numeric contract tests without the server:
 node tests_numeric.js
 ```
 
+Run the auth-layer suite any time - it needs no pre-running server (it tests in-process and
+spawns its own password-configured instance on a scratch port):
+
+```bash
+python tests_auth.py
+```
+
 ## Public Scope
 
 Keep the public repository focused on the demo source, user-facing docs, and reproducible assets.

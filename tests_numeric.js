@@ -13,6 +13,9 @@ const {
   parseDecimalToFixed,
   formatFixed,
   formatAverageFixed,
+  canonicalMessage,
+  maskSign,
+  escapeHtml,
 } = global.SMPCCore;
 
 let passed = 0;
@@ -66,5 +69,23 @@ check(
   "9007199254740993",
 );
 check("formatAverageFixed rounds display exactly", formatAverageFixed(1000000n, 3), "0.33");
+
+// GAP-T3: the JS half of the cross-language contract, previously only
+// exercised implicitly. The canonical string must byte-match the Python pin
+// in tests.py's test_contract_vector; the sign convention is load-bearing for
+// mask cancellation; escapeHtml is the RB-47 sink guard.
+check(
+  "canonicalMessage pins the cross-language format",
+  canonicalMessage("share", "ABCDEF", "A", "123"),
+  "share|ABCDEF|A|123",
+);
+check("maskSign: lower letter adds", maskSign("A", "B"), 1n);
+check("maskSign: higher letter subtracts", maskSign("B", "A"), -1n);
+check(
+  "escapeHtml neutralises the five sensitive characters",
+  escapeHtml("<a href=\"x\" onclick='y'>&"),
+  "&lt;a href=&quot;x&quot; onclick=&#39;y&#39;&gt;&amp;",
+);
+check("escapeHtml passes plain text through", escapeHtml("Average claim severity"), "Average claim severity");
 
 console.log(`\nALL ${passed} NUMERIC CHECKS PASSED`);
