@@ -94,6 +94,7 @@ import secrets
 import string
 import threading
 import time
+import unicodedata
 from urllib.parse import urlparse, parse_qs
 
 from cryptography.exceptions import InvalidSignature
@@ -155,6 +156,15 @@ SITE_COOKIE_TTL_SECS = 12 * 60 * 60  # rides the page-load Basic-Auth across to 
 # bearer-token TTL so an expiring bearer aligns with an expiring session.
 SESSION_TTL_SECS = 30 * 60
 SESSION_REAPER_INTERVAL_SECS = 60
+# Global backstop on live sessions (GAP-S5). Per-IP rate limits scale linearly
+# with attacker IPs (100 IPs x 10/min x 30-min TTL -> 30K live sessions), and
+# PoW at difficulty 14 is ~1-2ms native, so a distributed session-creation
+# flood could otherwise OOM the 256MB VM and destroy every live round's
+# in-memory state. 5000 sessions is ~3 orders of magnitude above legitimate
+# use and a fraction of available memory; at the cap, /api/session/new returns
+# 503 (self-heals via the reaper) while existing rounds finish untouched.
+# Deliberately not configurable - it's an invariant, not a knob.
+MAX_LIVE_SESSIONS = 5000
 
 # Per-process HMAC secret for server-signed bearer tokens. Regenerated on
 # every restart, which invalidates any in-flight tokens - fine because the
@@ -176,6 +186,10 @@ RATE_LIMITS = {
 # Read endpoints (/api/state, /api/result, /api/pubkeys, /healthz) are deliberately NOT
 # rate-limited: they're polled sub-second by the pages, do no expensive per-request work,
 # and session-code enumeration leaks round metadata rather than raw figures.
+# Owner-accepted (RB-32); a read cap was re-examined and rejected 2026-07-07: an
+# in-person N=10 round behind one NAT egress IP legitimately generates ~1,550
+# reads/min (aggregator ~200 + up to 9 parties in the 400ms step-3 wait at
+# ~150 each), so any cap safe for real use sits far above scan-relevant rates.
 
 # Proof-of-work tuning. Each session/join request must include a successfully
 # mined challenge + nonce. Difficulty 14 ≈ 16K SHA-256 hashes ≈ 30-80ms on a
@@ -233,7 +247,14 @@ def _cleanup_used_challenges():
 def mint_pow_challenge(difficulty=POW_DIFFICULTY):
     """Issue a fresh challenge: HMAC-signed payload that the client must mine
     against. The signature stops attackers from forging easy challenges; the
-    `exp` field caps pre-mining; the `nonce` field is the spend-once ID."""
+    `exp` field caps pre-mining; the `nonce` field is the spend-once ID.
+
+    Deliberately NOT bound to an endpoint or client IP (GAP-S3, won't-fix
+    2026-07-07): spend-once + the 60s TTL + the downstream per-IP rate caps on
+    the gated endpoints (10+30/min) already bound what a stockpile can buy,
+    and binding would churn the challenge format across the four mirrored
+    implementations (pow.js, this file, verify_round.py, tests.py's vectors)
+    for no marginal defence."""
     payload = {
         "nonce": secrets.token_hex(16),
         "exp": int(time.time()) + POW_CHALLENGE_TTL,
@@ -303,9 +324,12 @@ sessions = {}
 
 
 def new_session(n, metric=""):
-    """Mint a session for n participants. Returns (code, tokens, parties)."""
+    """Mint a session for n participants. Returns (code, tokens, parties), or
+    (None, None, None) when the global live-session cap is reached."""
     parties = MAX_PARTIES[:n]
     with state_lock:
+        if len(sessions) >= MAX_LIVE_SESSIONS:
+            return None, None, None
         # 36^6 is vast but still retry on the astronomically unlikely collision.
         while True:
             code = generate_code()
@@ -387,6 +411,31 @@ def start_session_reaper():
     t = threading.Thread(target=loop, name="session-reaper", daemon=True)
     t.start()
     return t
+
+
+# The nine bidi override/embed/isolate characters that can visually reorder
+# ADJACENT text on someone else's screen. Direction *marks* (LRM/RLM) and ZWJ
+# are deliberately kept - they're legit in RTL-language and emoji labels and
+# reorder nothing by themselves. Codepoints, never literals: these characters
+# are invisible, which is precisely why they don't belong in reviewable source.
+_BIDI_CONTROLS = frozenset(map(chr, (
+    0x202A, 0x202B, 0x202C, 0x202D, 0x202E,  # LRE RLE PDF LRO RLO
+    0x2066, 0x2067, 0x2068, 0x2069,          # LRI RLI FSI PDI
+)))
+
+
+def sanitize_metric(s):
+    """Strip invisible control characters from the aggregator-supplied metric
+    label (GAP-S4, same charset-tightening spirit as RB-01): Unicode category
+    Cc (C0/C1/DEL - which also kills the ANSI-escape class for any terminal
+    that ever prints a metric) plus the bidi override/isolate set above.
+    Strip rather than reject: the offending characters are invisible, so a 400
+    on one (pasted from a chat app or Word) would be an undebuggable dead end.
+    Can only shorten, so it runs before the MAX_METRIC_LEN check."""
+    return "".join(
+        ch for ch in s
+        if unicodedata.category(ch) != "Cc" and ch not in _BIDI_CONTROLS
+    )
 
 
 def is_decimal_string(s):
@@ -1005,7 +1054,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 if not isinstance(raw_n, int) or isinstance(raw_n, bool):
                     return self._send_json(400, {"error": f"n must be an integer in [{MIN_N},{MAX_N}]"})
                 n = raw_n
-                metric = str(body.get("metric", "")).strip()
+                metric = sanitize_metric(str(body.get("metric", "")).strip())
                 challenge = body.get("challenge", "")
                 pow_nonce = body.get("pow_nonce", None)
             if not (MIN_N <= n <= MAX_N):
@@ -1015,6 +1064,10 @@ class Handler(http.server.BaseHTTPRequestHandler):
             if not verify_pow(challenge, pow_nonce):
                 return self._send_json(401, {"error": "invalid or missing proof-of-work"})
             code, tokens, parties = new_session(n, metric)
+            if code is None:
+                # MAX_LIVE_SESSIONS backstop (GAP-S5). 503: temporary by
+                # construction - the reaper frees capacity within 30 min.
+                return self._send_json(503, {"error": "server is at session capacity; try again in a few minutes"})
             return self._send_json(200, {"code": code, "tokens": tokens, "parties": parties, "metric": metric})
 
         try:
