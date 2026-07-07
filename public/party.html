@@ -200,6 +200,7 @@
     div.className = 'line ' + cls;
     div.innerHTML = html;
     el.appendChild(div);
+    return div;
   }
 
   // Map a non-OK status to a participant-readable line, reusing the join
@@ -395,15 +396,52 @@
     }, 'publish your key');
     logLine('exchangeLog', `→ Published pub<sub>${ROLE}</sub> + signature. Server verified the signature against vk<sub>${ROLE}</sub>.`, 'ok');
 
-    logLine('exchangeLog', `Waiting for public keys from [${OTHERS.join(', ')}]…`, 'warn');
+    const pkWaitLine = logLine('exchangeLog', `Waiting for public keys from [${OTHERS.join(', ')}]…`, 'warn');
     const othersPub = {};
+    // GAP-C1 (the step-3 residual of RB-02): this wait previously went through
+    // apiGet, which throws on the FIRST non-OK response - so one transient 403
+    // (a poll racing a write, an edge blip) aborted a healthy round with a raw
+    // "Unexpected error". Port of step 6's session-lost detector, with two
+    // deliberate differences: (a) the threshold scales to this loop's 400ms
+    // cadence (8 x 400ms ~= 3.2s, matching step 6's tuned ~3s window); (b)
+    // everSeenAlive starts TRUE - /api/join succeeded moments ago, so the
+    // session provably existed; starting false would make a restart-in-between
+    // loop forever, the exact unbounded wait this fix closes. On lost: inline
+    // error + sentinel throw exits start() BEFORE mask derivation, so a partial
+    // othersPub can never produce a wrong share. Non-403 errors and network
+    // blips don't count toward the threshold - only the server affirmatively
+    // saying "no such session", sustained, does.
+    let pkLost = 0;
+    const PK_LOST_THRESHOLD = 8; // 8 polls x 400ms ~= 3.2s of sustained 403s
     while (Object.keys(othersPub).length < OTHERS.length) {
-      const { pubkeys } = await apiGet('/api/pubkeys?for=' + ROLE + '&session=' + encodeURIComponent(SESSION));
-      for (const item of pubkeys) {
-        if (!(item.party in othersPub) && OTHERS.includes(item.party)) {
-          othersPub[item.party] = item.pubkey;
-          logLine('exchangeLog', `← Received pub<sub>${item.party}</sub> <span class="mono warn">(${item.pubkey.slice(0, 24)}…)</span>.`, 'ok');
+      try {
+        const r = await fetch('/api/pubkeys?for=' + ROLE + '&session=' + encodeURIComponent(SESSION));
+        if (r.status === 403) {
+          pkLost++;
+          if (pkLost >= PK_LOST_THRESHOLD) {
+            showInputErr('Session lost while waiting for the other participants\' keys - the server appears to have restarted, or this session expired (sessions are in-memory and last ~30 min). Ask the aggregator to start a fresh round and reissue invites.');
+            throw { inline: true };
+          }
+        } else if (r.ok) {
+          pkLost = 0;
+          const { pubkeys } = await r.json();
+          for (const item of pubkeys) {
+            if (!(item.party in othersPub) && OTHERS.includes(item.party)) {
+              othersPub[item.party] = item.pubkey;
+              logLine('exchangeLog', `← Received pub<sub>${item.party}</sub> <span class="mono warn">(${item.pubkey.slice(0, 24)}…)</span>.`, 'ok');
+            }
+          }
+          // RB-51-style legibility: name who we're still waiting on, so a
+          // no-show (the AD-01 asymmetry) reads as a specific person to chase
+          // rather than an opaque spinner.
+          const missing = OTHERS.filter(p => !(p in othersPub));
+          if (missing.length) {
+            pkWaitLine.textContent = `Waiting for public keys - still waiting on ${missing.join(', ')}…`;
+          }
         }
+      } catch (err) {
+        if (err && err.inline) throw err; // the session-lost exit above
+        // network blip: keep waiting, don't count it toward the 403 threshold
       }
       if (Object.keys(othersPub).length < OTHERS.length) await sleep(400);
     }
