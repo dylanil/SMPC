@@ -24,6 +24,42 @@ These are accepted demo boundaries, not vulnerabilities to report:
 - **Read endpoints are deliberately un-throttled.** `/api/state`, `/api/result`, and `/api/pubkeys` are polled sub-second by every page in a round, so they carry no rate limit. Guessing a live code by scanning is astronomically unlikely within a session's lifetime, and the prize would be the metadata above, not raw figures.
 - **No certification.** This is not an independent third-party security audit.
 
+## What If Someone Cheats?
+
+The same limits, retold as attack scenarios: what each attempt looks like, what the design
+catches, and what is deliberately out of scope.
+
+- **The aggregator (or server) forges a share.** Caught - by the participants. Every share is
+  ECDSA-signed and verified at write time, and first-write-wins locks it in; `/api/result` then
+  returns each share with its signature and verifying key, and every participant's page
+  re-verifies all of them. A forged share fails those checks even when the forged sum is kept
+  self-consistent. The catch depends on participants actually re-verifying - which is why
+  verification is built into the participant page rather than left as an exercise.
+- **The aggregator misreports the average.** Caught - by recomputation. Anyone holding the
+  session code can re-derive the sum and average from the masked shares in `/api/result`, so the
+  aggregator's headline number carries no authority.
+- **A participant lies about their figure.** Not caught, deliberately. There are no range proofs
+  and no figure caps; a signature proves who submitted a share and that nobody else altered it,
+  not that the figure is truthful or reasonable.
+- **Someone steals an invite.** Depends who joins first. Invites are one-shot: once the intended
+  participant has joined, the stolen invite is dead. A thief who joins *first*, though, claims
+  the slot completely - their signatures verify cleanly from then on, because there is no
+  long-term identity anchor to check a newcomer against. Signed shares do not stop impersonation.
+  (A session *code* is a lesser, separate capability: it lets a holder watch the round's public
+  state and, when no aggregator password is set, delete the session - see the Known Limits bullet
+  above.)
+- **Participants collude.** Privacy has a floor. N−2 colluding participants - or fewer, if the
+  aggregator colludes too - can reconstruct an honest participant's figure from what they jointly
+  know. In a 3-party round, any two participants can recover the third's figure exactly.
+- **Someone drops out.** The round stalls; nothing is revealed, but nothing completes either.
+  There is no dropout recovery or threshold reconstruction - create a fresh session.
+- **The same group runs repeated or overlapping rounds.** Differencing the aggregates can isolate
+  an individual or a subgroup. Nothing in the demo prevents it - one reason the final statistic
+  itself must be treated as sensitive.
+- **Nobody cheats at all - what does the average still reveal?** Possibly plenty. SMPC hides the
+  inputs, not the output: in a small group, or against prior knowledge, the average alone can
+  narrow an individual figure sharply.
+
 ## Reporting
 
 There is **no formal vulnerability-disclosure process and no bug bounty** for this demo. If you spot something useful, please open a GitHub issue or pull request. For anything genuinely sensitive, contact the maintainer via the email on their GitHub profile rather than filing a public issue.

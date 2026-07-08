@@ -215,7 +215,9 @@ A participant's first POST is `/api/join` with `(session, party, token, vk)` - t
 This is a deliberately lightweight educational demo. The boundaries below are known and, in most
 cases, intentional - listed here so they're explicit rather than discovered. Deeper rationale for
 the security-specific points is in *Security notes* immediately below; production-readiness notes
-live in [`docs/PRODUCTION_READINESS_PLAN.md`](docs/PRODUCTION_READINESS_PLAN.md).
+live in [`docs/PRODUCTION_READINESS_PLAN.md`](docs/PRODUCTION_READINESS_PLAN.md). For the same
+boundaries retold as attack scenarios - what happens if the aggregator lies, an invite is stolen,
+or participants collude - see [`SECURITY.md`](SECURITY.md#what-if-someone-cheats).
 
 - **All participants must be online together; there is no dropout handling.** If any participant
   fails to submit, the round stalls - there's no threshold mask-sharing to recover the aggregate
