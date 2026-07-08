@@ -217,6 +217,8 @@
       <div class="invites" id="invites"></div>
       <div class="share-hint hidden" id="metricEcho"></div>
       <div class="share-hint">Codes live in this tab only. If you close or reload this page the session is abandoned.</div>
+      <div class="note">Running it for real: each participant opens their own invite on their own device (the QR works well in person), and the average appears here once everyone submits. Expect a couple of minutes, and everyone must finish - if someone drops out, create a fresh session. To include phones, use the deployed HTTPS site: invite links minted on localhost or a plain-HTTP LAN address won't open on other devices.</div>
+      <div class="boundary-note">Demo only - use test figures, not real, sensitive, regulated, or production data. Not a production or professional service.</div>
       <button class="demo" id="demoBtn"><svg width="11" height="11" viewBox="0 0 12 12" aria-hidden="true" style="vertical-align:-1px; margin-right:7px"><path d="M3 2l7 4-7 4z" fill="currentColor"/></svg>Demo: simulate all participants in this tab</button>
       <div class="note">Alone? This runs the real wire protocol for every invite above - join, key exchange, signed masked shares - so you can watch a full round solo. It consumes all the invites, so don't use it for a round with real participants.</div>
       <div class="note">Three participants is the smallest round and the easiest to watch - a teaching size. In small groups the final average itself can still narrow down individual figures, especially if participants collude or re-run overlapping rounds.</div>
