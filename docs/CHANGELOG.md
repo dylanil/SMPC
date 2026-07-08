@@ -2,6 +2,24 @@
 
 Notable changes that affect the public demo, threat model, or operator workflow.
 
+## 2026-07-08 - Take the evidence home
+
+- **Round transcript download + offline verification.** Every completed round's result card now
+  offers **Download transcript (JSON)** - the round's public evidence (masked shares, signatures,
+  verifying keys, sum, stated average), built entirely client-side from data the server already
+  publishes to any session-code holder. A new `python verify_round.py --transcript <file>` mode
+  re-verifies every signature and recomputes the sum and displayed average offline, with no server
+  running and no trust in the page. The test suite pins the transcript shape and confirms a forged
+  self-consistent share fails the signature check.
+- **"What If Someone Cheats?"** - SECURITY.md now retells the Known Limits as attack scenarios
+  (forged share, misreported average, lying participant, stolen invite, collusion, dropout,
+  repeated rounds, aggregate sensitivity), each stating what the design catches vs what is out of
+  scope.
+- **Copy honesty + real-round guidance.** The solo-demo watch guide no longer claims masked shares
+  "look unrelated to the inputs" (falsifiable at extreme figure scales); the aggregator's invite
+  card now explains how to run a real multi-device round (QR flow, everyone must finish, phones
+  need the deployed HTTPS site) with the test-figures warning alongside.
+
 ## 2026-06-15 - Practical portfolio cleanup
 
 - **Exact browser decimals.** Participant figures are now parsed as plain ASCII decimal strings directly into the `1e6` BigInt fixed-point representation. The UI rejects exponent notation, commas, `Infinity`, blank input, and non-ASCII digits instead of letting browser `Number` parsing quietly round or normalize them. Display of sums and averages now formats from BigInt too.

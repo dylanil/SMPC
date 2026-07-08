@@ -33,7 +33,8 @@ import urllib.request
 from cryptography.hazmat.primitives.asymmetric import ec
 
 from verify_round import (BASE, SCALE, api, api_status, mine_pow, b64, raw_pub,
-                          sign_raw, canonical, derive_mask)
+                          sign_raw, canonical, derive_mask,
+                          check_transcript, format_average_fixed)
 from server import _leading_zero_bits  # the real server bit-count rule (RB-48)
 
 # A >64-byte input so SHA-256 spans multiple blocks - pow.js' hand-rolled
@@ -173,6 +174,30 @@ def test_first_write_wins(ctx):
     st, _ = api_status("/api/share", {"server_token": ctx["bearer"][a], "share": other_share,
                                       "sig": sign_raw(ctx["sign_keys"][a], canonical("share", code, a, other_share))})
     check("FWW share conflict (different -> 409)", st == 409)
+
+
+def test_transcript(ctx):
+    # Offline transcript pin: the dict below mirrors exactly what the aggregator's
+    # "Download transcript" button emits from the /api/result payload. It must
+    # verify via check_transcript, and a forged share must fail the signature
+    # check even when the forger keeps the sum self-consistent (the same lie the
+    # tamper card demonstrates).
+    result = api(f"/api/result?session={ctx['code']}")
+    t = {"format": "cravage-transcript-1", "session": ctx["code"],
+         "parties": result["parties"], "scale": str(SCALE),
+         "shares": result["shares"], "share_sigs": result["share_sigs"],
+         "vks": result["vks"], "sum": result["sum"],
+         "average": format_average_fixed(int(result["sum"]), len(result["parties"]))}
+    check("transcript verifies offline (signatures + sum + average)",
+          check_transcript(t) == [])
+    forged = json.loads(json.dumps(t))  # deep copy
+    p0 = forged["parties"][0]
+    forged["shares"][p0] = str(int(forged["shares"][p0]) + SCALE)
+    forged["sum"] = str(int(forged["sum"]) + SCALE)
+    forged["average"] = format_average_fixed(int(forged["sum"]), len(forged["parties"]))
+    fails = check_transcript(forged)
+    check("forged self-consistent share fails the offline signature check",
+          len(fails) == 1 and fails[0].startswith(f"{p0}: signature"))
 
 
 def test_malformed_share(ctx):
@@ -334,6 +359,7 @@ def main():
     test_n_sweep()
     ctx = run_round(3)
     test_first_write_wins(ctx)
+    test_transcript(ctx)
     test_malformed_share(ctx)
     test_bearer_tamper(ctx)
     test_signature_reject()

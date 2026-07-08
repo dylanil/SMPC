@@ -41,6 +41,12 @@ Run the browser numeric contract tests without the server:
 node tests_numeric.js
 ```
 
+Verify a downloaded round transcript offline (no server needed):
+
+```bash
+python verify_round.py --transcript <file.json>
+```
+
 Run the auth-layer suite any time - it needs no pre-running server (it tests in-process and
 spawns its own password-configured instance on a scratch port):
 

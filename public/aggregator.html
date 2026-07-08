@@ -262,6 +262,8 @@
       <div class="value" id="avgValue">-</div>
     </div>
     <div class="note" id="resultNote">The aggregator derived only the sum (and therefore the average). Individual figures remain unknown.</div>
+    <button class="demo" id="transcriptBtn">Download transcript (JSON)</button>
+    <div class="note">The transcript is exactly what the server already publishes for this round - the masked shares, each participant's signature over their share, the verifying keys registered at join, and the sum. Anyone can re-check it offline without trusting this page: <code>python verify_round.py --transcript &lt;file&gt;</code> (<a href="https://github.com/dylanil/SMPC" target="_blank" rel="noopener">script in the repo</a>) re-verifies every signature and recomputes the average.</div>
   </div>
 
   <div class="card hidden" id="revealCard">
@@ -743,6 +745,38 @@
   }
 
   document.getElementById('tamperBtn').addEventListener('click', runTamperCheck);
+
+  // Round transcript download: repackages the /api/result payload this page
+  // already holds (RESULT_DATA) plus the session context - nothing that isn't
+  // already public to any holder of the session code. Built and saved entirely
+  // client-side (like the QR codes: no third-party service ever sees round
+  // data). verify_round.py --transcript re-checks the file offline; keep the
+  // field names in sync with check_transcript there.
+  function downloadTranscript() {
+    if (!RESULT_DATA) return;
+    const t = {
+      format: 'cravage-transcript-1',
+      session: SESSION,
+      parties: PARTIES,
+      scale: SCALE.toString(),
+      shares: RESULT_DATA.shares,
+      share_sigs: RESULT_DATA.share_sigs,
+      vks: RESULT_DATA.vks,
+      sum: RESULT_DATA.sum,
+      average: formatAverageFixed(BigInt(RESULT_DATA.sum), PARTIES.length),
+    };
+    if (METRIC) t.metric = METRIC;
+    const blob = new Blob([JSON.stringify(t, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'cravage-transcript-' + SESSION + '.json';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+  document.getElementById('transcriptBtn').addEventListener('click', downloadTranscript);
 
   // RB-28: the in-tab demo needs WebCrypto (secure context - HTTPS or localhost).
   // Creating a session and watching a real round don't, so only the demo is

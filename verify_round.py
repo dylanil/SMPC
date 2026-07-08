@@ -3,18 +3,27 @@
 Re-implements the browser client (smpc-core.js) with `cryptography` to prove
 the wire contract - PoW, canonical messages, ECDH+HKDF mask derivation, raw
 r||s ECDSA signatures, sign convention - still matches end-to-end. Exits 0 and
-prints the average if every step verifies. Dev tool only; not shipped.
+prints the average if every step verifies.
+
+Offline mode: `verify_round.py --transcript <file.json>` checks a round
+transcript downloaded from the aggregator's result card - it re-verifies every
+share signature against the verifying key registered at join and recomputes
+the sum and displayed average, with no server running and trusting nothing but
+the file. Runs from the repo; not served by the app.
 """
 import base64
 import hashlib
 import json
 import sys
+import unicodedata
 import urllib.error
 import urllib.request
 
+from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import ec
-from cryptography.hazmat.primitives.asymmetric.utils import decode_dss_signature
+from cryptography.hazmat.primitives.asymmetric.utils import (
+    decode_dss_signature, encode_dss_signature)
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 
 BASE = "http://127.0.0.1:8765"
@@ -23,7 +32,7 @@ SCALE = 1_000_000
 # expected average is always computable by eye. N=10 doubles as an empirical
 # check of the demo-mode rate budget: this script produces the same traffic
 # pattern from one IP as the aggregator's simulator.
-N = int(sys.argv[1]) if len(sys.argv) > 1 else 3
+N = int(sys.argv[1]) if len(sys.argv) > 1 and sys.argv[1].isdigit() else 3
 
 
 def api(path, body=None):
@@ -100,6 +109,80 @@ def derive_mask(my_ecdh, their_pub_b64, lo, hi):
 METRIC = "Average claim severity (£)"
 
 
+def format_average_fixed(sum_fixed, n, max_dp=2):
+    """Mirror smpc-core.js formatAverageFixed exactly: render (sum_fixed / n)
+    at up to max_dp decimal places, rounded half away from zero, trailing
+    zeros stripped, never "-0". Pure integer math - no float precision loss."""
+    neg = sum_fixed < 0
+    abs_v = -sum_fixed if neg else sum_fixed
+    divisor = n * SCALE
+    units, rem = divmod(abs_v * 10 ** max_dp, divisor)
+    if rem * 2 >= divisor:
+        units += 1
+    if units == 0:
+        return "0"
+    whole, frac_units = divmod(units, 10 ** max_dp)
+    frac = str(frac_units).zfill(max_dp).rstrip("0")
+    return ("-" if neg else "") + str(whole) + ("." + frac if frac else "")
+
+
+def check_transcript(t):
+    """Verify a parsed transcript dict; return a list of failure strings
+    (empty means everything checks out). Pure function - no printing, no
+    network - so tests can pin it directly."""
+    code, parties = t["session"], t["parties"]
+    failures = []
+    for p in parties:
+        try:
+            share = t["shares"][p]
+            raw = base64.b64decode(t["share_sigs"][p])
+            der = encode_dss_signature(int.from_bytes(raw[:32], "big"),
+                                       int.from_bytes(raw[32:], "big"))
+            vk = ec.EllipticCurvePublicKey.from_encoded_point(
+                ec.SECP256R1(), base64.b64decode(t["vks"][p]))
+            vk.verify(der, canonical("share", code, p, share).encode(),
+                      ec.ECDSA(hashes.SHA256()))
+        except InvalidSignature:
+            failures.append(f"{p}: signature does not verify - the share or its "
+                            "signature doesn't match the key registered at join")
+        except (KeyError, ValueError) as e:
+            failures.append(f"{p}: malformed transcript entry ({e})")
+    total = sum(int(t["shares"][p]) for p in parties)
+    if total != int(t["sum"]):
+        failures.append(f"shares sum to {total} but the transcript says {t['sum']}")
+    stated = t.get("average")
+    if stated is not None and stated != format_average_fixed(total, len(parties)):
+        failures.append(f"recomputed average {format_average_fixed(total, len(parties))} "
+                        f"!= stated average {stated}")
+    return failures
+
+
+def _clean(s, max_len=300):
+    """Strip Unicode control characters (category Cc) before printing. The
+    transcript is a user-supplied file (GAP-S4 lens): don't let a crafted
+    session/metric/share string smuggle ANSI escapes into the terminal."""
+    out = "".join(ch for ch in str(s) if unicodedata.category(ch) != "Cc")
+    return out[:max_len]
+
+
+def verify_transcript(path):
+    with open(path, encoding="utf-8") as f:
+        t = json.load(f)
+    metric = f" metric {_clean(t['metric'])!r}" if t.get("metric") else ""
+    print(f"transcript: session {_clean(t['session'])} "
+          f"parties {[_clean(p, 20) for p in t['parties']]}{metric}")
+    failures = check_transcript(t)
+    if failures:
+        for line in failures:
+            print("FAIL:", _clean(line))
+        return 1
+    total = sum(int(t["shares"][p]) for p in t["parties"])
+    avg = format_average_fixed(total, len(t["parties"]))
+    print(f"PASS: all {len(t['parties'])} signatures verify; "
+          f"sum recomputed from the shares; average = {avg}")
+    return 0
+
+
 def main():
     sess = api("/api/session/new", {"n": N, "metric": METRIC, **mine_pow()})
     code, tokens, parties = sess["code"], sess["tokens"], sess["parties"]
@@ -160,4 +243,9 @@ def main():
 
 
 if __name__ == "__main__":
+    if len(sys.argv) > 1 and sys.argv[1] == "--transcript":
+        if len(sys.argv) != 3:
+            print("usage: verify_round.py --transcript <file.json>")
+            sys.exit(2)
+        sys.exit(verify_transcript(sys.argv[2]))
     sys.exit(main())
