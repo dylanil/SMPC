@@ -166,6 +166,24 @@
     margin:0; padding-left:18px; color:var(--muted);
   }
   .watch-guide li { margin:3px 0; }
+  .own-figures { margin:12px 0 4px; font-size:13px; }
+  .own-figures summary { cursor:pointer; color:var(--muted); }
+  .own-figures summary:hover { color:var(--text); }
+  .own-figures-warn {
+    margin:10px 0 8px; padding:8px 12px; background:rgba(255,207,122,.08);
+    border-left:3px solid rgba(255,207,122,.45); border-radius:var(--r-sm);
+    color:#ffcf7a; font-size:12px;
+  }
+  .own-figures-grid { display:flex; flex-wrap:wrap; gap:10px; }
+  .own-figures-grid label { display:flex; flex-direction:column; gap:4px; font-size:12px; }
+  .own-figures-grid label span { color:var(--role-color, var(--muted)); font-weight:600; }
+  .own-figures-grid input {
+    width:130px; padding:7px 9px; background:var(--panel-2); color:var(--text);
+    border:1px solid var(--border); border-radius:var(--r-sm);
+    font-family:var(--font-mono); font-size:13px;
+  }
+  .own-figures-grid input[aria-invalid="true"] { border-color:#ff7a8a; }
+  .own-figures .err { color:#ff7a8a; font-size:12px; margin-top:6px; min-height:0; }
   .reveal-check {
     margin-top:12px; padding:10px 14px; background:var(--panel-2);
     border-radius:var(--r-sm); font-family:var(--font-mono); font-size:13px; color:var(--ok);
@@ -192,7 +210,7 @@
     <div class="badge">Σ</div>
     <div>
       <h1><span class="accent">Cravage</span> Aggregator - demo</h1>
-      <div class="sub">Create a round with Cravage - a cryptographic average - then share sealed invite codes with your participants and watch a private benchmark average appear. In a real round this page only ever receives masked shares - never a participant's raw figure or any pairwise mask. (The in-tab demo mode is the exception: it plays every role locally, so it necessarily knows the figures it generated.)</div>
+      <div class="sub">Create a round with Cravage - a cryptographic average - then share sealed invite codes with your participants and watch a private benchmark average appear. In a real round this page only ever receives masked shares - never a participant's raw figure or any pairwise mask. (The in-tab demo mode is the exception: it plays every role locally, so it necessarily knows every figure it uses.)</div>
     </div>
   </div>
 
@@ -219,6 +237,12 @@
       <div class="share-hint">Codes live in this tab only. If you close or reload this page the session is abandoned.</div>
       <div class="note">Running it for real: each participant opens their own invite on their own device (the QR works well in person), and the average appears here once everyone submits. Expect a couple of minutes, and everyone must finish - if someone drops out, create a fresh session. To include phones, use the deployed HTTPS site: invite links minted on localhost or a plain-HTTP LAN address won't open on other devices.</div>
       <div class="boundary-note">Demo only - use test figures, not real, sensitive, regulated, or production data. Not a production or professional service.</div>
+      <details class="own-figures" id="ownFigures">
+        <summary>Use my own figures in the demo (optional)</summary>
+        <div class="own-figures-warn">Test figures only - anything typed here is shown on screen in the reveal card and folded into the round's downloadable transcript. Blank fields get a random figure.</div>
+        <div class="own-figures-grid" id="ownFigureInputs"></div>
+        <div class="err" id="ownFiguresErr" aria-live="polite"></div>
+      </details>
       <button class="demo" id="demoBtn"><svg width="11" height="11" viewBox="0 0 12 12" aria-hidden="true" style="vertical-align:-1px; margin-right:7px"><path d="M3 2l7 4-7 4z" fill="currentColor"/></svg>Demo: simulate all participants in this tab</button>
       <div class="note">Alone? This runs the real wire protocol for every invite above - join, key exchange, signed masked shares - so you can watch a full round solo. It consumes all the invites, so don't use it for a round with real participants.</div>
       <div class="note">Three participants is the smallest round and the easiest to watch - a teaching size. In small groups the final average itself can still narrow down individual figures, especially if participants collude or re-run overlapping rounds.</div>
@@ -230,13 +254,13 @@
   <div class="card hidden" id="statusCard">
     <h2>Status</h2>
     <div class="demo-banner hidden" id="demoBanner">
-      <b>Solo demo mode.</b> This tab generates and knows every figure. Privacy only holds when each participant runs separately in their own browser. The protocol traffic below is real: every join, key exchange, and signed masked share went over the wire and was verified by the server exactly as in a live round.
+      <b>Solo demo mode.</b> This tab knows every figure - generated here or typed in by you. Privacy only holds when each participant runs separately in their own browser. The protocol traffic below is real: every join, key exchange, and signed masked share went over the wire and was verified by the server exactly as in a live round.
     </div>
     <div class="watch-guide hidden" id="demoGuide">
       <div class="guide-title">What to watch</div>
       <ul>
         <li>Participants submit masked shares, not raw figures.</li>
-        <li>Each masked share arrives looking like a random integer, not a recognisable figure.</li>
+        <li>Each masked share arrives looking like a random integer - the pairwise masks swamp any everyday-scale figure (only an astronomically large one could show through).</li>
         <li>Summing the shares cancels every pairwise mask, leaving only the total - the reveal card then checks the average against the simulated raw figures.</li>
       </ul>
     </div>
@@ -262,6 +286,7 @@
       <div class="value" id="avgValue">-</div>
     </div>
     <div class="note" id="resultNote">The aggregator derived only the sum (and therefore the average). Individual figures remain unknown.</div>
+    <div class="note hidden" id="sigCheckNote" aria-live="polite"></div>
     <button class="demo" id="transcriptBtn">Download transcript (JSON)</button>
     <div class="note">The transcript is exactly what the server already publishes for this round - the masked shares, each participant's signature over their share, the verifying keys registered at join, and the sum. Anyone can re-check it offline without trusting this page: <code>python verify_round.py --transcript &lt;file&gt;</code> (<a href="https://github.com/dylanil/SMPC" target="_blank" rel="noopener">script in the repo</a>) re-verifies every signature and recomputes the average.</div>
   </div>
@@ -270,7 +295,7 @@
     <h2>Reveal - simulation only</h2>
     <div class="share-grid" id="revealGrid"></div>
     <div class="reveal-check" id="revealCheck"></div>
-    <div class="note">Simulation-only reveal. These raw figures came from this browser tab and were never sent as raw inputs. The server only ever saw the masked shares above; in a real round nobody, including the aggregator, can produce this card.</div>
+    <div class="note">Simulation-only reveal. These raw figures came from this browser tab and were never sent as raw inputs. The server only ever saw the masked shares above; in a real round nobody, including the aggregator, can produce this card. Want this with figures only you know? Run a real round: create a fresh session and open one of the invites yourself.</div>
   </div>
 
   <div class="card hidden" id="tamperCard">
@@ -297,7 +322,7 @@
 <script>
   const {
     SCALE, parseDecimalToFixed, formatFixed, formatAverageFixed,
-    canonicalMessage, maskSign, escapeHtml,
+    canonicalMessage, maskSign, escapeHtml, buildTranscript,
     generateECDHKeypair, exportEcdhPubB64, derivePairwiseMask,
     generateSigningKeypair, exportVkB64, signMessage, verifyMessage,
   } = window.SMPCCore;
@@ -485,7 +510,7 @@
     document.getElementById('revealGrid').innerHTML = PARTIES.map(p => `
       <div class="share-card" style="--role-color: ${colorVar(p)}">
         <div class="label">x<sub>${p}</sub> (never transmitted)</div>
-        <div class="mono">${DEMO_FIGURES[p]}</div>
+        <div class="mono">${escapeHtml(DEMO_FIGURES[p])}</div>
       </div>`).join('');
     const figuresSumFixed = PARTIES.reduce((acc, p) => acc + parseDecimalToFixed(DEMO_FIGURES[p]), 0n);
     const match = figuresSumFixed === sumFixed;
@@ -560,6 +585,7 @@
         if (result.ready) {
           RESULT_DATA = result;
           renderResult(result.shares, result.sum);
+          verifyResultSignatures(); // async, decoration on top of the rendered result
           return; // stop polling
         }
       }
@@ -614,22 +640,88 @@
     return r.json();
   }
 
+  // User-supplied demo figures (council 2026-07-10). Inputs are rendered
+  // per-party after session creation (PARTIES is fixed then), built with DOM
+  // APIs so nothing user-adjacent ever touches innerHTML.
+  function renderDemoFigureInputs(parties) {
+    const grid = document.getElementById('ownFigureInputs');
+    grid.textContent = '';
+    for (const p of parties) {
+      const label = document.createElement('label');
+      label.style.setProperty('--role-color', colorVar(p));
+      const span = document.createElement('span');
+      span.textContent = 'Figure for ' + p;
+      const input = document.createElement('input');
+      input.id = 'fig' + p;
+      input.placeholder = 'random';
+      input.inputMode = 'decimal';
+      input.autocomplete = 'off';
+      input.spellcheck = false;
+      label.append(span, input);
+      grid.append(label);
+    }
+  }
+
+  // Snapshot + validate every filled figure input. Returns {party: canonical
+  // decimal string} (blank fields omitted = random), or null if any input is
+  // invalid - in which case the inline error names the offending parties and
+  // NOTHING must start. Two load-bearing choices: validation happens before
+  // any invite is redeemed (a mid-round failure strands the session), and the
+  // stored string is formatFixed(parseDecimalToFixed(raw), 6) - the canonical
+  // form - so the reveal card re-parses exactly what was actually summed and
+  // its charset is HTML-inert by construction.
+  function collectOwnFigures() {
+    const err = document.getElementById('ownFiguresErr');
+    err.textContent = '';
+    const out = {};
+    const bad = [];
+    for (const p of PARTIES) {
+      const input = document.getElementById('fig' + p);
+      if (!input) continue;
+      input.removeAttribute('aria-invalid');
+      const raw = input.value.trim();
+      if (!raw) continue;
+      try {
+        out[p] = formatFixed(parseDecimalToFixed(raw), 6);
+      } catch (_) {
+        bad.push(p);
+        input.setAttribute('aria-invalid', 'true');
+      }
+    }
+    if (bad.length) {
+      err.textContent = `${bad.join(', ')}: not a plain decimal figure - use digits with an optional sign and decimal point (no commas, spaces, or exponent).`;
+      return null;
+    }
+    return out;
+  }
+
+  function setOwnFiguresDisabled(disabled) {
+    for (const p of PARTIES) {
+      const input = document.getElementById('fig' + p);
+      if (input) input.disabled = disabled;
+    }
+  }
+
   async function runDemo() {
     const btn = document.getElementById('demoBtn');
+    const userFigures = collectOwnFigures();
+    if (userFigures === null) return; // invalid figure input; inline error shown, nothing started
     btn.disabled = true;
+    setOwnFiguresDisabled(true);
     document.getElementById('demoBanner').classList.remove('hidden');
     document.getElementById('demoGuide').classList.remove('hidden');
 
     const figures = {}, signKps = {}, ecdhKps = {}, bearers = {};
     try {
       // Demo figures should look like the metric: 4-5 digit amounts for the
-      // claim-severity example, a generic 0-100 otherwise.
+      // claim-severity example, a generic 0-100 otherwise. A user-typed figure
+      // (already validated + canonicalised above) overrides the random one.
       const claimsLike = METRIC === METRIC_PREFILL;
       // Phase 1: join - sequential so the mining progress reads sensibly.
       for (const p of PARTIES) {
-        figures[p] = claimsLike
+        figures[p] = userFigures[p] !== undefined ? userFigures[p] : (claimsLike
           ? centsToDecimal(80000 + Math.floor(Math.random() * 2420001)) // £800.00-£25,000.00
-          : centsToDecimal(Math.floor(Math.random() * 10001));          // 0.00-100.00
+          : centsToDecimal(Math.floor(Math.random() * 10001)));         // 0.00-100.00
         signKps[p] = await generateSigningKeypair();
         const vk = await exportVkB64(signKps[p]);
         const line = demoLine(`${p}: mining proof-of-work…`);
@@ -682,6 +774,7 @@
       // creating a fresh session, as the error copy advises) instead of being
       // forced to reload - which would abandon the session.
       btn.disabled = false;
+      setOwnFiguresDisabled(false);
     }
   }
 
@@ -710,6 +803,29 @@
     } catch (_) {
       return false;
     }
+  }
+
+  // Story parity with the participant pages (GAP-C3): re-run the same
+  // signature checks party.html's Step 6 performs, on the live result this
+  // page just rendered. Write-time verification + first-write-wins already
+  // reject forged shares server-side; this line only catches a server that
+  // lies about its stored data - and per AC-02 it says nothing about who
+  // holds each party slot. On a non-secure context WebCrypto is unavailable:
+  // skip quietly; the participant pages and verify_round.py still verify.
+  async function verifyResultSignatures() {
+    const el = document.getElementById('sigCheckNote');
+    try {
+      const results = await Promise.all(
+        PARTIES.map(p => verifyShareSig(p, RESULT_DATA.shares[p])));
+      const failed = PARTIES.filter((p, i) => !results[i]);
+      if (failed.length) {
+        el.style.color = '#ff7a8a';
+        el.textContent = `✗ Signature check failed for ${failed.join(', ')} - the stored shares do not match what those participants signed. Do not trust this average.`;
+      } else {
+        el.textContent = `✓ This page re-verified all ${PARTIES.length} share signatures against the keys registered at join - the shares above are exactly what participants signed. (Integrity only: a signature proves the share wasn't altered, not who holds the slot.)`;
+      }
+      el.classList.remove('hidden');
+    } catch (_) { /* WebCrypto unavailable; leave the note hidden */ }
   }
 
   async function runTamperCheck() {
@@ -750,22 +866,12 @@
   // already holds (RESULT_DATA) plus the session context - nothing that isn't
   // already public to any holder of the session code. Built and saved entirely
   // client-side (like the QR codes: no third-party service ever sees round
-  // data). verify_round.py --transcript re-checks the file offline; keep the
-  // field names in sync with check_transcript there.
+  // data). The transcript shape is single-sourced in SMPCCore.buildTranscript
+  // (shared with party.html); verify_round.py --transcript re-checks the file
+  // offline.
   function downloadTranscript() {
     if (!RESULT_DATA) return;
-    const t = {
-      format: 'cravage-transcript-1',
-      session: SESSION,
-      parties: PARTIES,
-      scale: SCALE.toString(),
-      shares: RESULT_DATA.shares,
-      share_sigs: RESULT_DATA.share_sigs,
-      vks: RESULT_DATA.vks,
-      sum: RESULT_DATA.sum,
-      average: formatAverageFixed(BigInt(RESULT_DATA.sum), PARTIES.length),
-    };
-    if (METRIC) t.metric = METRIC;
+    const t = buildTranscript(SESSION, PARTIES, METRIC, RESULT_DATA);
     const blob = new Blob([JSON.stringify(t, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -820,6 +926,7 @@
       TOKENS = tokens;
       METRIC = metric || '';
       renderInvites(code, tokens);
+      renderDemoFigureInputs(parties);
       renderStatus();
       if (METRIC) {
         const echo = document.getElementById('metricEcho');

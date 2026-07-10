@@ -88,4 +88,26 @@ check(
 );
 check("escapeHtml passes plain text through", escapeHtml("Average claim severity"), "Average claim severity");
 
+// Transcript builder: the browser half of the offline-verification contract.
+// Field names and the average must match what verify_round.py's
+// check_transcript consumes (and tests.py's server-built twin pins).
+const transcript = global.SMPCCore.buildTranscript("ABCDEF", ["A", "B", "C"], "", {
+  shares: { A: "1000000", B: "2000000", C: "3000000" },
+  share_sigs: { A: "sA", B: "sB", C: "sC" },
+  vks: { A: "vA", B: "vB", C: "vC" },
+  sum: "6000000",
+});
+check(
+  "buildTranscript pins the field set and order-independent shape",
+  JSON.stringify(Object.keys(transcript).sort()),
+  '["average","format","parties","scale","session","share_sigs","shares","sum","vks"]',
+);
+check("buildTranscript format tag", transcript.format, "cravage-transcript-1");
+check("buildTranscript recomputes the displayed average exactly", transcript.average, "2");
+check(
+  "buildTranscript includes metric only when set",
+  "metric" in global.SMPCCore.buildTranscript("X", ["A"], "Avg pay", { shares: {}, share_sigs: {}, vks: {}, sum: "0" }),
+  true,
+);
+
 console.log(`\nALL ${passed} NUMERIC CHECKS PASSED`);

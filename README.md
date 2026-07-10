@@ -15,9 +15,9 @@ The name is a blend of **cr**yptographic **av**er**age** (pronounced "kruh-VAHZH
 
 **Privacy you don't have to take on trust.** Most "we do MPC" demos can't be checked by the viewer; this one can. Every result is independently verifiable:
 
-- each participant's page recomputes the sum and re-verifies *every* signature (Step 6);
+- each participant's page recomputes the sum and re-verifies *every* signature (Step 6), and the aggregator page re-runs the same signature checks on every live result;
 - [`verify_round.py`](verify_round.py) replays the whole wire protocol headless as a genuine second implementation;
-- every completed round offers a **Download transcript** button on the result card - a JSON file of the round's public evidence (masked shares, signatures, verifying keys, sum) that `python verify_round.py --transcript <file>` re-checks offline: every signature re-verified and the average recomputed, with no server running and no trust in the page;
+- every completed round offers a **Download transcript** button on the result card (aggregator and participant pages alike) - a JSON file of the round's public evidence (masked shares, signatures, verifying keys, sum) that `python verify_round.py --transcript <file>` re-checks offline: every signature re-verified and the average recomputed, with no server running and no trust in the page;
 - the solo-demo **reveal card** (the image above) re-derives (Σ x)/N from the raw figures and shows it matches the result computed from masked shares alone.
 
 **Reviewed like a small safety-critical system.** Larger changes went through a lightweight review-council workflow before implementation: scope the proposal, ask only the relevant expert lenses for isolated opinions, include a challenger, reconcile disagreements, then move only after an explicit go/revise/no-go recommendation. This isn't just a claim - [`docs/review/`](docs/review/) publishes the campaign summary (three independent multi-domain audit passes, a fully resolved 56-item release board, zero refutations on re-review) and two verbatim council transcripts.
@@ -104,7 +104,7 @@ Each participant enters their figure and clicks *Start Protocol*. Once all N sha
 
 ### Try it alone
 
-Open [`/aggregator?demo=1`](https://fl-wg-smpc.fly.dev/aggregator?demo=1) to create a 3-party session and run the simulator automatically. The normal aggregator page also offers **Demo: simulate all participants in this tab** after you create a session. It runs every participant's side of the protocol - proof-of-work, join, signed key exchange, mask derivation, signed masked shares - over the real wire, with random figures, so you can watch a complete round solo.
+Open [`/aggregator?demo=1`](https://fl-wg-smpc.fly.dev/aggregator?demo=1) to create a 3-party session and run the simulator automatically. The normal aggregator page also offers **Demo: simulate all participants in this tab** after you create a session. It runs every participant's side of the protocol - proof-of-work, join, signed key exchange, mask derivation, signed masked shares - over the real wire, with random figures, so you can watch a complete round solo. On the manual path you can optionally type your own figures for the simulated participants (blank fields stay random) - test figures only, since the demo tab necessarily sees every figure and echoes them in the reveal card.
 
 ![A completed round: the average, plus the simulation-only reveal that re-derives (Σ x)/N from the raw figures and confirms it matches the masked-share result.](docs/assets/screenshot3.png)
 

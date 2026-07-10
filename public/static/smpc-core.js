@@ -97,6 +97,28 @@
     return displayUnitsToString(roundedDisplayUnits(BigInt(sumFixed), n, maxDp), maxDp);
   }
 
+  // Round transcript (format cravage-transcript-1): repackage the /api/result
+  // payload plus session context for offline verification. Single-sourced here
+  // so the aggregator and party pages can never emit divergent transcripts.
+  // Field names are pinned three ways - tests_numeric.js (this builder),
+  // tests.py (a server-built twin), and check_transcript in verify_round.py
+  // (the consumer) - keep all of them in sync.
+  function buildTranscript(session, parties, metric, resultData) {
+    const t = {
+      format: "cravage-transcript-1",
+      session: session,
+      parties: parties,
+      scale: SCALE.toString(),
+      shares: resultData.shares,
+      share_sigs: resultData.share_sigs,
+      vks: resultData.vks,
+      sum: resultData.sum,
+      average: formatAverageFixed(BigInt(resultData.sum), parties.length),
+    };
+    if (metric) t.metric = metric;
+    return t;
+  }
+
   // escapeHtml: neutralise a peer/aggregator-supplied string before it touches
   // innerHTML (RB-47 defence-in-depth - the share validator already constrains
   // shares to decimals, but the guard belongs at the sink too).
@@ -187,7 +209,7 @@
 
   window.SMPCCore = {
     SCALE, toFixed, parseDecimalToFixed, formatFixed, formatAverageFixed,
-    canonicalMessage, maskSign, escapeHtml,
+    canonicalMessage, maskSign, escapeHtml, buildTranscript,
     b64encode, b64decode,
     generateECDHKeypair, exportEcdhPubB64, importEcdhPub, derivePairwiseMask,
     generateSigningKeypair, exportVkB64, signMessage, importVk, verifyMessage,

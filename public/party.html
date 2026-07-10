@@ -160,6 +160,7 @@
   // aggregator's demo mode via smpc-core.js.
   const {
     parseDecimalToFixed, formatAverageFixed, canonicalMessage, maskSign,
+    buildTranscript,
     generateECDHKeypair, exportEcdhPubB64, derivePairwiseMask,
     generateSigningKeypair, exportVkB64, signMessage, verifyMessage,
   } = window.SMPCCore;
@@ -572,7 +573,25 @@
               <div style="margin-top:10px; font-size:12px; color:var(--muted); font-style:italic;">
                 Each share is signed by its party's sk; the server stores both the sig and the vk that arrived at /api/join. ECDSA verification here uses the vk the server returned - so a share signed by a key other than the one registered at join surfaces as ✗ INVALID. (It does <em>not</em> detect an interceptor who registered their own key at join in the first place - see the impersonation limitation in the README.) Without all ${PARTIES.length} sigs valid, you should not trust the average.
               </div>
+              <button class="go" id="transcriptBtn" style="margin-top:12px">Download transcript (JSON)</button>
+              <div style="margin-top:8px; font-size:12px; color:var(--muted);">
+                Take this round's evidence with you - the masked shares, signatures, verifying keys, and sum - and re-check it offline with <code>python verify_round.py --transcript &lt;file&gt;</code> from the <a href="https://github.com/dylanil/SMPC" target="_blank" rel="noopener">repo</a>, with no server and no trust in this page.
+              </div>
             `;
+            // Transcript download: shape single-sourced in SMPCCore.buildTranscript
+            // (shared with the aggregator page); saved entirely client-side.
+            document.getElementById('transcriptBtn').addEventListener('click', () => {
+              const t = buildTranscript(SESSION, PARTIES, ROUND_METRIC, data);
+              const blob = new Blob([JSON.stringify(t, null, 2)], { type: 'application/json' });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = 'cravage-transcript-' + SESSION + '.json';
+              document.body.appendChild(a);
+              a.click();
+              a.remove();
+              setTimeout(() => URL.revokeObjectURL(url), 1000);
+            });
             // Metric is aggregator-typed text: inject via textContent, never
             // into the innerHTML template above.
             if (ROUND_METRIC) {

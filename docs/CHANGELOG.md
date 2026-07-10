@@ -2,6 +2,19 @@
 
 Notable changes that affect the public demo, threat model, or operator workflow.
 
+## 2026-07-10 - Verification parity and a demo you can feed
+
+- **Aggregator page now re-verifies signatures on live results.** The same checks each
+  participant's page runs (Step 6) now also run on the aggregator's own result card, with honest
+  scoping: a signature proves a share wasn't altered, not who holds the slot.
+- **Transcript download on participant pages too.** The Step 6 verification card gained the same
+  **Download transcript (JSON)** button as the aggregator; the transcript shape is single-sourced
+  in `smpc-core.js` so the two pages can never diverge, and is pinned by both test suites.
+- **The solo demo accepts your own figures.** An optional collapsed panel lets you type a figure
+  per simulated participant (blank = random; validated up front so a typo can't strand a
+  half-joined session; `?demo=1` auto-run unchanged). Copy warns that typed figures are shown in
+  the reveal card and folded into the transcript - test figures only.
+
 ## 2026-07-08 - Take the evidence home
 
 - **Round transcript download + offline verification.** Every completed round's result card now
