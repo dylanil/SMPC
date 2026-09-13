@@ -1,0 +1,40 @@
+{
+  "average" : "20",
+  "claim" : "This transcript shows that the listed keys signed the listed shares, that they sum and average as stated, and that every listed key signed agreement to this exact set of shares. It does not prove who the participants were, that separate devices or people were involved, or that any input was truthful.",
+  "confirms" : {
+    "A" : "MIDXC9bnwecjiqfCBdOWJBY8Ry22PtQIlc7ip6WWIhMwhnQAUqaES9cerROkfM2GdFfV9mgtPF5wA+/xiUD/Ng==",
+    "B" : "kbsFvmc2+cxUm7PTx1brB/tdELazl4dpGpcsIJxdrtLOi20U1MR65UAg01ZW6/ijgZc3qoyP+8mFYbcrb3iSSA==",
+    "C" : "yWupJF6qUKSdRTibUwlzWqW5QXQGA4aghZ7AwsyA2+SSlIh8kVaown56Dgbv31uTdsdTQfq94PUAFPRUHaZJ7Q=="
+  },
+  "format" : "cravage-transcript-2",
+  "label" : "Average salary",
+  "modulus" : "18446744073709551616",
+  "parties" : [
+    "A",
+    "B",
+    "C"
+  ],
+  "roomcode_confirms" : {
+    "A" : "XZokluX5bzt1JAswip8lsTEqSiEoiL7CQP80I01gOZgZmq52PowpdBbY1lPmJAKqiYL7QA6+U/FL8aBY6uFgKg==",
+    "B" : "WpHplUDlEOTYEIXhoh5WSUBkW7UGPvSdtghncXprMZVZMmG+9GsbvNXRPoA8emRatM8RFNNHpS6RMtW1IIt4ZA==",
+    "C" : "N3f2x/efEwVrxLMHRk0f58O2fELESjK65tlfoUJZcvp/otRit2rGFy91Z8Vgt+zEhX8InyovTrf2hKxWbXTLAA=="
+  },
+  "scale" : "1000000",
+  "session" : "b56c61a2b9ccf155ef9b3b95bba23440.fa05b75d25d3c713e76b06057698b4a1baa8b1b49ec5b373bd267456ead5a0c9",
+  "share_sigs" : {
+    "A" : "3oKicgRK4b4bPVX46z4e4ToGFdTIp7j5vbvTi+5Yam48uiECPCUkmcEOO+fdWShlmZAprauykyF27pehKadVFg==",
+    "B" : "D4/0Wk4W+WIztrx8y+LtI13nVM5r82OzO708OgaNqrIMxQ8AuQ2lFDT1+zkQNmJ43jounQXgfyo/j7qCmG00Ig==",
+    "C" : "OUHd1BbAFEP1fnMQ1t98QuydkjenCkBAZFk3yVQ4xmBB8b4JdeCwBGp/ArJcVscKZxkA4aMND0Z+Wj+NjlMSvw=="
+  },
+  "shares" : {
+    "A" : "4016724455953821763",
+    "B" : "8836166024074217323",
+    "C" : "5593853593741512530"
+  },
+  "sum" : "60000000",
+  "vks" : {
+    "A" : "BH3YihcRiRTQ02TS4bXO/8RUdi2UuQ7VwslTeRL6soG5MRdwk3Mo2s+5HQS61P2y858aM52oOf10utnnee4uf8g=",
+    "B" : "BM8vuLND/NZziTlJopG3xXIYKuwYUxMui/3LeX2XpsT2BiS9rbNrxTljA78xoAVuIJ43OSl11+aWyUNaCidSdIo=",
+    "C" : "BOz30gZp+c3xt2+AaFyT4eFw9FChYCEwhIEkHr0V0cx6Am7mWxyvB9gmsnfBNqvoR8x1vWUpuIAZd7ik3sYXcwk="
+  }
+}

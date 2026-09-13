@@ -10,6 +10,12 @@ transcript downloaded from the aggregator's result card - it re-verifies every
 share signature against the verifying key registered at join and recomputes
 the sum and displayed average, with no server running and trusting nothing but
 the file. Runs from the repo; not served by the app.
+
+The same flag also accepts `cravage-transcript-2`, the format exported by the Cravage iPhone app
+(github.com/dylanil/cravage-ios, docs/SPEC.md section 4 and docs/WIRE.md there). Version 2 sums
+shares modulo 2^64 with an explicit modulus field, and additionally checks every participant's
+signed agreement to the exact share set, their signed room-code confirmation (which covers the
+room label), and a pinned claim sentence stating what the file does and does not prove.
 """
 import base64
 import hashlib
@@ -129,7 +135,11 @@ def format_average_fixed(sum_fixed, n, max_dp=2):
 def check_transcript(t):
     """Verify a parsed transcript dict; return a list of failure strings
     (empty means everything checks out). Pure function - no printing, no
-    network - so tests can pin it directly."""
+    network - so tests can pin it directly. Version-2 files (the iPhone app's
+    format) are routed to check_transcript_v2; everything else is checked as
+    version 1 exactly as before."""
+    if isinstance(t, dict) and t.get("format") == V2_FORMAT:
+        return check_transcript_v2(t)
     code, parties = t["session"], t["parties"]
     failures = []
     for p in parties:
@@ -157,6 +167,144 @@ def check_transcript(t):
     return failures
 
 
+# --- Transcript version 2 (Cravage iPhone app) -------------------------------
+# Byte layouts are specified in cravage-ios docs/WIRE.md. Differences from v1:
+# shares are Int64 values summed modulo 2^64 (the app caps figures so the true
+# sum is exact), the session string is "<session hex>.<roster hash hex>" and is
+# what every signature covers, and the file carries two more signature sets.
+
+V2_FORMAT = "cravage-transcript-2"
+V2_MODULUS = 1 << 64
+V2_CLAIM = ("This transcript shows that the listed keys signed the listed shares, that they sum and "
+            "average as stated, and that every listed key signed agreement to this exact set of shares. "
+            "It does not prove who the participants were, that separate devices or people were "
+            "involved, or that any input was truthful.")
+_V2_LETTERS = "ABCDEFGH"
+_HEX = set("0123456789abcdef")
+
+
+def _lp(b):
+    """Length-prefixed field: 4-byte big-endian length, then the bytes."""
+    return len(b).to_bytes(4, "big") + b
+
+
+def v2_result_digest(session_hex, roster_hash, shares_in_letter_order):
+    h = hashlib.sha256()
+    h.update(_lp(b"cravage-result-confirm-1"))
+    h.update(_lp(session_hex.encode()))
+    h.update(_lp(roster_hash))
+    h.update(bytes([len(shares_in_letter_order)]))
+    for share in shares_in_letter_order:
+        h.update(_lp(share.encode()))
+    return h.hexdigest()
+
+
+def v2_roomcode_digest(roster_hash, label, points_in_letter_order):
+    h = hashlib.sha256()
+    h.update(_lp(b"cravage-roomcode-confirm-1"))
+    h.update(_lp(roster_hash))
+    h.update(_lp(label.encode()))
+    h.update(bytes([len(points_in_letter_order)]))
+    for point in points_in_letter_order:
+        h.update(_lp(point))
+    return h.hexdigest()
+
+
+def _v2_share(text):
+    """Canonical signed decimal Int64 (no leading zeros, no -0), else None."""
+    if not isinstance(text, str) or not text or len(text) > 20:
+        return None
+    body = text[1:] if text.startswith("-") else text
+    if not body or not all(c in "0123456789" for c in body):
+        return None
+    if (len(body) > 1 and body[0] == "0") or text == "-0":
+        return None
+    value = int(text)
+    return value if -(1 << 63) <= value < (1 << 63) else None
+
+
+def _v2_signed64(u):
+    u %= V2_MODULUS
+    return u - V2_MODULUS if u >= (1 << 63) else u
+
+
+def _v2_verify(vk_b64, sig_b64, message):
+    try:
+        raw = base64.b64decode(sig_b64, validate=True)
+        point = base64.b64decode(vk_b64, validate=True)
+        if len(raw) != 64 or len(point) != 65:
+            return False
+        vk = ec.EllipticCurvePublicKey.from_encoded_point(ec.SECP256R1(), point)
+        der = encode_dss_signature(int.from_bytes(raw[:32], "big"), int.from_bytes(raw[32:], "big"))
+        vk.verify(der, message.encode(), ec.ECDSA(hashes.SHA256()))
+        return True
+    except (InvalidSignature, ValueError, TypeError):
+        return False
+
+
+def check_transcript_v2(t):
+    """Verify a parsed cravage-transcript-2 dict; return failure strings (empty = verified)."""
+    if not isinstance(t, dict):
+        return ["not a JSON object"]
+    failures = []
+    if t.get("format") != V2_FORMAT:
+        failures.append("format is not " + V2_FORMAT)
+    if t.get("scale") != str(SCALE):
+        failures.append("scale is not 1000000")
+    if t.get("modulus") != str(V2_MODULUS):
+        failures.append("modulus is not 2^64")
+    if t.get("claim") != V2_CLAIM:
+        failures.append("claim does not match the pinned text")
+    session = t.get("session")
+    parts = session.split(".") if isinstance(session, str) else []
+    if len(parts) != 2 or len(parts[0]) != 32 or len(parts[1]) != 64 or not set(session) - {"."} <= _HEX:
+        return failures + ["session is not a roster-bound session id"]
+    session_hex, roster_hash = parts[0], bytes.fromhex(parts[1])
+    parties = t.get("parties")
+    if not isinstance(parties, list) or not 3 <= len(parties) <= 8 or parties != list(_V2_LETTERS[:len(parties)]):
+        return failures + ["parties must be the letters A.. in order, three to eight of them"]
+    if not isinstance(t.get("label"), str):
+        failures.append("label is missing")
+    for name in ("shares", "share_sigs", "vks", "confirms", "roomcode_confirms"):
+        m = t.get(name)
+        if not isinstance(m, dict) or set(m.keys()) != set(parties) or not all(isinstance(v, str) for v in m.values()):
+            failures.append(name + " does not have exactly one entry per party")
+    if failures:
+        return failures
+
+    values = []
+    for p in parties:
+        value = _v2_share(t["shares"][p])
+        if value is None:
+            failures.append(p + ": share is not a canonical 64-bit decimal")
+            continue
+        values.append(value)
+        if not _v2_verify(t["vks"][p], t["share_sigs"][p], canonical("share", session, p, t["shares"][p])):
+            failures.append(p + ": share signature does not verify under the listed key")
+    if failures:
+        return failures
+    points = [base64.b64decode(t["vks"][p]) for p in parties]
+    if points != sorted(points) or len(set(points)) != len(points):
+        failures.append("letters are not assigned by bytewise order of distinct keys")
+
+    total = _v2_signed64(sum(values))
+    if t.get("sum") != str(total):
+        failures.append("shares sum (mod 2^64) differs from the stated sum")
+    if t.get("average") != format_average_fixed(total, len(parties)):
+        failures.append("stated average does not follow from the sum")
+
+    roomcode = v2_roomcode_digest(roster_hash, t["label"], points)
+    for p in parties:
+        if not _v2_verify(t["vks"][p], t["roomcode_confirms"][p], canonical("roomcode_confirm", session, p, roomcode)):
+            failures.append(p + ": room code signature does not cover this label and roster")
+
+    digest = v2_result_digest(session_hex, roster_hash, [t["shares"][p] for p in parties])
+    for p in parties:
+        if not _v2_verify(t["vks"][p], t["confirms"][p], canonical("result_confirm", session, p, digest)):
+            failures.append(p + ": agreement signature does not cover this exact set of shares")
+    return failures
+
+
 def _clean(s, max_len=300):
     """Strip Unicode control characters (category Cc) before printing. The
     transcript is a user-supplied file (GAP-S4 lens): don't let a crafted
@@ -168,6 +316,8 @@ def _clean(s, max_len=300):
 def verify_transcript(path):
     with open(path, encoding="utf-8") as f:
         t = json.load(f)
+    if isinstance(t, dict) and t.get("format") == V2_FORMAT:
+        return _verify_transcript_v2(t)
     metric = f" metric {_clean(t['metric'])!r}" if t.get("metric") else ""
     print(f"transcript: session {_clean(t['session'])} "
           f"parties {[_clean(p, 20) for p in t['parties']]}{metric}")
@@ -180,6 +330,21 @@ def verify_transcript(path):
     avg = format_average_fixed(total, len(t["parties"]))
     print(f"PASS: all {len(t['parties'])} signatures verify; "
           f"sum recomputed from the shares; average = {avg}")
+    return 0
+
+
+def _verify_transcript_v2(t):
+    print(f"transcript: {V2_FORMAT} label {_clean(t.get('label'), 120)!r} "
+          f"parties {[_clean(p, 20) for p in t.get('parties') or []]}")
+    failures = check_transcript_v2(t)
+    if failures:
+        for line in failures:
+            print("FAIL:", _clean(line))
+        return 1
+    n = len(t["parties"])
+    print(f"PASS: all {n} share, agreement and room-code signatures verify; "
+          f"sum recomputed modulo 2^64; average = {_clean(t['average'], 40)}")
+    print("Scope: " + V2_CLAIM)
     return 0
 
 
